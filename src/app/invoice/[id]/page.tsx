@@ -88,8 +88,8 @@ export default function PublicInvoicePage() {
                   <span style={{ fontSize: '12px' }}>{formatCurrency(doc.subtotal)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #eee' }}>
-                  <span style={{ fontSize: '12px', color: '#666' }}>TPS+TVQ ({doc.taxRate}%)</span>
-                  <span style={{ fontSize: '12px' }}>{formatCurrency(doc.taxAmount)}</span>
+                  <span style={{ fontSize: '12px', color: '#666' }}>Taxes</span>
+                  <span style={{ fontSize: '12px' }}>{formatCurrency(doc.totalTax)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '2px solid #ea580c', marginTop: '4px' }}>
                   <span style={{ fontSize: '14px', fontWeight: '800' }}>TOTAL</span>

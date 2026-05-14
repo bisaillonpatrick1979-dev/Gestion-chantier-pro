@@ -9,6 +9,13 @@ export interface LineItem {
   total: number
 }
 
+export interface TaxLine {
+  id: string
+  name: string
+  rate: number
+  enabled: boolean
+}
+
 export interface Document {
   id: string
   type: DocumentType
@@ -37,14 +44,24 @@ export interface Document {
   }
   items: LineItem[]
   subtotal: number
-  taxRate: number
-  taxAmount: number
+
+  taxes: TaxLine[]
+  totalTax: number
+
+  discountType: 'none' | 'percent' | 'fixed'
+  discountValue: number
+  discountAmount: number
+
+  deposit: number
+
   total: number
+  balanceDue: number
+
   notes: string
   terms: string
+  createdAt: string
   contractorSignature?: string
   contractorSignatureDate?: string
   clientSignature?: string
   clientSignatureDate?: string
-  createdAt: string
 }

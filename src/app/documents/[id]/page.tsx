@@ -18,7 +18,7 @@ export default function DocumentDetailPage() {
   const router = useRouter()
   const {
     documents, updateDocument, deleteDocument,
-    addLineItem, updateLineItem, removeLineItem,
+    addLineItem, updateLineItem, removeLineItem, addTax, updateTax, removeTax, updateDiscount, updateDeposit,
   } = useDocumentStore()
   const { theme } = useThemeStore()
   const { lang } = useLangStore()
@@ -247,6 +247,21 @@ export default function DocumentDetailPage() {
         }}>{lang === 'fr' ? '+ Ajouter un item' : '+ Add item'}</button>
       </div>
 
+
+      {/* DISCOUNT */}
+      <div style={card}><p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>🏷️ {lang === 'fr' ? 'REMISE' : 'DISCOUNT'}</p>
+      <div style={{ display: 'flex', gap: '8px' }}>{(['none', 'percent', 'fixed'] as const).map(type => (<button key={type} onClick={() => updateDiscount(doc.id, type, doc.discountValue)} style={{ flex: 1, padding: '8px', borderRadius: '8px', cursor: 'pointer', border: doc.discountType === type ? `2px solid ${theme.colors.primary}` : `1px solid ${theme.colors.border}`, background: doc.discountType === type ? theme.colors.glow1 : 'transparent', color: doc.discountType === type ? theme.colors.primary : theme.colors.textMuted, fontSize: '12px', fontWeight: '700' }}>{type === 'none' ? (lang === 'fr' ? 'Aucune' : 'None') : type === 'percent' ? '%' : '$'}</button>))}</div>
+      {doc.discountType !== 'none' && (<div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><input type='number' value={doc.discountValue} onChange={e => updateDiscount(doc.id, doc.discountType, Number(e.target.value))} style={inputStyle} /><span style={{ color: theme.colors.primary, fontWeight: '700', fontSize: '16px' }}>{doc.discountType === 'percent' ? '%' : '$'}</span></div>)}
+      </div>
+
+      {/* TAXES */}
+      <div style={card}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>🧾 TAXES</p><button onClick={() => addTax(doc.id)} style={{ padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', border: `1px solid ${theme.colors.primary}`, background: 'transparent', color: theme.colors.primary, fontSize: '12px', fontWeight: '700' }}>+ {lang === 'fr' ? 'Ajouter' : 'Add'}</button></div>
+      {doc.taxes.map(tax => (<div key={tax.id} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: theme.colors.surface, borderRadius: '10px', padding: '10px' }}><button onClick={() => updateTax(doc.id, tax.id, { enabled: !tax.enabled })} style={{ width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', border: `2px solid ${tax.enabled ? theme.colors.primary : theme.colors.border}`, background: tax.enabled ? theme.colors.primary : 'transparent', color: 'white' }}>{tax.enabled ? '✓' : ''}</button><input value={tax.name} onChange={e => updateTax(doc.id, tax.id, { name: e.target.value })} style={{ ...inputStyle, flex: 2, marginTop: 0 }} /><input type='number' value={tax.rate} onChange={e => updateTax(doc.id, tax.id, { rate: Number(e.target.value) })} style={{ ...inputStyle, flex: 1, marginTop: 0, textAlign: 'center' as const }} /><span>%</span><button onClick={() => removeTax(doc.id, tax.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>×</button></div>))}
+      </div>
+
+      {/* DEPOSIT */}
+      <div style={card}><p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>💵 {lang === 'fr' ? 'DÉPÔT / AVANCE' : 'DEPOSIT / ADVANCE'}</p><div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><input type='number' value={doc.deposit || 0} onChange={e => updateDeposit(doc.id, Number(e.target.value))} style={inputStyle}/><span>CAD</span></div></div>
+
       {/* TOTALS */}
       <div style={card}>
         <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>
@@ -254,7 +269,7 @@ export default function DocumentDetailPage() {
         </p>
         {[
           { label: lang === 'fr' ? 'Sous-total' : 'Subtotal', value: formatCurrency(doc.subtotal), color: theme.colors.text },
-          { label: `TPS+TVQ (${doc.taxRate}%)`, value: formatCurrency(doc.taxAmount), color: theme.colors.textMuted },
+          { label: lang === 'fr' ? 'Taxes' : 'Taxes', value: formatCurrency(doc.totalTax), color: theme.colors.textMuted },
           { label: 'TOTAL', value: formatCurrency(doc.total), color: theme.colors.secondary },
         ].map(row => (
           <div key={row.label} style={{
@@ -494,12 +509,27 @@ export default function DocumentDetailPage() {
                 </tbody>
               </table>
 
-              {/* TOTALS */}
+        
+      {/* DISCOUNT */}
+      <div style={card}><p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>🏷️ {lang === 'fr' ? 'REMISE' : 'DISCOUNT'}</p>
+      <div style={{ display: 'flex', gap: '8px' }}>{(['none', 'percent', 'fixed'] as const).map(type => (<button key={type} onClick={() => updateDiscount(doc.id, type, doc.discountValue)} style={{ flex: 1, padding: '8px', borderRadius: '8px', cursor: 'pointer', border: doc.discountType === type ? `2px solid ${theme.colors.primary}` : `1px solid ${theme.colors.border}`, background: doc.discountType === type ? theme.colors.glow1 : 'transparent', color: doc.discountType === type ? theme.colors.primary : theme.colors.textMuted, fontSize: '12px', fontWeight: '700' }}>{type === 'none' ? (lang === 'fr' ? 'Aucune' : 'None') : type === 'percent' ? '%' : '$'}</button>))}</div>
+      {doc.discountType !== 'none' && (<div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><input type='number' value={doc.discountValue} onChange={e => updateDiscount(doc.id, doc.discountType, Number(e.target.value))} style={inputStyle} /><span style={{ color: theme.colors.primary, fontWeight: '700', fontSize: '16px' }}>{doc.discountType === 'percent' ? '%' : '$'}</span></div>)}
+      </div>
+
+      {/* TAXES */}
+      <div style={card}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>🧾 TAXES</p><button onClick={() => addTax(doc.id)} style={{ padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', border: `1px solid ${theme.colors.primary}`, background: 'transparent', color: theme.colors.primary, fontSize: '12px', fontWeight: '700' }}>+ {lang === 'fr' ? 'Ajouter' : 'Add'}</button></div>
+      {doc.taxes.map(tax => (<div key={tax.id} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: theme.colors.surface, borderRadius: '10px', padding: '10px' }}><button onClick={() => updateTax(doc.id, tax.id, { enabled: !tax.enabled })} style={{ width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', border: `2px solid ${tax.enabled ? theme.colors.primary : theme.colors.border}`, background: tax.enabled ? theme.colors.primary : 'transparent', color: 'white' }}>{tax.enabled ? '✓' : ''}</button><input value={tax.name} onChange={e => updateTax(doc.id, tax.id, { name: e.target.value })} style={{ ...inputStyle, flex: 2, marginTop: 0 }} /><input type='number' value={tax.rate} onChange={e => updateTax(doc.id, tax.id, { rate: Number(e.target.value) })} style={{ ...inputStyle, flex: 1, marginTop: 0, textAlign: 'center' as const }} /><span>%</span><button onClick={() => removeTax(doc.id, tax.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>×</button></div>))}
+      </div>
+
+      {/* DEPOSIT */}
+      <div style={card}><p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>💵 {lang === 'fr' ? 'DÉPÔT / AVANCE' : 'DEPOSIT / ADVANCE'}</p><div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><input type='number' value={doc.deposit || 0} onChange={e => updateDeposit(doc.id, Number(e.target.value))} style={inputStyle}/><span>CAD</span></div></div>
+
+      {/* TOTALS */}
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
                 <div style={{ width: '220px' }}>
                   {[
                     { label: lang === 'fr' ? 'Sous-total' : 'Subtotal', value: formatCurrency(doc.subtotal) },
-                    { label: `TPS+TVQ (${doc.taxRate}%)`, value: formatCurrency(doc.taxAmount) },
+                    { label: lang === 'fr' ? 'Taxes' : 'Taxes', value: formatCurrency(doc.totalTax) },
                   ].map(row => (
                     <div key={row.label} style={{
                       display: 'flex', justifyContent: 'space-between',

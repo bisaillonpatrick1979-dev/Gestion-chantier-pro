@@ -1,7 +1,7 @@
 'use client'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { Document, DocumentType, LineItem } from '@/types/documents'
+import { Document, DocumentType, LineItem, TaxLine } from '@/types/documents'
 
 interface DocumentStore {
   documents: Document[]
@@ -12,6 +12,11 @@ interface DocumentStore {
   updateLineItem: (docId: string, itemId: string, updates: Partial<LineItem>) => void
   removeLineItem: (docId: string, itemId: string) => void
   calculateTotals: (docId: string) => void
+  addTax: (docId: string) => void
+  updateTax: (docId: string, taxId: string, updates: Partial<TaxLine>) => void
+  removeTax: (docId: string, taxId: string) => void
+  updateDiscount: (docId: string, type: 'none' | 'percent' | 'fixed', value: number) => void
+  updateDeposit: (docId: string, amount: number) => void
 }
 
 const generateNumber = (type: DocumentType, count: number): string => {
@@ -57,23 +62,21 @@ export const useDocumentStore = create<DocumentStore>()(
             email: '', phone: '',
           },
           company: defaultCompany,
-          items: [{
-            id: Date.now().toString(),
-            description: '',
-            quantity: 1,
-            unitPrice: 0,
-            total: 0,
-          }],
+          items: [{ id: Date.now().toString(), description: '', quantity: 1, unitPrice: 0, total: 0 }],
           subtotal: 0,
-          taxRate: 14.975,
-          taxAmount: 0,
+          taxes: [
+            { id: '1', name: 'TPS', rate: 5, enabled: true },
+            { id: '2', name: 'TVQ', rate: 9.975, enabled: true },
+          ],
+          totalTax: 0,
+          discountType: 'none',
+          discountValue: 0,
+          discountAmount: 0,
+          deposit: 0,
           total: 0,
+          balanceDue: 0,
           notes: '',
-          terms: type === 'facture'
-            ? 'Paiement dû dans 30 jours.'
-            : type === 'devis'
-            ? 'Ce devis est valide pour 30 jours.'
-            : 'Ce contrat est valide une fois signé par les deux parties.',
+          terms: type === 'facture' ? 'Paiement dû dans 30 jours.' : type === 'devis' ? 'Ce devis est valide pour 30 jours.' : 'Ce contrat est valide une fois signé par les deux parties.',
           createdAt: now.toISOString(),
         }
 
@@ -81,61 +84,18 @@ export const useDocumentStore = create<DocumentStore>()(
         return newDoc
       },
 
-      updateDocument: (id, updates) => {
-        set(state => ({
-          documents: state.documents.map(d =>
-            d.id === id ? { ...d, ...updates } : d
-          )
-        }))
-      },
-
-      deleteDocument: (id) => {
-        set(state => ({
-          documents: state.documents.filter(d => d.id !== id)
-        }))
-      },
-
+      updateDocument: (id, updates) => set(state => ({ documents: state.documents.map(d => d.id === id ? { ...d, ...updates } : d) })),
+      deleteDocument: (id) => set(state => ({ documents: state.documents.filter(d => d.id !== id) })),
       addLineItem: (docId) => {
-        const newItem: LineItem = {
-          id: Date.now().toString(),
-          description: '',
-          quantity: 1,
-          unitPrice: 0,
-          total: 0,
-        }
-        set(state => ({
-          documents: state.documents.map(d =>
-            d.id === docId
-              ? { ...d, items: [...d.items, newItem] }
-              : d
-          )
-        }))
+        const newItem: LineItem = { id: Date.now().toString(), description: '', quantity: 1, unitPrice: 0, total: 0 }
+        set(state => ({ documents: state.documents.map(d => d.id === docId ? { ...d, items: [...d.items, newItem] } : d) }))
       },
-
       updateLineItem: (docId, itemId, updates) => {
-        set(state => ({
-          documents: state.documents.map(d => {
-            if (d.id !== docId) return d
-            const items = d.items.map(item => {
-              if (item.id !== itemId) return item
-              const updated = { ...item, ...updates }
-              updated.total = updated.quantity * updated.unitPrice
-              return updated
-            })
-            return { ...d, items }
-          })
-        }))
+        set(state => ({ documents: state.documents.map(d => d.id !== docId ? d : { ...d, items: d.items.map(item => item.id !== itemId ? item : { ...item, ...updates, total: (updates.quantity ?? item.quantity) * (updates.unitPrice ?? item.unitPrice) }) }) }))
         get().calculateTotals(docId)
       },
-
       removeLineItem: (docId, itemId) => {
-        set(state => ({
-          documents: state.documents.map(d =>
-            d.id === docId
-              ? { ...d, items: d.items.filter(i => i.id !== itemId) }
-              : d
-          )
-        }))
+        set(state => ({ documents: state.documents.map(d => d.id !== docId ? d : { ...d, items: d.items.filter(i => i.id !== itemId) }) }))
         get().calculateTotals(docId)
       },
 
@@ -144,11 +104,37 @@ export const useDocumentStore = create<DocumentStore>()(
           documents: state.documents.map(d => {
             if (d.id !== docId) return d
             const subtotal = d.items.reduce((sum, i) => sum + i.total, 0)
-            const taxAmount = subtotal * (d.taxRate / 100)
-            const total = subtotal + taxAmount
-            return { ...d, subtotal, taxAmount, total }
+            let discountAmount = 0
+            if (d.discountType === 'percent') discountAmount = subtotal * (d.discountValue / 100)
+            else if (d.discountType === 'fixed') discountAmount = d.discountValue
+            const subtotalAfterDiscount = subtotal - discountAmount
+            const totalTax = d.taxes.filter(t => t.enabled).reduce((sum, t) => sum + subtotalAfterDiscount * (t.rate / 100), 0)
+            const total = subtotalAfterDiscount + totalTax
+            const balanceDue = total - (d.deposit || 0)
+            return { ...d, subtotal, discountAmount, totalTax, total, balanceDue }
           })
         }))
+      },
+
+      addTax: (docId) => {
+        set(state => ({ documents: state.documents.map(d => d.id !== docId ? d : { ...d, taxes: [...d.taxes, { id: Date.now().toString(), name: 'Taxe', rate: 0, enabled: true }] }) }))
+        get().calculateTotals(docId)
+      },
+      updateTax: (docId, taxId, updates) => {
+        set(state => ({ documents: state.documents.map(d => d.id !== docId ? d : { ...d, taxes: d.taxes.map(t => t.id === taxId ? { ...t, ...updates } : t) }) }))
+        get().calculateTotals(docId)
+      },
+      removeTax: (docId, taxId) => {
+        set(state => ({ documents: state.documents.map(d => d.id !== docId ? d : { ...d, taxes: d.taxes.filter(t => t.id !== taxId) }) }))
+        get().calculateTotals(docId)
+      },
+      updateDiscount: (docId, type, value) => {
+        set(state => ({ documents: state.documents.map(d => d.id !== docId ? d : { ...d, discountType: type, discountValue: value }) }))
+        get().calculateTotals(docId)
+      },
+      updateDeposit: (docId, amount) => {
+        set(state => ({ documents: state.documents.map(d => d.id !== docId ? d : { ...d, deposit: amount }) }))
+        get().calculateTotals(docId)
       },
     }),
     { name: 'document-store-v1' }
