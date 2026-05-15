@@ -17,24 +17,24 @@ export default function BottomNav() {
   const isAdmin = currentEmployee?.role === 'admin'
   const isLoggedIn = !!currentEmployeeId
 
-  // Tabs selon le rôle
+  // ── ADMIN : 5 onglets ─────────────────────────────────────────────────────
+  // Catalogue + Clients + Stats → déplacés dans Réglages
   const adminTabs = [
-    { href: '/',             emoji: '📊', label: t('Dashboard', 'Dashboard')     },
-    { href: '/stats',        emoji: '📈', label: t('Stats', 'Stats')             },
-    { href: '/catalogue',    emoji: '📦', label: t('Catalogue', 'Catalog')       },
-    { href: '/documents',    emoji: '📁', label: t('Documents', 'Documents')     },
-    { href: '/comptabilite', emoji: '💰', label: t('Comptabilité', 'Accounting') },
-    { href: '/clients', emoji: '👥', label: t('Clients', 'Clients') },
-    { href: '/settings',     emoji: '⚙️', label: t('Réglages', 'Settings')      },
+    { href: '/',             emoji: '🏠', label: t('Dashboard',    'Dashboard')  },
+    { href: '/projects',     emoji: '🏗️', label: t('Projets',      'Projects')   },
+    { href: '/documents',    emoji: '🧾', label: t('Documents',    'Documents')  },
+    { href: '/comptabilite', emoji: '📊', label: t('Compta',       'Accounting') },
+    { href: '/settings',     emoji: '⚙️', label: t('Réglages',     'Settings')   },
   ]
 
+  // ── EMPLOYÉ : 3 onglets ───────────────────────────────────────────────────
   const employeeTabs = [
-    { href: '/',      emoji: '📊', label: t('Dashboard', 'Dashboard') },
-    { href: '/stats', emoji: '📈', label: t('Stats', 'Stats')         },
-    { href: '/paye',  emoji: '💵', label: t('Ma paye', 'My pay')      },
+    { href: '/',      emoji: '🏠', label: t('Dashboard', 'Dashboard') },
+    { href: '/stats', emoji: '📈', label: t('Stats',     'Stats')     },
+    { href: '/paye',  emoji: '💵', label: t('Ma paye',   'My pay')    },
   ]
 
-  // Si pas connecté → aucun onglet
+  // ── PAS CONNECTÉ ──────────────────────────────────────────────────────────
   if (!isLoggedIn) {
     return (
       <nav style={{
@@ -66,19 +66,30 @@ export default function BottomNav() {
       justifyContent: 'space-around',
     }}>
       {tabs.map(({ href, emoji, label }) => {
-        const active = pathname === href
+        // Active si pathname exact OU sous-page (ex: /projects/123)
+        const active = pathname === href || (href !== '/' && pathname.startsWith(href))
         return (
           <Link key={href} href={href} style={{
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', gap: '2px',
-            textDecoration: 'none', padding: '8px 12px',
+            textDecoration: 'none', padding: '8px 0',
             flex: 1,
           }}>
-            <span style={{ fontSize: '18px' }}>{emoji}</span>
             <span style={{
-              fontSize: '9px', fontWeight: '600',
+              fontSize: '20px',
+              filter: active ? 'none' : 'grayscale(30%)',
+              transition: 'transform 0.15s',
+              transform: active ? 'scale(1.15)' : 'scale(1)',
+              display: 'block',
+            }}>
+              {emoji}
+            </span>
+            <span style={{
+              fontSize: '9px',
+              fontWeight: active ? '800' : '600',
               letterSpacing: '0.5px',
               color: active ? theme.colors.primary : theme.colors.textMuted,
+              transition: 'color 0.15s',
             }}>
               {label}
             </span>
@@ -86,6 +97,7 @@ export default function BottomNav() {
               <div style={{
                 width: '4px', height: '4px', borderRadius: '50%',
                 background: theme.colors.primary,
+                boxShadow: `0 0 6px ${theme.colors.primary}`,
               }} />
             )}
           </Link>
