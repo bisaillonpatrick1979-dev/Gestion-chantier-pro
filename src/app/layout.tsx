@@ -3,6 +3,7 @@ import './globals.css'
 import ThemeProvider from '@/components/layout/ThemeProvider'
 import Navbar from '@/components/layout/Navbar'
 import BottomNav from '@/components/layout/BottomNav'
+import ThemeInjector from '@/components/ThemeInjector'
 
 export const metadata: Metadata = {
   title: 'Gestion Chantier Pro',
@@ -15,22 +16,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="fr">
+    <html>
       <body>
         <ThemeProvider>
-          <div className="fire-bg" />
-          <div className="stars" />
+          <ThemeInjector />
           <Navbar />
-          <main style={{
-            paddingTop: '64px',
-            paddingBottom: '80px',
-            minHeight: '100vh',
-            position: 'relative',
-            zIndex: 10,
-            padding: '64px 16px 80px 16px',
-          }}>
-            {children}
-          </main>
+          {children}
           <BottomNav />
         </ThemeProvider>
       </body>
