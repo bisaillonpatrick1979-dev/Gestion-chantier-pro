@@ -4,7 +4,6 @@ import { persist } from 'zustand/middleware';
 
 export interface CompanyInfo {
   name: string;
-  ownerName: string;
   address: string;
   city: string;
   province: string;
@@ -12,32 +11,28 @@ export interface CompanyInfo {
   phone: string;
   email: string;
   website: string;
-  logoUrl: string;
+  logo: string; // base64 ou URL
   gstNumber: string;
   wcbNumber: string;
   licenseNumber: string;
-  // Invoice defaults
-  defaultGstRate: number;      // Alberta = 5
-  defaultDepositPercent: number;
-  paymentTerms: string;
-  invoiceNotes: string;
-  invoiceNextNumber: number;
-  quoteNextNumber: number;
-  contractNextNumber: number;
-  // Bank / E-transfer
-  eTransferEmail: string;
-  bankName: string;
+  // Taxes Alberta
+  gstRate: number; // 5% par défaut
+  // Paiement
+  bankInfo: string;
+  paymentTerms: string; // ex: "Net 30"
+  // Notes par défaut sur documents
+  defaultNotes: string;
+  defaultTerms: string;
 }
 
-interface CompanyStore {
+export interface CompanyStore {
   company: CompanyInfo;
-  setCompany: (updates: Partial<CompanyInfo>) => void;
+  updateCompany: (data: Partial<CompanyInfo>) => void;
   resetCompany: () => void;
 }
 
-const DEFAULT_COMPANY: CompanyInfo = {
+const defaultCompany: CompanyInfo = {
   name: 'Hailite Xteriors',
-  ownerName: '',
   address: '',
   city: '',
   province: 'AB',
@@ -45,30 +40,29 @@ const DEFAULT_COMPANY: CompanyInfo = {
   phone: '',
   email: '',
   website: '',
-  logoUrl: '',
+  logo: '',
   gstNumber: '',
   wcbNumber: '',
   licenseNumber: '',
-  defaultGstRate: 5,
-  defaultDepositPercent: 30,
-  paymentTerms: 'Net 15',
-  invoiceNotes: 'Merci pour votre confiance. / Thank you for your business.',
-  invoiceNextNumber: 1001,
-  quoteNextNumber: 2001,
-  contractNextNumber: 3001,
-  eTransferEmail: '',
-  bankName: '',
+  gstRate: 5,
+  bankInfo: '',
+  paymentTerms: 'Net 30',
+  defaultNotes: '',
+  defaultTerms: 'Paiement dû dans les 30 jours suivant la réception de la facture.',
 };
 
 export const useCompanyStore = create<CompanyStore>()(
   persist(
     (set) => ({
-      company: DEFAULT_COMPANY,
-      setCompany: (updates) =>
+      company: defaultCompany,
+
+      updateCompany: (data: Partial<CompanyInfo>) =>
         set((state) => ({
-          company: { ...state.company, ...updates },
+          company: { ...state.company, ...data },
         })),
-      resetCompany: () => set({ company: DEFAULT_COMPANY }),
+
+      resetCompany: () =>
+        set({ company: defaultCompany }),
     }),
     {
       name: 'company-store-v1',
