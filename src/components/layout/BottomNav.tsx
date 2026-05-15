@@ -24,6 +24,7 @@ export default function BottomNav() {
     { href: '/catalogue',    emoji: '📦', label: t('Catalogue', 'Catalog')       },
     { href: '/documents',    emoji: '📁', label: t('Documents', 'Documents')     },
     { href: '/comptabilite', emoji: '💰', label: t('Comptabilité', 'Accounting') },
+    { href: '/clients', emoji: '👥', label: t('Clients', 'Clients') },
     { href: '/settings',     emoji: '⚙️', label: t('Réglages', 'Settings')      },
   ]
 
