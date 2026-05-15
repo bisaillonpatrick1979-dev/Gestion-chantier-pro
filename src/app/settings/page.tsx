@@ -100,9 +100,19 @@ export const useCompanyStore = create<CompanyStore>()(
   )
 )
 
-// Helper to get company field safely
-const getField = (company: CompanyInfo, field: string): string => {
-  return (company as unknown as Record<string, string>)[field] ?? ''
+// ==================
+// NEW EMPLOYEE TYPE
+// ==================
+type WorkMode = 'heure' | 'forfait' | 'surface'
+type EmployeeRole = 'admin' | 'employee'
+
+interface NewEmployee {
+  name: string
+  pin: string
+  workMode: WorkMode
+  hourlyRate: number
+  role: EmployeeRole
+  active: boolean
 }
 
 export default function SettingsPage() {
@@ -118,9 +128,13 @@ export default function SettingsPage() {
 
   const [showAddEmployee, setShowAddEmployee] = useState(false)
   const [activeSection, setActiveSection] = useState<string>('company')
-  const [newEmployee, setNewEmployee] = useState({
-    name: '', pin: '', workMode: 'heure' as const,
-    hourlyRate: 45, role: 'employee' as const, active: true,
+  const [newEmployee, setNewEmployee] = useState<NewEmployee>({
+    name: '',
+    pin: '',
+    workMode: 'heure',
+    hourlyRate: 45,
+    role: 'employee',
+    active: true,
   })
 
   const handleReset = () => {
@@ -385,7 +399,10 @@ export default function SettingsPage() {
               />
               <select
                 value={newEmployee.workMode}
-                onChange={e => setNewEmployee(p => ({ ...p, workMode: e.target.value as 'heure' | 'forfait' | 'surface' }))}
+                onChange={e => setNewEmployee(p => ({
+                  ...p,
+                  workMode: e.target.value as WorkMode
+                }))}
                 style={{ ...inputStyle }}>
                 <option value="heure">⏱ {t('Heure', 'Hour')}</option>
                 <option value="forfait">📦 {t('Forfait', 'Flat rate')}</option>
@@ -400,7 +417,10 @@ export default function SettingsPage() {
               />
               <select
                 value={newEmployee.role}
-                onChange={e => setNewEmployee(p => ({ ...p, role: e.target.value as 'admin' | 'employee' }))}
+                onChange={e => setNewEmployee(p => ({
+                  ...p,
+                  role: e.target.value as EmployeeRole
+                }))}
                 style={{ ...inputStyle }}>
                 <option value="employee">👤 {t('Employé', 'Employee')}</option>
                 <option value="admin">👑 Admin</option>
