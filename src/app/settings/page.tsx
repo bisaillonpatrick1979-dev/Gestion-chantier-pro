@@ -2,182 +2,127 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCompanyStore } from '@/store/useCompanyStore';
+import { useCompanyStore, CompanyInfo } from '@/store/useCompanyStore';
 import { useEmployeeStore } from '@/store/useEmployeeStore';
 import BottomNav from '@/components/BottomNav';
 
-// ─── Icônes SVG inline ────────────────────────────────────────────────────────
-const Icon = {
-  Building: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
-      <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>
-    </svg>
-  ),
-  User: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
-      <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-    </svg>
-  ),
-  Lock: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
-      <rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
-    </svg>
-  ),
-  Tax: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/>
-    </svg>
-  ),
-  Palette: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
-      <circle cx="12" cy="12" r="10"/><circle cx="8" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="8" r="1" fill="currentColor"/><circle cx="16" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="16" r="1" fill="currentColor"/>
-    </svg>
-  ),
-  Bell: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-    </svg>
-  ),
-  Save: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
-      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
-    </svg>
-  ),
-  Image: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
-      <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-    </svg>
-  ),
-  ChevronRight: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
-      <polyline points="9 18 15 12 9 6"/>
-    </svg>
-  ),
-  Check: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
-      <polyline points="20 6 9 12 4 9"/>
-    </svg>
-  ),
-};
+const ChevronRight = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+const SaveIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+    <polyline points="17 21 17 13 7 13 7 21" />
+    <polyline points="7 3 7 8 15 8" />
+  </svg>
+);
+const ImageIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <polyline points="21 15 16 10 5 21" />
+  </svg>
+);
 
-// ─── Section wrapper ──────────────────────────────────────────────────────────
 function Section({
-  icon,
   title,
+  emoji,
   children,
   defaultOpen = false,
 }: {
-  icon: React.ReactNode;
   title: string;
+  emoji: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="mb-3 rounded-2xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-sm">
+    <div className="mb-3 rounded-2xl overflow-hidden border border-white/10 bg-white/5">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-4 text-left hover:bg-white/5 transition-colors"
       >
-        <div className="flex items-center gap-3 font-semibold text-white">
-          <span className="text-blue-400">{icon}</span>
-          {title}
-        </div>
-        <span
-          className={`text-gray-400 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
-        >
-          <Icon.ChevronRight />
+        <span className="font-semibold text-white">{emoji} {title}</span>
+        <span className={`text-gray-400 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}>
+          <ChevronRight />
         </span>
       </button>
-      {open && <div className="px-4 pb-4 space-y-3 border-t border-white/10 pt-3">{children}</div>}
+      {open && (
+        <div className="px-4 pb-4 space-y-3 border-t border-white/10 pt-3">{children}</div>
+      )}
     </div>
   );
 }
 
-// ─── Champ texte ──────────────────────────────────────────────────────────────
 function Field({
-  label,
-  value,
-  onChange,
-  placeholder = '',
-  type = 'text',
-  disabled = false,
+  label, value, onChange, placeholder = '', type = 'text',
 }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  type?: string;
-  disabled?: boolean;
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
 }) {
   return (
     <div>
       <label className="block text-xs text-gray-400 mb-1">{label}</label>
       <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        type={type} value={value} onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        disabled={disabled}
-        className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-blue-400 focus:bg-white/15 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-blue-400 transition"
       />
     </div>
   );
 }
 
-// ─── Textarea ─────────────────────────────────────────────────────────────────
 function TextArea({
-  label,
-  value,
-  onChange,
-  placeholder = '',
-  rows = 3,
+  label, value, onChange, placeholder = '', rows = 3,
 }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  rows?: number;
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number;
 }) {
   return (
     <div>
       <label className="block text-xs text-gray-400 mb-1">{label}</label>
       <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        rows={rows}
-        className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-blue-400 focus:bg-white/15 transition resize-none"
+        value={value} onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder} rows={rows}
+        className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-blue-400 transition resize-none"
       />
     </div>
   );
 }
 
-// ─── Composant principal ──────────────────────────────────────────────────────
+type AnyEmployee = {
+  id: string | number;
+  role?: string;
+  isAdmin?: boolean;
+  name?: string;
+  hourlyRate?: number;
+};
+
 export default function SettingsPage() {
   const router = useRouter();
-  const { company, updateCompany } = useCompanyStore();
-  const { employees, currentEmployeeId } = useEmployeeStore();
 
-  // Vraie logique admin — basée sur l'employé connecté
-  // Compatible avec différentes structures de useEmployeeStore
-  const currentEmployee = Array.isArray(employees)
-    ? employees.find((e: { id: string | number }) => e.id === currentEmployeeId)
+  const company = useCompanyStore((state) => state.company);
+  const updateCompany = useCompanyStore((state) => state.updateCompany);
+
+  const employees = useEmployeeStore((state) => state.employees) as AnyEmployee[];
+  const currentEmployeeId = (useEmployeeStore as unknown as () => { currentEmployeeId?: string | number })(
+  )?.currentEmployeeId;
+
+  const currentEmployee = currentEmployeeId != null
+    ? employees.find((e) => e.id === currentEmployeeId)
     : undefined;
-  const isAdmin =
-    (currentEmployee as { role?: string; isAdmin?: boolean } | undefined)?.role === 'admin' ||
-    (currentEmployee as { role?: string; isAdmin?: boolean } | undefined)?.isAdmin === true ||
-    currentEmployeeId === null ||   // personne connecté = admin par défaut
-    currentEmployeeId === undefined;
 
+  const isAdmin =
+    currentEmployee?.role === 'admin' ||
+    currentEmployee?.isAdmin === true ||
+    currentEmployeeId == null;
+
+  const [form, setForm] = useState<CompanyInfo>({ ...company });
   const [saved, setSaved] = useState(false);
-  const [logoPreview, setLogoPreview] = useState<string>(company.logo || '');
+  const [logoPreview, setLogoPreview] = useState<string>(company.logo ?? '');
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // État local pour édition
-  const [form, setForm] = useState({ ...company });
-
-  const set = (field: keyof typeof form) => (v: string) =>
+  const set = (field: keyof CompanyInfo) => (v: string) =>
     setForm((prev) => ({ ...prev, [field]: v }));
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,12 +138,11 @@ export default function SettingsPage() {
   };
 
   const handleSave = () => {
-    updateCompany(form);
+    updateCompany({ ...form });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
-  // ── Si employé non-admin, afficher message restreint ──────────────────────
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
@@ -206,9 +150,7 @@ export default function SettingsPage() {
           <div className="text-center space-y-4">
             <div className="text-6xl">🔒</div>
             <h2 className="text-xl font-bold text-white">Accès restreint</h2>
-            <p className="text-gray-400 text-sm">
-              Seuls les administrateurs peuvent accéder aux réglages.
-            </p>
+            <p className="text-gray-400 text-sm">Seuls les administrateurs peuvent accéder aux réglages.</p>
             <button
               onClick={() => router.push('/')}
               className="mt-4 px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-500 transition"
@@ -224,7 +166,6 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
-      {/* Header */}
       <div className="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-md border-b border-white/10 px-4 py-4 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-white">⚙️ Réglages</h1>
@@ -238,24 +179,13 @@ export default function SettingsPage() {
               : 'bg-blue-600 text-white hover:bg-blue-500 active:scale-95'
           }`}
         >
-          {saved ? (
-            <>
-              <Icon.Check /> Sauvegardé!
-            </>
-          ) : (
-            <>
-              <Icon.Save /> Sauvegarder
-            </>
-          )}
+          {saved ? '✅ Sauvegardé!' : <><SaveIcon /> Sauvegarder</>}
         </button>
       </div>
 
-      {/* Contenu */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-28 space-y-1">
 
-        {/* ── Infos Compagnie ── */}
-        <Section icon={<Icon.Building />} title="Informations Compagnie" defaultOpen>
-          {/* Logo */}
+        <Section emoji="🏢" title="Informations Compagnie" defaultOpen>
           <div className="flex items-center gap-4 mb-2">
             <div
               onClick={() => fileRef.current?.click()}
@@ -264,15 +194,15 @@ export default function SettingsPage() {
               {logoPreview ? (
                 <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
               ) : (
-                <div className="text-center">
-                  <Icon.Image />
-                  <p className="text-xs text-gray-500 mt-1">Logo</p>
+                <div className="text-center text-gray-500">
+                  <ImageIcon />
+                  <p className="text-xs mt-1">Logo</p>
                 </div>
               )}
             </div>
             <div className="flex-1">
               <p className="text-sm text-white font-medium">Logo compagnie</p>
-              <p className="text-xs text-gray-400">PNG, JPG, SVG — max 2 MB</p>
+              <p className="text-xs text-gray-400">PNG, JPG — max 2 MB</p>
               <button
                 onClick={() => fileRef.current?.click()}
                 className="mt-2 text-xs text-blue-400 hover:text-blue-300 underline"
@@ -280,15 +210,8 @@ export default function SettingsPage() {
                 Changer le logo
               </button>
             </div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              onChange={handleLogoUpload}
-              className="hidden"
-            />
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
           </div>
-
           <Field label="Nom de la compagnie" value={form.name} onChange={set('name')} placeholder="Hailite Xteriors" />
           <Field label="Adresse" value={form.address} onChange={set('address')} placeholder="123 Main St" />
           <div className="grid grid-cols-2 gap-3">
@@ -296,33 +219,31 @@ export default function SettingsPage() {
             <Field label="Province" value={form.province} onChange={set('province')} placeholder="AB" />
           </div>
           <Field label="Code postal" value={form.postalCode} onChange={set('postalCode')} placeholder="T2P 1J9" />
-          <Field label="Téléphone" value={form.phone} onChange={set('phone')} placeholder="(403) 555-0100" type="tel" />
-          <Field label="Courriel" value={form.email} onChange={set('email')} placeholder="info@hailitexteriors.ca" type="email" />
+          <Field label="Téléphone" value={form.phone} onChange={set('phone')} type="tel" placeholder="(403) 555-0100" />
+          <Field label="Courriel" value={form.email} onChange={set('email')} type="email" placeholder="info@hailitexteriors.ca" />
           <Field label="Site web" value={form.website} onChange={set('website')} placeholder="www.hailitexteriors.ca" />
         </Section>
 
-        {/* ── Numéros légaux ── */}
-        <Section icon={<Icon.Tax />} title="Numéros légaux & Taxes">
+        <Section emoji="📋" title="Numéros légaux & Taxes">
           <Field label="Numéro GST (Alberta 5%)" value={form.gstNumber} onChange={set('gstNumber')} placeholder="123456789 RT0001" />
           <Field label="Numéro WCB" value={form.wcbNumber} onChange={set('wcbNumber')} placeholder="WCB-XXXX" />
           <Field label="Numéro de licence" value={form.licenseNumber} onChange={set('licenseNumber')} placeholder="Contractor #" />
           <div>
             <label className="block text-xs text-gray-400 mb-1">Taux GST (%)</label>
-            <input
-              type="number"
-              value={form.gstRate}
-              onChange={(e) => setForm((prev) => ({ ...prev, gstRate: Number(e.target.value) }))}
-              min={0}
-              max={100}
-              step={0.5}
-              className="w-32 bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-400 transition"
-            />
-            <span className="ml-2 text-gray-400 text-sm">Alberta = 5% (GST seulement)</span>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                value={form.gstRate}
+                onChange={(e) => setForm((prev) => ({ ...prev, gstRate: Number(e.target.value) }))}
+                min={0} max={100} step={0.5}
+                className="w-24 bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-400 transition"
+              />
+              <span className="text-gray-400 text-sm">Alberta = 5% GST seulement</span>
+            </div>
           </div>
         </Section>
 
-        {/* ── Paiement ── */}
-        <Section icon={<Icon.Building />} title="Paiement & Modalités">
+        <Section emoji="💳" title="Paiement & Modalités">
           <Field label="Délai de paiement" value={form.paymentTerms} onChange={set('paymentTerms')} placeholder="Net 30" />
           <TextArea
             label="Info bancaire / e-Transfer"
@@ -333,8 +254,7 @@ export default function SettingsPage() {
           />
         </Section>
 
-        {/* ── Notes documents ── */}
-        <Section icon={<Icon.Bell />} title="Notes & Conditions par défaut">
+        <Section emoji="📝" title="Notes & Conditions par défaut">
           <TextArea
             label="Notes par défaut (factures/devis)"
             value={form.defaultNotes}
@@ -343,7 +263,7 @@ export default function SettingsPage() {
             rows={3}
           />
           <TextArea
-            label="Conditions générales par défaut"
+            label="Conditions générales"
             value={form.defaultTerms}
             onChange={set('defaultTerms')}
             placeholder="Paiement dû dans les 30 jours..."
@@ -351,30 +271,27 @@ export default function SettingsPage() {
           />
         </Section>
 
-        {/* ── Sécurité PIN ── */}
-        <Section icon={<Icon.Lock />} title="Sécurité & PIN Admin">
+        <Section emoji="🔒" title="Sécurité & PIN Admin">
           <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 text-sm text-orange-300">
-            ⚠️ Pour changer le PIN admin, utilisez la page <strong>Livre de paye</strong> → Reset PIN.
+            ⚠️ Pour changer le PIN admin, utilisez <strong>Livre de paye → Reset PIN</strong>.
           </div>
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 text-sm text-blue-300">
-            💡 Connecté comme : <strong>{currentEmployee?.name || 'Admin'}</strong> (Admin)
+            💡 Connecté comme : <strong>{currentEmployee?.name ?? 'Admin'}</strong> (Administrateur)
           </div>
         </Section>
 
-        {/* ── Employés ── */}
-        <Section icon={<Icon.User />} title="Employés actifs">
+        <Section emoji="👷" title="Employés actifs">
           <div className="space-y-2">
             {employees.length === 0 ? (
               <p className="text-gray-500 text-sm text-center py-4">Aucun employé enregistré.</p>
             ) : (
               employees.map((emp) => (
-                <div
-                  key={emp.id}
-                  className="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2.5"
-                >
+                <div key={emp.id} className="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2.5">
                   <div>
                     <p className="text-white text-sm font-medium">{emp.name}</p>
-                    <p className="text-gray-400 text-xs capitalize">{emp.role === 'admin' ? '👑 Admin' : '👷 Employé'}</p>
+                    <p className="text-gray-400 text-xs">
+                      {emp.role === 'admin' || emp.isAdmin ? '👑 Admin' : '👷 Employé'}
+                    </p>
                   </div>
                   <div className="text-xs text-gray-500">
                     {emp.hourlyRate ? `$${emp.hourlyRate}/h` : ''}
@@ -391,7 +308,6 @@ export default function SettingsPage() {
           </button>
         </Section>
 
-        {/* Bouton save en bas aussi */}
         <button
           onClick={handleSave}
           className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all ${
@@ -400,13 +316,7 @@ export default function SettingsPage() {
               : 'bg-blue-600 text-white hover:bg-blue-500 active:scale-98'
           }`}
         >
-          {saved ? (
-            <>✅ Réglages sauvegardés!</>
-          ) : (
-            <>
-              <Icon.Save /> Sauvegarder tous les réglages
-            </>
-          )}
+          {saved ? '✅ Réglages sauvegardés!' : <><SaveIcon /> Sauvegarder tous les réglages</>}
         </button>
       </div>
 
