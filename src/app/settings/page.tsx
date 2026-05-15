@@ -106,9 +106,8 @@ export default function SettingsPage() {
   const { company, setCompany } = useCompanyStore();
   const employeeStore = useEmployeeStore();
   const employees = employeeStore.employees ?? [];
-  // Support both 'currentEmployee' and 'activeEmployee' naming conventions
-  const currentEmployee = (employeeStore as Record<string, unknown>).currentEmployee as { role?: string; pin?: string; id?: string; name?: string } | undefined
-    ?? (employeeStore as Record<string, unknown>).activeEmployee as { role?: string; pin?: string; id?: string; name?: string } | undefined;
+  const _s = employeeStore as unknown as Record<string, unknown>;
+  const currentEmployee = (_s.currentEmployee ?? _s.activeEmployee) as ({ role?: string; pin?: string; id?: string; name?: string } | undefined);
 
   const isAdmin = currentEmployee?.role === 'admin';
   const lang = (typeof window !== 'undefined' && localStorage.getItem('lang')) || 'fr';
@@ -292,7 +291,7 @@ export default function SettingsPage() {
           <SectionCard title={t('Gestion des employés', 'Employee Management')}>
             <div className="space-y-2">
               {employees.map((emp) => {
-                const e = emp as Record<string, unknown>;
+                const e = emp as unknown as Record<string, unknown>;
                 return (
                 <div
                   key={e.id as string}
@@ -430,9 +429,9 @@ export default function SettingsPage() {
               />
               <button
                 onClick={() => {
-                  const admin = employees.find((e) => (e as Record<string, unknown>).role === 'admin') as Record<string, unknown> | undefined;
+                  const admin = employees.find((e) => (e as unknown as Record<string, unknown>).role === 'admin') as unknown as Record<string, unknown> | undefined;
                   if (!admin) return;
-                  if ((admin.pin as string) !== adminPinInput) {
+                  if (!admin || (admin.pin as string) !== adminPinInput) {
                     setPinMsg(t('❌ PIN actuel incorrect', '❌ Incorrect current PIN'));
                     return;
                   }
