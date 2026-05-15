@@ -4,101 +4,8 @@ import { useWorkStore } from '@/store/useWorkStore'
 import { useThemeStore } from '@/store/useThemeStore'
 import { useEmployeeStore } from '@/store/useEmployeeStore'
 import { useLangStore } from '@/store/useLangStore'
+import { useCompanyStore, CompanyInfo } from '@/store/useCompanyStore'
 import { themes } from '@/lib/themes'
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-
-// ==================
-// COMPANY STORE
-// ==================
-interface CompanyInfo {
-  name: string
-  ownerName: string
-  phone: string
-  email: string
-  website: string
-  address: string
-  city: string
-  province: string
-  postalCode: string
-  country: string
-  rbq: string
-  neq: string
-  tps: string
-  tvq: string
-  gst: string
-  pst: string
-  hst: string
-  liabilityInsurer: string
-  liabilityPolicyNumber: string
-  liabilityAmount: string
-  liabilityExpiry: string
-  workerCompInsurer: string
-  workerCompNumber: string
-  workerCompExpiry: string
-  errorOmissionInsurer: string
-  errorOmissionNumber: string
-  errorOmissionExpiry: string
-  paymentMethods: string
-  bankName: string
-  bankTransitNumber: string
-  interacEmail: string
-  legalNotes: string
-  warrantyText: string
-}
-
-interface CompanyStore {
-  company: CompanyInfo
-  updateCompany: (updates: Partial<CompanyInfo>) => void
-}
-
-const defaultCompany: CompanyInfo = {
-  name: 'Hailite Xteriors',
-  ownerName: '',
-  phone: '514-555-0000',
-  email: 'info@hailite.com',
-  website: '',
-  address: '123 Rue Principale',
-  city: 'Montréal',
-  province: 'QC',
-  postalCode: 'H1A 1A1',
-  country: 'Canada',
-  rbq: 'RBQ-123456',
-  neq: '',
-  tps: '',
-  tvq: '',
-  gst: '',
-  pst: '',
-  hst: '',
-  liabilityInsurer: '',
-  liabilityPolicyNumber: '',
-  liabilityAmount: '',
-  liabilityExpiry: '',
-  workerCompInsurer: '',
-  workerCompNumber: '',
-  workerCompExpiry: '',
-  errorOmissionInsurer: '',
-  errorOmissionNumber: '',
-  errorOmissionExpiry: '',
-  paymentMethods: 'Chèque, Virement Interac, Comptant',
-  bankName: '',
-  bankTransitNumber: '',
-  interacEmail: '',
-  legalNotes: '',
-  warrantyText: "Tous les travaux sont garantis pour une période de 1 an contre les défauts de main-d'oeuvre.",
-}
-
-export const useCompanyStore = create<CompanyStore>()(
-  persist(
-    (set) => ({
-      company: defaultCompany,
-      updateCompany: (updates: Partial<CompanyInfo>) => set((state: CompanyStore) => ({
-        company: { ...state.company, ...updates } as CompanyInfo
-      })),
-    }),
-    { name: 'company-store-v1' }
-  )
-)
 
 export default function SettingsPage() {
   const { hourlyRate, forfaitAmount, surfaceRate, surfaceArea,
@@ -114,7 +21,6 @@ export default function SettingsPage() {
   const [showAddEmployee, setShowAddEmployee] = useState(false)
   const [activeSection, setActiveSection] = useState<string>('company')
 
-  // État du nouvel employé avec les bons types
   const [empName, setEmpName] = useState('')
   const [empPin, setEmpPin] = useState('')
   const [empWorkMode, setEmpWorkMode] = useState<'heure' | 'forfait' | 'surface'>('heure')
@@ -223,10 +129,7 @@ export default function SettingsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-      <h1 style={{
-        color: theme.colors.primary, fontSize: '14px',
-        letterSpacing: '3px', fontWeight: '700'
-      }}>
+      <h1 style={{ color: theme.colors.primary, fontSize: '14px', letterSpacing: '3px', fontWeight: '700' }}>
         ⚙️ {t('RÉGLAGES', 'SETTINGS')}
       </h1>
 
@@ -292,7 +195,6 @@ export default function SettingsPage() {
           <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>
             🛡️ {t('ASSURANCES', 'INSURANCE')}
           </p>
-
           <div style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px', borderLeft: '3px solid #22c55e' }}>
             <p style={{ color: '#22c55e', fontSize: '12px', fontWeight: '700', marginBottom: '10px' }}>
               ✅ {t('Responsabilité civile', 'General liability')}
@@ -302,16 +204,14 @@ export default function SettingsPage() {
             {renderField(t('Montant de couverture', 'Coverage amount'), 'liabilityAmount', 'Ex: 2 000 000 $')}
             {renderField(t("Date d'expiration", 'Expiry date'), 'liabilityExpiry', '', 'date')}
           </div>
-
           <div style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px', borderLeft: '3px solid #3b82f6' }}>
             <p style={{ color: '#3b82f6', fontSize: '12px', fontWeight: '700', marginBottom: '10px' }}>
-              🏥 {t('CNESST / Accident de travail', 'Workers compensation')}
+              🏥 {t('CNESST / WCB / Accident de travail', 'Workers compensation')}
             </p>
             {renderField(t('Assureur / organisme', 'Insurer / organization'), 'workerCompInsurer')}
             {renderField(t('Numéro de dossier', 'File number'), 'workerCompNumber')}
             {renderField(t("Date d'expiration", 'Expiry date'), 'workerCompExpiry', '', 'date')}
           </div>
-
           <div style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px', borderLeft: '3px solid #f59e0b' }}>
             <p style={{ color: '#f59e0b', fontSize: '12px', fontWeight: '700', marginBottom: '10px' }}>
               📋 {t('Erreurs et omissions', 'Errors & omissions')}
@@ -390,38 +290,19 @@ export default function SettingsPage() {
 
           {showAddEmployee && (
             <div style={{ background: theme.colors.surface, borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <input
-                value={empName}
-                onChange={e => setEmpName(e.target.value)}
-                placeholder={t("Nom de l'employé", 'Employee name')}
-                style={inputStyle}
-              />
-              <input
-                value={empPin}
-                onChange={e => setEmpPin(e.target.value.slice(0, 4))}
-                placeholder={t('PIN 4 chiffres', '4-digit PIN')}
-                type="password"
-                maxLength={4}
-                style={inputStyle}
-              />
-              <select
-                value={empWorkMode}
-                onChange={e => setEmpWorkMode(e.target.value as 'heure' | 'forfait' | 'surface')}
+              <input value={empName} onChange={e => setEmpName(e.target.value)}
+                placeholder={t("Nom de l'employé", 'Employee name')} style={inputStyle} />
+              <input value={empPin} onChange={e => setEmpPin(e.target.value.slice(0, 4))}
+                placeholder={t('PIN 4 chiffres', '4-digit PIN')} type="password" maxLength={4} style={inputStyle} />
+              <select value={empWorkMode} onChange={e => setEmpWorkMode(e.target.value as 'heure' | 'forfait' | 'surface')}
                 style={{ ...inputStyle }}>
                 <option value="heure">⏱ {t('Heure', 'Hour')}</option>
                 <option value="forfait">📦 {t('Forfait', 'Flat rate')}</option>
                 <option value="surface">📐 {t('Surface', 'Surface')}</option>
               </select>
-              <input
-                type="number"
-                value={empRate}
-                onChange={e => setEmpRate(Number(e.target.value))}
-                placeholder={t('Taux horaire', 'Hourly rate')}
-                style={inputStyle}
-              />
-              <select
-                value={empRole}
-                onChange={e => setEmpRole(e.target.value as 'admin' | 'employee')}
+              <input type="number" value={empRate} onChange={e => setEmpRate(Number(e.target.value))}
+                placeholder={t('Taux horaire', 'Hourly rate')} style={inputStyle} />
+              <select value={empRole} onChange={e => setEmpRole(e.target.value as 'admin' | 'employee')}
                 style={{ ...inputStyle }}>
                 <option value="employee">👤 {t('Employé', 'Employee')}</option>
                 <option value="admin">👑 Admin</option>
@@ -430,9 +311,7 @@ export default function SettingsPage() {
                 padding: '12px', borderRadius: '10px', cursor: 'pointer',
                 background: theme.colors.primary, border: 'none',
                 color: 'white', fontSize: '14px', fontWeight: '700',
-              }}>
-                ✅ {t("Créer l'employé", 'Create employee')}
-              </button>
+              }}>✅ {t("Créer l'employé", 'Create employee')}</button>
             </div>
           )}
 
@@ -444,13 +323,10 @@ export default function SettingsPage() {
                 borderLeft: `3px solid ${emp.color}`,
               }}>
                 <div style={{
-                  width: '36px', height: '36px', borderRadius: '50%',
-                  background: emp.color, flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '36px', height: '36px', borderRadius: '50%', background: emp.color,
+                  flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: 'white', fontWeight: '800', fontSize: '14px',
-                }}>
-                  {emp.name[0]}
-                </div>
+                }}>{emp.name[0]}</div>
                 <div style={{ flex: 1 }}>
                   <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: '700' }}>
                     {emp.name} {emp.role === 'admin' ? '👑' : ''}
@@ -462,10 +338,7 @@ export default function SettingsPage() {
                 {emp.id !== 'admin' && (
                   <button onClick={() => {
                     if (window.confirm(`${t('Supprimer', 'Delete')} ${emp.name} ?`)) deleteEmployee(emp.id)
-                  }} style={{
-                    color: '#ef4444', background: 'none',
-                    border: 'none', cursor: 'pointer', fontSize: '20px',
-                  }}>×</button>
+                  }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>×</button>
                 )}
               </div>
             ))}
@@ -488,9 +361,7 @@ export default function SettingsPage() {
             <div key={f.label}>
               <label style={labelStyle}>{f.label}</label>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <input type="number" value={f.value}
-                  onChange={e => f.fn(Number(e.target.value))}
-                  style={inputStyle} />
+                <input type="number" value={f.value} onChange={e => f.fn(Number(e.target.value))} style={inputStyle} />
                 <span style={{ color: theme.colors.primary, fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap' as const }}>
                   {f.badge}
                 </span>
@@ -530,13 +401,10 @@ export default function SettingsPage() {
                     ))}
                   </div>
                 </div>
-                {themeId === th.id && (
-                  <span style={{ color: th.colors.primary, fontSize: '20px', fontWeight: '800' }}>✓</span>
-                )}
+                {themeId === th.id && <span style={{ color: th.colors.primary, fontSize: '20px', fontWeight: '800' }}>✓</span>}
               </button>
             ))}
           </div>
-
           <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700', marginTop: '8px' }}>
             🌐 {t('LANGUE', 'LANGUAGE')}
           </p>
@@ -575,7 +443,6 @@ export default function SettingsPage() {
               </div>
             ))}
           </div>
-
           <div style={{ ...card, border: '1px solid rgba(239,68,68,0.4)' }}>
             <p style={{ color: '#ef4444', fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>
               ⚠️ {t('ZONE DE DANGER', 'DANGER ZONE')}
