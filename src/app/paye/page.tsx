@@ -1,4 +1,2 @@
-import PayePage from './PayePage'
-
-export default PayePage
-
+import PayeClient from './PayeClient'
+export default PayeClient
