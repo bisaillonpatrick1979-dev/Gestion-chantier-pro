@@ -1,9 +1,39 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useCompanyStore } from '@/store/useCompanyStore';
 import { useEmployeeStore } from '@/store/useEmployeeStore';
-import BottomNav from '@/components/BottomNav';
+
+// ─── BottomNav autonome (évite toute dépendance externe) ────────────────────
+function BottomNav() {
+  const pathname = usePathname();
+  const links = [
+    { href: '/',           icon: '🏠', labelFr: 'Accueil',    labelEn: 'Home' },
+    { href: '/calendar',   icon: '📅', labelFr: 'Calendrier', labelEn: 'Calendar' },
+    { href: '/documents',  icon: '🧾', labelFr: 'Docs',       labelEn: 'Docs' },
+    { href: '/clients',    icon: '👥', labelFr: 'Clients',    labelEn: 'Clients' },
+    { href: '/settings',   icon: '⚙️', labelFr: 'Réglages',   labelEn: 'Settings' },
+  ];
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-md border-t border-white/10 flex justify-around items-center h-16 px-1">
+      {links.map(({ href, icon, labelFr }) => (
+        <a
+          key={href}
+          href={href}
+          className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all min-w-[3rem] ${
+            pathname === href
+              ? 'text-orange-400'
+              : 'text-gray-500 hover:text-gray-300'
+          }`}
+        >
+          <span className="text-xl leading-none">{icon}</span>
+          <span className="text-[10px] font-medium">{labelFr}</span>
+        </a>
+      ))}
+    </nav>
+  );
+}
 
 // ─── Section IDs ────────────────────────────────────────────────────────────
 type Section =
