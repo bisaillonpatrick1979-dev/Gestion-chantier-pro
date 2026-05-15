@@ -100,21 +100,6 @@ export const useCompanyStore = create<CompanyStore>()(
   )
 )
 
-// ==================
-// NEW EMPLOYEE TYPE
-// ==================
-type WorkMode = 'heure' | 'forfait' | 'surface'
-type EmployeeRole = 'admin' | 'employee'
-
-interface NewEmployee {
-  name: string
-  pin: string
-  workMode: WorkMode
-  hourlyRate: number
-  role: EmployeeRole
-  active: boolean
-}
-
 export default function SettingsPage() {
   const { hourlyRate, forfaitAmount, surfaceRate, surfaceArea,
     setHourlyRate, setForfaitAmount, setSurfaceRate, setSurfaceArea,
@@ -128,14 +113,36 @@ export default function SettingsPage() {
 
   const [showAddEmployee, setShowAddEmployee] = useState(false)
   const [activeSection, setActiveSection] = useState<string>('company')
-  const [newEmployee, setNewEmployee] = useState<NewEmployee>({
-    name: '',
-    pin: '',
-    workMode: 'heure',
-    hourlyRate: 45,
-    role: 'employee',
-    active: true,
-  })
+
+  // État du nouvel employé avec les bons types
+  const [empName, setEmpName] = useState('')
+  const [empPin, setEmpPin] = useState('')
+  const [empWorkMode, setEmpWorkMode] = useState<'heure' | 'forfait' | 'surface'>('heure')
+  const [empRate, setEmpRate] = useState(45)
+  const [empRole, setEmpRole] = useState<'admin' | 'employee'>('employee')
+
+  const resetNewEmployee = () => {
+    setEmpName('')
+    setEmpPin('')
+    setEmpWorkMode('heure')
+    setEmpRate(45)
+    setEmpRole('employee')
+  }
+
+  const handleAddEmployee = () => {
+    if (!empName || empPin.length !== 4) return
+    addEmployee({
+      name: empName,
+      pin: empPin,
+      workMode: empWorkMode,
+      hourlyRate: empRate,
+      role: empRole,
+      active: true,
+      color: '#ea580c',
+    })
+    resetNewEmployee()
+    setShowAddEmployee(false)
+  }
 
   const handleReset = () => {
     if (window.confirm(t('Effacer toutes les données ? Irréversible.', 'Clear all data? Irreversible.'))) {
@@ -384,25 +391,22 @@ export default function SettingsPage() {
           {showAddEmployee && (
             <div style={{ background: theme.colors.surface, borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <input
-                value={newEmployee.name}
-                onChange={e => setNewEmployee(p => ({ ...p, name: e.target.value }))}
+                value={empName}
+                onChange={e => setEmpName(e.target.value)}
                 placeholder={t("Nom de l'employé", 'Employee name')}
                 style={inputStyle}
               />
               <input
-                value={newEmployee.pin}
-                onChange={e => setNewEmployee(p => ({ ...p, pin: e.target.value.slice(0, 4) }))}
+                value={empPin}
+                onChange={e => setEmpPin(e.target.value.slice(0, 4))}
                 placeholder={t('PIN 4 chiffres', '4-digit PIN')}
                 type="password"
                 maxLength={4}
                 style={inputStyle}
               />
               <select
-                value={newEmployee.workMode}
-                onChange={e => setNewEmployee(p => ({
-                  ...p,
-                  workMode: e.target.value as WorkMode
-                }))}
+                value={empWorkMode}
+                onChange={e => setEmpWorkMode(e.target.value as 'heure' | 'forfait' | 'surface')}
                 style={{ ...inputStyle }}>
                 <option value="heure">⏱ {t('Heure', 'Hour')}</option>
                 <option value="forfait">📦 {t('Forfait', 'Flat rate')}</option>
@@ -410,28 +414,19 @@ export default function SettingsPage() {
               </select>
               <input
                 type="number"
-                value={newEmployee.hourlyRate}
-                onChange={e => setNewEmployee(p => ({ ...p, hourlyRate: Number(e.target.value) }))}
+                value={empRate}
+                onChange={e => setEmpRate(Number(e.target.value))}
                 placeholder={t('Taux horaire', 'Hourly rate')}
                 style={inputStyle}
               />
               <select
-                value={newEmployee.role}
-                onChange={e => setNewEmployee(p => ({
-                  ...p,
-                  role: e.target.value as EmployeeRole
-                }))}
+                value={empRole}
+                onChange={e => setEmpRole(e.target.value as 'admin' | 'employee')}
                 style={{ ...inputStyle }}>
                 <option value="employee">👤 {t('Employé', 'Employee')}</option>
                 <option value="admin">👑 Admin</option>
               </select>
-              <button onClick={() => {
-                if (newEmployee.name && newEmployee.pin.length === 4) {
-                  addEmployee(newEmployee)
-                  setNewEmployee({ name: '', pin: '', workMode: 'heure', hourlyRate: 45, role: 'employee', active: true })
-                  setShowAddEmployee(false)
-                }
-              }} style={{
+              <button onClick={handleAddEmployee} style={{
                 padding: '12px', borderRadius: '10px', cursor: 'pointer',
                 background: theme.colors.primary, border: 'none',
                 color: 'white', fontSize: '14px', fontWeight: '700',
