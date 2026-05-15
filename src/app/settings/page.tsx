@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useCompanyStore } from '@/store/useCompanyStore';
 import { useEmployeeStore } from '@/store/useEmployeeStore';
+import { useThemeStore } from '@/store/useThemeStore';
+import { getAllThemes } from '@/lib/themes';
 
 // ─── BottomNav autonome (évite toute dépendance externe) ────────────────────
 function BottomNav() {
@@ -108,6 +110,8 @@ function SectionCard({ title, children }: { title: string; children: React.React
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const { company, setCompany } = useCompanyStore();
+  const { themeId, setTheme } = useThemeStore();
+  const allThemes = getAllThemes();
   const employeeStore = useEmployeeStore();
   const employees = employeeStore.employees ?? [];
   const _s = employeeStore as unknown as Record<string, unknown>;
@@ -447,31 +451,56 @@ export default function SettingsPage() {
       case 'appearance':
         return (
           <SectionCard title={t('Apparence & Thème', 'Appearance & Theme')}>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-xs text-gray-400 mb-4">
               {t(
-                '5 thèmes disponibles. Changez-les depuis le bouton 🎨 en haut du Dashboard.',
-                '5 themes available. Switch them via the 🎨 button at the top of the Dashboard.'
+                'Choisissez votre thème. Chaque employé peut avoir le sien.',
+                'Choose your theme. Each employee can have their own.'
               )}
             </p>
-            <div className="grid grid-cols-5 gap-2">
-              {[
-                { name: 'Orange', color: '#f97316' },
-                { name: 'Bleu', color: '#3b82f6' },
-                { name: 'Vert', color: '#22c55e' },
-                { name: 'Violet', color: '#a855f7' },
-                { name: 'Rouge', color: '#ef4444' },
-              ].map((theme) => (
-                <div
-                  key={theme.name}
-                  className="flex flex-col items-center gap-1"
-                >
-                  <div
-                    className="w-10 h-10 rounded-full border-2 border-white/20"
-                    style={{ backgroundColor: theme.color }}
-                  />
-                  <span className="text-xs text-gray-400">{theme.name}</span>
-                </div>
-              ))}
+            <div className="space-y-2">
+              {allThemes.map((th) => {
+                const isActive = themeId === th.id;
+                return (
+                  <button
+                    key={th.id}
+                    onClick={() => setTheme(th.id)}
+                    className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3 transition-all ${
+                      isActive
+                        ? 'border-orange-400 bg-orange-500/10'
+                        : 'border-white/10 bg-white/5 hover:border-white/25'
+                    }`}
+                  >
+                    {/* Preview couleurs */}
+                    <div className="flex gap-1 shrink-0">
+                      <div className="w-5 h-5 rounded-full border border-white/20"
+                        style={{ background: th.colors.background }} />
+                      <div className="w-5 h-5 rounded-full border border-white/20"
+                        style={{ background: th.colors.primary }} />
+                      <div className="w-5 h-5 rounded-full border border-white/20"
+                        style={{ background: th.colors.secondary }} />
+                    </div>
+                    {/* Nom */}
+                    <div className="flex-1 text-left">
+                      <p className={`text-sm font-bold ${isActive ? 'text-orange-300' : 'text-white'}`}>
+                        {isFr ? th.nameFr : th.name}
+                      </p>
+                      <p className="text-xs text-gray-500">{th.id}</p>
+                    </div>
+                    {/* Checkmark */}
+                    {isActive && (
+                      <span className="text-orange-400 text-lg font-black">✓</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-4 rounded-xl bg-blue-500/10 border border-blue-500/20 p-3">
+              <p className="text-xs text-blue-400">
+                💡 {t(
+                  'Le thème actif : chaque employé garde son choix personnel.',
+                  'Active theme: each employee keeps their personal choice.'
+                )}
+              </p>
             </div>
           </SectionCard>
         );
