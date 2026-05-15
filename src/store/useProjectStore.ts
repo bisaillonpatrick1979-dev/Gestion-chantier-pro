@@ -289,4 +289,3 @@ export const useProjectStore = create<ProjectStore>()(
     { name: 'project-store-v1' }
   )
 );
-
