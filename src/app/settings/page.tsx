@@ -12,19 +12,16 @@ import { persist } from 'zustand/middleware'
 // COMPANY STORE
 // ==================
 interface CompanyInfo {
-  // Infos de base
   name: string
   ownerName: string
   phone: string
   email: string
   website: string
-  // Adresse
   address: string
   city: string
   province: string
   postalCode: string
   country: string
-  // Numéros légaux
   rbq: string
   neq: string
   tps: string
@@ -32,7 +29,6 @@ interface CompanyInfo {
   gst: string
   pst: string
   hst: string
-  // Assurances
   liabilityInsurer: string
   liabilityPolicyNumber: string
   liabilityAmount: string
@@ -43,14 +39,13 @@ interface CompanyInfo {
   errorOmissionInsurer: string
   errorOmissionNumber: string
   errorOmissionExpiry: string
-  // Paiement
   paymentMethods: string
   bankName: string
   bankTransitNumber: string
   interacEmail: string
-  // Notes légales
   legalNotes: string
   warrantyText: string
+  [key: string]: string
 }
 
 const defaultCompany: CompanyInfo = {
@@ -185,6 +180,19 @@ export default function SettingsPage() {
     { id: 'app',        emoji: 'ℹ️', fr: 'Application',  en: 'Application'},
   ]
 
+  const renderField = (label: string, field: string, placeholder?: string, type = 'text') => (
+    <div key={field}>
+      <label style={labelStyle}>{label}</label>
+      <input
+        value={company[field] ?? ''}
+        onChange={e => updateCompany({ [field]: e.target.value })}
+        placeholder={placeholder}
+        type={type}
+        style={inputStyle}
+      />
+    </div>
+  )
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
@@ -205,76 +213,36 @@ export default function SettingsPage() {
         ))}
       </div>
 
-      {/* =================== */}
-      {/* COMPANY INFO */}
-      {/* =================== */}
+      {/* COMPANY */}
       {activeSection === 'company' && (
         <div style={card}>
           <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>
             🏢 {t('INFORMATIONS DE LA COMPAGNIE', 'COMPANY INFORMATION')}
           </p>
-
-          {[
-            { label: t('Nom de la compagnie', 'Company name'), field: 'name' },
-            { label: t('Nom du propriétaire', 'Owner name'), field: 'ownerName' },
-            { label: t('Téléphone', 'Phone'), field: 'phone' },
-            { label: 'Email', field: 'email' },
-            { label: t('Site web', 'Website'), field: 'website' },
-          ].map(({ label, field }) => (
-            <div key={field}>
-              <label style={labelStyle}>{label}</label>
-              <input
-                value={(company as Record<string, string>)[field] || ''}
-                onChange={e => updateCompany({ [field]: e.target.value })}
-                style={inputStyle}
-              />
-            </div>
-          ))}
+          {renderField(t('Nom de la compagnie', 'Company name'), 'name')}
+          {renderField(t('Nom du propriétaire', 'Owner name'), 'ownerName')}
+          {renderField(t('Téléphone', 'Phone'), 'phone')}
+          {renderField('Email', 'email')}
+          {renderField(t('Site web', 'Website'), 'website')}
 
           <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700', marginTop: '8px' }}>
             📍 {t('ADRESSE', 'ADDRESS')}
           </p>
-
-          {[
-            { label: t('Adresse', 'Address'), field: 'address' },
-            { label: t('Ville', 'City'), field: 'city' },
-            { label: t('Province', 'Province'), field: 'province' },
-            { label: t('Code postal', 'Postal code'), field: 'postalCode' },
-            { label: t('Pays', 'Country'), field: 'country' },
-          ].map(({ label, field }) => (
-            <div key={field}>
-              <label style={labelStyle}>{label}</label>
-              <input
-                value={(company as Record<string, string>)[field] || ''}
-                onChange={e => updateCompany({ [field]: e.target.value })}
-                style={inputStyle}
-              />
-            </div>
-          ))}
+          {renderField(t('Adresse', 'Address'), 'address')}
+          {renderField(t('Ville', 'City'), 'city')}
+          {renderField(t('Province', 'Province'), 'province')}
+          {renderField(t('Code postal', 'Postal code'), 'postalCode')}
+          {renderField(t('Pays', 'Country'), 'country')}
 
           <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700', marginTop: '8px' }}>
             🪪 {t('NUMÉROS LÉGAUX', 'LEGAL NUMBERS')}
           </p>
-
-          {[
-            { label: 'RBQ', field: 'rbq' },
-            { label: 'NEQ', field: 'neq' },
-          ].map(({ label, field }) => (
-            <div key={field}>
-              <label style={labelStyle}>{label}</label>
-              <input
-                value={(company as Record<string, string>)[field] || ''}
-                onChange={e => updateCompany({ [field]: e.target.value })}
-                style={inputStyle}
-              />
-            </div>
-          ))}
+          {renderField('RBQ', 'rbq')}
+          {renderField('NEQ', 'neq')}
         </div>
       )}
 
-      {/* =================== */}
       {/* TAXES */}
-      {/* =================== */}
       {activeSection === 'taxes' && (
         <div style={card}>
           <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>
@@ -283,117 +251,52 @@ export default function SettingsPage() {
           <p style={{ color: theme.colors.textMuted, fontSize: '12px' }}>
             {t('Ces numéros apparaîtront sur toutes vos factures.', 'These numbers will appear on all your invoices.')}
           </p>
-
-          {[
-            { label: t('TPS (Taxe fédérale)', 'GST (Federal tax)'), field: 'tps' },
-            { label: t('TVQ (Taxe provinciale QC)', 'QST (Provincial tax QC)'), field: 'tvq' },
-            { label: t('GST (Federal Canada)', 'GST'), field: 'gst' },
-            { label: t('PST (Provincial)', 'PST'), field: 'pst' },
-            { label: t('HST (Harmonisée)', 'HST (Harmonized)'), field: 'hst' },
-          ].map(({ label, field }) => (
-            <div key={field}>
-              <label style={labelStyle}>{label}</label>
-              <input
-                value={(company as Record<string, string>)[field] || ''}
-                onChange={e => updateCompany({ [field]: e.target.value })}
-                placeholder={`Ex: 123456789 RT0001`}
-                style={inputStyle}
-              />
-            </div>
-          ))}
+          {renderField(t('TPS (Taxe fédérale)', 'GST (Federal tax)'), 'tps', 'Ex: 123456789 RT0001')}
+          {renderField(t('TVQ (Taxe provinciale QC)', 'QST (Provincial tax QC)'), 'tvq', 'Ex: 1234567890 TQ0001')}
+          {renderField('GST', 'gst', 'Ex: 123456789 RT0001')}
+          {renderField('PST', 'pst', 'Ex: PST-1234567')}
+          {renderField(t('HST (Harmonisée)', 'HST (Harmonized)'), 'hst', 'Ex: 123456789 RT0001')}
         </div>
       )}
 
-      {/* =================== */}
       {/* INSURANCE */}
-      {/* =================== */}
       {activeSection === 'insurance' && (
         <div style={card}>
           <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>
             🛡️ {t('ASSURANCES', 'INSURANCE')}
           </p>
 
-          {/* Responsabilité civile */}
-          <div style={{
-            background: theme.colors.surface, borderRadius: '10px', padding: '12px',
-            borderLeft: `3px solid #22c55e`,
-          }}>
+          <div style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px', borderLeft: '3px solid #22c55e' }}>
             <p style={{ color: '#22c55e', fontSize: '12px', fontWeight: '700', marginBottom: '10px' }}>
               ✅ {t('Responsabilité civile', 'General liability')}
             </p>
-            {[
-              { label: t('Assureur', 'Insurer'), field: 'liabilityInsurer' },
-              { label: t('Numéro de police', 'Policy number'), field: 'liabilityPolicyNumber' },
-              { label: t('Montant de couverture', 'Coverage amount'), field: 'liabilityAmount' },
-              { label: t('Date d\'expiration', 'Expiry date'), field: 'liabilityExpiry' },
-            ].map(({ label, field }) => (
-              <div key={field} style={{ marginBottom: '8px' }}>
-                <label style={labelStyle}>{label}</label>
-                <input
-                  value={(company as Record<string, string>)[field] || ''}
-                  onChange={e => updateCompany({ [field]: e.target.value })}
-                  type={field.includes('Expiry') ? 'date' : 'text'}
-                  style={inputStyle}
-                />
-              </div>
-            ))}
+            {renderField(t('Assureur', 'Insurer'), 'liabilityInsurer')}
+            {renderField(t('Numéro de police', 'Policy number'), 'liabilityPolicyNumber')}
+            {renderField(t('Montant de couverture', 'Coverage amount'), 'liabilityAmount', 'Ex: 2 000 000 $')}
+            {renderField(t('Date d\'expiration', 'Expiry date'), 'liabilityExpiry', '', 'date')}
           </div>
 
-          {/* CSST / CNESST */}
-          <div style={{
-            background: theme.colors.surface, borderRadius: '10px', padding: '12px',
-            borderLeft: `3px solid #3b82f6`,
-          }}>
+          <div style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px', borderLeft: '3px solid #3b82f6' }}>
             <p style={{ color: '#3b82f6', fontSize: '12px', fontWeight: '700', marginBottom: '10px' }}>
               🏥 {t('CNESST / Accident de travail', 'Workers compensation')}
             </p>
-            {[
-              { label: t('Assureur / organisme', 'Insurer / organization'), field: 'workerCompInsurer' },
-              { label: t('Numéro de dossier', 'File number'), field: 'workerCompNumber' },
-              { label: t('Date d\'expiration', 'Expiry date'), field: 'workerCompExpiry' },
-            ].map(({ label, field }) => (
-              <div key={field} style={{ marginBottom: '8px' }}>
-                <label style={labelStyle}>{label}</label>
-                <input
-                  value={(company as Record<string, string>)[field] || ''}
-                  onChange={e => updateCompany({ [field]: e.target.value })}
-                  type={field.includes('Expiry') ? 'date' : 'text'}
-                  style={inputStyle}
-                />
-              </div>
-            ))}
+            {renderField(t('Assureur / organisme', 'Insurer / organization'), 'workerCompInsurer')}
+            {renderField(t('Numéro de dossier', 'File number'), 'workerCompNumber')}
+            {renderField(t('Date d\'expiration', 'Expiry date'), 'workerCompExpiry', '', 'date')}
           </div>
 
-          {/* Erreurs et omissions */}
-          <div style={{
-            background: theme.colors.surface, borderRadius: '10px', padding: '12px',
-            borderLeft: `3px solid #f59e0b`,
-          }}>
+          <div style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px', borderLeft: '3px solid #f59e0b' }}>
             <p style={{ color: '#f59e0b', fontSize: '12px', fontWeight: '700', marginBottom: '10px' }}>
               📋 {t('Erreurs et omissions', 'Errors & omissions')}
             </p>
-            {[
-              { label: t('Assureur', 'Insurer'), field: 'errorOmissionInsurer' },
-              { label: t('Numéro de police', 'Policy number'), field: 'errorOmissionNumber' },
-              { label: t('Date d\'expiration', 'Expiry date'), field: 'errorOmissionExpiry' },
-            ].map(({ label, field }) => (
-              <div key={field} style={{ marginBottom: '8px' }}>
-                <label style={labelStyle}>{label}</label>
-                <input
-                  value={(company as Record<string, string>)[field] || ''}
-                  onChange={e => updateCompany({ [field]: e.target.value })}
-                  type={field.includes('Expiry') ? 'date' : 'text'}
-                  style={inputStyle}
-                />
-              </div>
-            ))}
+            {renderField(t('Assureur', 'Insurer'), 'errorOmissionInsurer')}
+            {renderField(t('Numéro de police', 'Policy number'), 'errorOmissionNumber')}
+            {renderField(t('Date d\'expiration', 'Expiry date'), 'errorOmissionExpiry', '', 'date')}
           </div>
         </div>
       )}
 
-      {/* =================== */}
       {/* PAYMENT */}
-      {/* =================== */}
       {activeSection === 'payment' && (
         <div style={card}>
           <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>
@@ -402,29 +305,14 @@ export default function SettingsPage() {
           <p style={{ color: theme.colors.textMuted, fontSize: '12px' }}>
             {t('Ces informations apparaîtront sur vos factures.', 'This information will appear on your invoices.')}
           </p>
-
-          {[
-            { label: t('Méthodes acceptées', 'Accepted methods'), field: 'paymentMethods', placeholder: t('Ex: Chèque, Virement, Comptant', 'Ex: Check, Transfer, Cash') },
-            { label: t('Nom de la banque', 'Bank name'), field: 'bankName', placeholder: 'Ex: Desjardins, RBC...' },
-            { label: t('Numéro de transit', 'Transit number'), field: 'bankTransitNumber', placeholder: 'Ex: 12345-678' },
-            { label: t('Email Interac', 'Interac email'), field: 'interacEmail', placeholder: 'Ex: paiement@hailite.com' },
-          ].map(({ label, field, placeholder }) => (
-            <div key={field}>
-              <label style={labelStyle}>{label}</label>
-              <input
-                value={(company as Record<string, string>)[field] || ''}
-                onChange={e => updateCompany({ [field]: e.target.value })}
-                placeholder={placeholder}
-                style={inputStyle}
-              />
-            </div>
-          ))}
+          {renderField(t('Méthodes acceptées', 'Accepted methods'), 'paymentMethods', t('Ex: Chèque, Virement, Comptant', 'Ex: Check, Transfer, Cash'))}
+          {renderField(t('Nom de la banque', 'Bank name'), 'bankName', 'Ex: Desjardins, RBC...')}
+          {renderField(t('Numéro de transit', 'Transit number'), 'bankTransitNumber', 'Ex: 12345-678')}
+          {renderField(t('Email Interac', 'Interac email'), 'interacEmail', 'Ex: paiement@hailite.com')}
         </div>
       )}
 
-      {/* =================== */}
       {/* LEGAL */}
-      {/* =================== */}
       {activeSection === 'legal' && (
         <div style={card}>
           <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>
@@ -433,21 +321,19 @@ export default function SettingsPage() {
           <p style={{ color: theme.colors.textMuted, fontSize: '12px' }}>
             {t('Ces textes apparaîtront en bas de vos documents.', 'These texts will appear at the bottom of your documents.')}
           </p>
-
           <div>
             <label style={labelStyle}>{t('Garantie sur les travaux', 'Work warranty')}</label>
             <textarea
-              value={company.warrantyText || ''}
+              value={company.warrantyText ?? ''}
               onChange={e => updateCompany({ warrantyText: e.target.value })}
               rows={4}
               style={{ ...inputStyle, resize: 'vertical' as const }}
             />
           </div>
-
           <div>
             <label style={labelStyle}>{t('Notes légales additionnelles', 'Additional legal notes')}</label>
             <textarea
-              value={company.legalNotes || ''}
+              value={company.legalNotes ?? ''}
               onChange={e => updateCompany({ legalNotes: e.target.value })}
               placeholder={t(
                 'Ex: En cas de non-paiement, des frais de 2% par mois seront appliqués...',
@@ -460,9 +346,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* =================== */}
       {/* EMPLOYEES */}
-      {/* =================== */}
       {activeSection === 'employees' && (
         <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -478,10 +362,7 @@ export default function SettingsPage() {
           </div>
 
           {showAddEmployee && (
-            <div style={{
-              background: theme.colors.surface, borderRadius: '12px', padding: '16px',
-              display: 'flex', flexDirection: 'column', gap: '10px',
-            }}>
+            <div style={{ background: theme.colors.surface, borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <input
                 value={newEmployee.name}
                 onChange={e => setNewEmployee(p => ({ ...p, name: e.target.value }))}
@@ -571,9 +452,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* =================== */}
       {/* RATES */}
-      {/* =================== */}
       {activeSection === 'rates' && (
         <div style={card}>
           <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>
@@ -600,15 +479,12 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* =================== */}
       {/* APPEARANCE */}
-      {/* =================== */}
       {activeSection === 'appearance' && (
         <div style={card}>
           <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>
             🎨 {t('APPARENCE', 'APPEARANCE')}
           </p>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {themes.map(th => (
               <button key={th.id} onClick={() => setTheme(th.id)} style={{
@@ -640,7 +516,10 @@ export default function SettingsPage() {
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+          <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700', marginTop: '8px' }}>
+            🌐 {t('LANGUE', 'LANGUAGE')}
+          </p>
+          <div style={{ display: 'flex', gap: '12px' }}>
             {(['fr', 'en'] as const).map(l => (
               <button key={l} onClick={() => setLang(l)} style={{
                 flex: 1, padding: '12px', borderRadius: '10px', cursor: 'pointer',
@@ -656,9 +535,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* =================== */}
-      {/* APP INFO */}
-      {/* =================== */}
+      {/* APP */}
       {activeSection === 'app' && (
         <>
           <div style={card}>
