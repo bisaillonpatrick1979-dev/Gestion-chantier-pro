@@ -1,10 +1,12 @@
-// src/store/useCompanyStore.ts
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export interface CompanyInfo {
-  // Infos de base
+  // Identité
   name: string;
+  tagline: string;
+  ownerName: string;
+  // Coordonnées
   address: string;
   city: string;
   province: string;
@@ -12,100 +14,134 @@ export interface CompanyInfo {
   phone: string;
   email: string;
   website: string;
-
-  // Logo — deux noms supportés pour compatibilité
-  logo: string;
-  logoUrl: string;
-
   // Numéros légaux
-  gstNumber: string;
-  wcbNumber: string;
-  licenseNumber: string;
-
-  // Taxes
-  gstRate: number;
-  defaultGstRate: number;
-
+  gstNumber: string;   // GST/HST Alberta 5%
+  wcbNumber: string;   // WCB Alberta
+  businessNumber: string;
   // Paiement
-  bankInfo: string;
-  paymentTerms: string;
-  eTransferEmail: string;
+  bankName: string;
+  bankTransit: string;
+  bankAccount: string;
+  etransferEmail: string;
+  // Facturation
   defaultDepositPercent: number;
-
-  // Notes documents
+  defaultPaymentTermsDays: number;
   defaultNotes: string;
-  invoiceNotes: string;
-  defaultTerms: string;
-
+  // Branding
+  logoUrl: string;
+  primaryColor: string;
   // Numéros séquentiels
-  invoiceNextNumber: number;
-  quoteNextNumber: number;
-  contractNextNumber: number;
+  nextInvoiceNumber: number;
+  nextQuoteNumber: number;
+  nextContractNumber: number;
+  invoicePrefix: string;   // ex: "FAC" ou "INV"
+  quotePrefix: string;     // ex: "DEV" ou "QUO"
+  contractPrefix: string;  // ex: "CTR" ou "CON"
 }
 
-export interface CompanyStore {
+interface CompanyState {
   company: CompanyInfo;
   updateCompany: (data: Partial<CompanyInfo>) => void;
-  setCompany: (data: Partial<CompanyInfo>) => void;
-  resetCompany: () => void;
+  getNextInvoiceNumber: () => string;
+  getNextQuoteNumber: () => string;
+  getNextContractNumber: () => string;
+  resetNumbering: () => void;
 }
 
 const defaultCompany: CompanyInfo = {
-  name: 'Hailite Xteriors',
-  address: '',
-  city: '',
-  province: 'AB',
-  postalCode: '',
-  phone: '',
-  email: '',
-  website: '',
-
-  logo: '',
-  logoUrl: '',
-
-  gstNumber: '',
-  wcbNumber: '',
-  licenseNumber: '',
-
-  gstRate: 5,
-  defaultGstRate: 5,
-
-  bankInfo: '',
-  paymentTerms: 'Net 30',
-  eTransferEmail: '',
+  name: "Hailite Xteriors",
+  tagline: "Qualité & Précision",
+  ownerName: "Patrick Bisaillon",
+  address: "",
+  city: "",
+  province: "AB",
+  postalCode: "",
+  phone: "",
+  email: "",
+  website: "",
+  gstNumber: "",
+  wcbNumber: "",
+  businessNumber: "",
+  bankName: "",
+  bankTransit: "",
+  bankAccount: "",
+  etransferEmail: "",
   defaultDepositPercent: 30,
-
-  defaultNotes: '',
-  invoiceNotes: '',
-  defaultTerms: 'Paiement dû dans les 30 jours suivant la réception de la facture.',
-
-  invoiceNextNumber: 1001,
-  quoteNextNumber: 1001,
-  contractNextNumber: 1001,
+  defaultPaymentTermsDays: 14,
+  defaultNotes:
+    "Merci pour votre confiance. Paiement dû dans les délais convenus.",
+  logoUrl: "",
+  primaryColor: "#D4AF37",
+  nextInvoiceNumber: 1,
+  nextQuoteNumber: 1,
+  nextContractNumber: 1,
+  invoicePrefix: "FAC",
+  quotePrefix: "DEV",
+  contractPrefix: "CTR",
 };
 
-export const useCompanyStore = create<CompanyStore>()(
+function padNumber(n: number, digits = 3): string {
+  return String(n).padStart(digits, "0");
+}
+
+export const useCompanyStore = create<CompanyState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       company: defaultCompany,
 
-      updateCompany: (data: Partial<CompanyInfo>) =>
+      updateCompany: (data) =>
         set((state) => ({
           company: { ...state.company, ...data },
         })),
 
-      // Alias pour compatibilité avec documents/[id]/page.tsx existant
-      setCompany: (data: Partial<CompanyInfo>) =>
+      getNextInvoiceNumber: () => {
+        const { company } = get();
+        const num = `${company.invoicePrefix}-${padNumber(company.nextInvoiceNumber)}`;
         set((state) => ({
-          company: { ...state.company, ...data },
-        })),
+          company: {
+            ...state.company,
+            nextInvoiceNumber: state.company.nextInvoiceNumber + 1,
+          },
+        }));
+        return num;
+      },
 
-      resetCompany: () =>
-        set({ company: defaultCompany }),
+      getNextQuoteNumber: () => {
+        const { company } = get();
+        const num = `${company.quotePrefix}-${padNumber(company.nextQuoteNumber)}`;
+        set((state) => ({
+          company: {
+            ...state.company,
+            nextQuoteNumber: state.company.nextQuoteNumber + 1,
+          },
+        }));
+        return num;
+      },
+
+      getNextContractNumber: () => {
+        const { company } = get();
+        const num = `${company.contractPrefix}-${padNumber(company.nextContractNumber)}`;
+        set((state) => ({
+          company: {
+            ...state.company,
+            nextContractNumber: state.company.nextContractNumber + 1,
+          },
+        }));
+        return num;
+      },
+
+      resetNumbering: () =>
+        set((state) => ({
+          company: {
+            ...state.company,
+            nextInvoiceNumber: 1,
+            nextQuoteNumber: 1,
+            nextContractNumber: 1,
+          },
+        })),
     }),
     {
-      name: 'company-store-v1',
+      name: "company-store-v1",
     }
   )
 );
-
