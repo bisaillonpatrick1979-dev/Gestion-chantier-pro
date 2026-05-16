@@ -16,8 +16,19 @@ export type CommandeStatus = 'brouillon' | 'envoyee' | 'recue'
 export interface Commande {
   id: string
   numero: string
+
+  // ── Fournisseur (vendeur) ─────────────────────────────────────────────────
   fournisseur: string
-  date: string
+  fournisseurEmail?: string
+  fournisseurPhone?: string
+
+  // ── Livraison ────────────────────────────────────────────────────────────
+  adresseLivraison?: string   // adresse du chantier
+  projetRef?: string          // ex: "Maison Smith — 123 rue Maple"
+  dateLivraison?: string      // date souhaitée YYYY-MM-DD
+
+  // ── Infos PO ─────────────────────────────────────────────────────────────
+  date: string                // date d'émission
   status: CommandeStatus
   items: POItem[]
   notes: string
@@ -29,7 +40,7 @@ export interface Commande {
 interface CommandeStore {
   commandes: Commande[]
   nextNumber: number
-  addCommande: (data: { fournisseur: string; date: string; notes: string }) => Commande
+  addCommande: (data: Omit<Commande, 'id' | 'numero' | 'status' | 'items' | 'createdAt'>) => Commande
   updateCommande: (id: string, updates: Partial<Commande>) => void
   deleteCommande: (id: string) => void
   addItem: (commandeId: string, item: Omit<POItem, 'id'>) => void
@@ -47,15 +58,12 @@ export const useCommandeStore = create<CommandeStore>()(
 
       addCommande: (data) => {
         const { nextNumber, commandes } = get()
-        const num = `PO-${String(nextNumber).padStart(3, '0')}`
         const newCmd: Commande = {
+          ...data,
           id: Date.now().toString(),
-          numero: num,
-          fournisseur: data.fournisseur,
-          date: data.date,
+          numero: `PO-${String(nextNumber).padStart(3, '0')}`,
           status: 'brouillon',
           items: [],
-          notes: data.notes,
           createdAt: new Date().toISOString(),
         }
         set({ commandes: [...commandes, newCmd], nextNumber: nextNumber + 1 })
@@ -109,4 +117,3 @@ export const useCommandeStore = create<CommandeStore>()(
     { name: 'commande-store-v1' }
   )
 )
-
