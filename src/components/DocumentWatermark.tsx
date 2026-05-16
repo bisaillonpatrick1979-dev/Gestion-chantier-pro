@@ -15,7 +15,7 @@ const DocumentWatermark: React.FC<DocumentWatermarkProps> = ({
   logoUrl,
   companyName,
   employeeName,
-  opacity = 0.06,
+  opacity = 0.13,
   fullPage = false,
 }) => {
   const isEmployee = !!employeeName
@@ -32,6 +32,8 @@ const DocumentWatermark: React.FC<DocumentWatermarkProps> = ({
         pointerEvents: 'none',
         zIndex: 0,
         overflow: 'hidden',
+        // Assure que le conteneur lui-même est transparent
+        background: 'transparent',
       }}
     >
       <div
@@ -39,11 +41,13 @@ const DocumentWatermark: React.FC<DocumentWatermarkProps> = ({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: fullPage ? '12px' : '6px',
+          gap: fullPage ? '16px' : '8px',
           opacity,
           transform: 'rotate(-22deg)',
           userSelect: 'none',
           textAlign: 'center',
+          // Pas de background ici non plus
+          background: 'transparent',
         }}
       >
         {/* Logo — compagnie seulement, pas employé */}
@@ -53,24 +57,32 @@ const DocumentWatermark: React.FC<DocumentWatermarkProps> = ({
             src={logoUrl}
             alt=""
             style={{
-              width: fullPage ? '140px' : '72px',
-              height: fullPage ? '140px' : '72px',
+              width: fullPage ? '200px' : '110px',
+              height: fullPage ? '200px' : '110px',
               objectFit: 'contain',
+              // Supprime tout fond/bordure autour du logo
+              background: 'transparent',
+              border: 'none',
+              boxShadow: 'none',
+              borderRadius: 0,
+              // mix-blend-mode pour que le blanc du logo devienne transparent
+              mixBlendMode: 'multiply',
             }}
           />
         ) : null}
 
-        {/* Nom */}
+        {/* Nom compagnie ou employé */}
         <div
           style={{
             fontSize: fullPage
-              ? (isEmployee ? '52px' : '38px')
-              : (isEmployee ? '20px' : '18px'),
+              ? (isEmployee ? '56px' : '42px')
+              : (isEmployee ? '24px' : '22px'),
             fontWeight: 900,
             color: fullPage ? '#000' : 'var(--text)',
             letterSpacing: '2px',
             lineHeight: 1.1,
             whiteSpace: 'nowrap',
+            background: 'transparent',
           }}
         >
           {isEmployee ? employeeName : companyName}
@@ -80,13 +92,14 @@ const DocumentWatermark: React.FC<DocumentWatermarkProps> = ({
         <div
           style={{
             fontSize: fullPage
-              ? (isEmployee ? '32px' : '24px')
-              : (isEmployee ? '14px' : '13px'),
+              ? (isEmployee ? '36px' : '28px')
+              : (isEmployee ? '16px' : '15px'),
             fontWeight: 800,
             color: fullPage ? '#000' : 'var(--text)',
             letterSpacing: '8px',
             textTransform: 'uppercase',
             whiteSpace: 'nowrap',
+            background: 'transparent',
           }}
         >
           {type}
