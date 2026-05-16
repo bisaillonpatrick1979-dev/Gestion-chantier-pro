@@ -7,7 +7,7 @@ import { useCompanyStore } from "@/store/useCompanyStore";
 import { useClientStore } from "@/store/useClientStore";
 import { useThemeStore } from "@/store/useThemeStore";
 import DocumentWatermark from "@/components/DocumentWatermark";
-import { Document as GCPDocument, DocumentType, DocumentStatus, LineItem } from "@/types/documents";
+import type { DocumentType, DocumentStatus, LineItem } from "@/types/documents";
 
 // ─────────────────────────────────────────
 // Utilitaires
@@ -63,7 +63,6 @@ function SignatureCanvas({
   onClear: () => void; canvasRef: React.RefObject<HTMLCanvasElement>;
 }) {
   const [isDrawing, setIsDrawing] = useState(false);
-
   return (
     <div style={{ background: "var(--surface)", borderRadius: "10px", padding: "14px", border: "1px solid var(--border)", marginBottom: "14px" }}>
       <label style={{ display: "block", fontSize: "11px", color: "var(--text-muted)", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
@@ -147,7 +146,6 @@ function getWatermarkType(type: DocumentType): "FACTURE" | "DEVIS" | "CONTRAT" {
   return "CONTRAT";
 }
 
-// Tabs dynamiques selon le type
 const TABS_BY_TYPE: Record<DocumentType, { id: string; label: string }[]> = {
   facture: [
     { id: "info",   label: "📋 Info"     },
@@ -196,7 +194,6 @@ export default function DocumentPage() {
   const { themeId } = useThemeStore();
   const isXP = themeId === "xp";
 
-  // ── UI state ──
   const [activeTab,        setActiveTab]        = useState("info");
   const [showClientPicker, setShowClientPicker] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
@@ -204,7 +201,6 @@ export default function DocumentPage() {
   const [saved,            setSaved]            = useState(false);
   const [toast,            setToast]            = useState("");
 
-  // Champs extras locaux (contrat / devis)
   const [startDate, setStartDate] = useState(today());
   const [endDate,   setEndDate]   = useState(addDays(today(), 30));
   const [validDays, setValidDays] = useState("30");
@@ -217,12 +213,10 @@ export default function DocumentPage() {
     "5. Garantie sur la main-d'œuvre : 1 an."
   );
 
-  // Refs signatures
   const contractorSigRef = useRef<HTMLCanvasElement>(null);
   const clientSigRef     = useRef<HTMLCanvasElement>(null);
   const singleSigRef     = useRef<HTMLCanvasElement>(null);
 
-  // ── Résolution / création du doc ──
   const [currentId] = useState<string>(() => {
     if (!isNew) return docId;
     const newDoc = addDocument("facture");
@@ -234,8 +228,8 @@ export default function DocumentPage() {
 
   const doc = documents.find((d) => d.id === currentId) ?? null;
 
-  // ── Helpers ──
-  function upd(updates: Partial<GCPDocument>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function upd(updates: Record<string, any>) {
     if (!currentId) return;
     updateDocument(currentId, updates);
   }
@@ -293,7 +287,6 @@ export default function DocumentPage() {
     if (ctx && ref.current) ctx.clearRect(0, 0, ref.current.width, ref.current.height);
   }
 
-  // Tabs valides pour le type courant
   const currentTabs = doc ? TABS_BY_TYPE[doc.type] : TABS_BY_TYPE["facture"];
   const validTabIds = currentTabs.map(t => t.id);
   const safeTab = validTabIds.includes(activeTab) ? activeTab : "info";
@@ -309,7 +302,6 @@ export default function DocumentPage() {
   const wm       = getWatermarkType(doc.type);
   const typeMeta = TYPE_META[doc.type];
 
-  // ── Styles ──
   const cardStyle: React.CSSProperties = {
     background: "var(--card)", border: "1px solid var(--border)",
     borderRadius: "12px", padding: "16px", marginBottom: "14px",
@@ -338,14 +330,13 @@ export default function DocumentPage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", paddingBottom: "130px" }}>
 
-      {/* Toast */}
       {toast && (
         <div style={{ position: "fixed", top: "16px", left: "50%", transform: "translateX(-50%)", background: "var(--card)", border: "1px solid var(--border)", borderRadius: "12px", padding: "12px 20px", color: "var(--text)", fontSize: "14px", fontWeight: 600, zIndex: 999, boxShadow: "0 8px 32px rgba(0,0,0,0.3)", whiteSpace: "nowrap" }}>
           {toast}
         </div>
       )}
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "16px", borderBottom: "1px solid var(--border)" }}>
         <button onClick={() => router.push("/documents")} style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--text-muted)", padding: "8px 12px", cursor: "pointer", fontSize: "14px" }}>
           ← Retour
@@ -361,7 +352,7 @@ export default function DocumentPage() {
         </button>
       </div>
 
-      {/* ── Sélecteur de type ── */}
+      {/* Sélecteur type */}
       <div style={{ display: "flex", gap: "8px", padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
         {(["facture", "devis", "contrat"] as DocumentType[]).map((t) => (
           <button key={t} onClick={() => { upd({ type: t }); setActiveTab("info"); }} style={{
@@ -374,7 +365,7 @@ export default function DocumentPage() {
         ))}
       </div>
 
-      {/* ── Tabs dynamiques ── */}
+      {/* Tabs dynamiques */}
       <div style={{ display: "flex", borderBottom: "1px solid var(--border)", overflowX: "auto", scrollbarWidth: "none" }}>
         {currentTabs.map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
@@ -390,12 +381,9 @@ export default function DocumentPage() {
 
       <div style={{ padding: "16px" }}>
 
-        {/* ═══════════════════════════════════
-            TAB INFO — commun aux 3 types
-        ═══════════════════════════════════ */}
+        {/* ── INFO ── */}
         {safeTab === "info" && (
           <>
-            {/* Bloc compagnie auto */}
             <div style={{ ...cardStyle, border: `1px solid ${typeMeta.color}44`, background: `${typeMeta.color}08`, minHeight: "120px" }}>
               <DocumentWatermark type={wm} logoUrl={company.logoUrl} companyName={company.name} opacity={0.07}/>
               <div style={{ position: "relative", zIndex: 1 }}>
@@ -419,7 +407,6 @@ export default function DocumentPage() {
               </div>
             </div>
 
-            {/* Numéro + dates (différent selon type) */}
             <div style={cardStyle}>
               <Field label="Numéro de document" value={doc.number} onChange={(v) => upd({ number: v })}/>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
@@ -439,7 +426,6 @@ export default function DocumentPage() {
               )}
             </div>
 
-            {/* Client */}
             <div style={cardStyle}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
                 <span style={{ fontWeight: 700, color: "var(--text)" }}>
@@ -457,9 +443,7 @@ export default function DocumentPage() {
           </>
         )}
 
-        {/* ═══════════════════════════════════
-            TAB TRAVAUX — devis + contrat
-        ═══════════════════════════════════ */}
+        {/* ── TRAVAUX ── */}
         {safeTab === "travaux" && (
           <>
             <div style={cardStyle}>
@@ -469,11 +453,10 @@ export default function DocumentPage() {
               </label>
               <textarea
                 value={workDesc} onChange={(e) => setWorkDesc(e.target.value)}
-                rows={8} placeholder="Décrire en détail les travaux à effectuer : matériaux, méthodes, zones concernées..."
+                rows={8} placeholder="Décrire en détail les travaux à effectuer..."
                 style={{ ...inputStyle, resize: "vertical", lineHeight: "1.6" }}
               />
             </div>
-
             {doc.type === "devis" && (
               <div style={{ ...cardStyle, border: "1px solid #3b82f644", background: "#3b82f608" }}>
                 <div style={{ fontSize: "11px", color: "#3b82f6", letterSpacing: "0.1em", marginBottom: "10px", textTransform: "uppercase", fontWeight: 700 }}>ℹ️ Validité</div>
@@ -485,7 +468,6 @@ export default function DocumentPage() {
                 </p>
               </div>
             )}
-
             {doc.type === "contrat" && (
               <div style={{ ...cardStyle, border: "1px solid #22c55e44", background: "#22c55e08" }}>
                 <div style={{ fontSize: "11px", color: "#22c55e", letterSpacing: "0.1em", marginBottom: "10px", textTransform: "uppercase", fontWeight: 700 }}>📅 Calendrier</div>
@@ -504,23 +486,17 @@ export default function DocumentPage() {
           </>
         )}
 
-        {/* ═══════════════════════════════════
-            TAB CLAUSES — contrat seulement
-        ═══════════════════════════════════ */}
+        {/* ── CLAUSES ── */}
         {safeTab === "clauses" && doc.type === "contrat" && (
           <>
             <div style={cardStyle}>
               <h3 style={{ marginTop: 0, marginBottom: "14px", color: "var(--text)" }}>⚖️ Clauses & Conditions</h3>
-              <label style={{ display: "block", fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px", textTransform: "uppercase" }}>
-                Clauses contractuelles
-              </label>
               <textarea
                 value={clauses} onChange={(e) => setClauses(e.target.value)}
                 rows={12} style={{ ...inputStyle, resize: "vertical", lineHeight: "1.7" }}
                 placeholder="1. ..."
               />
             </div>
-
             <div style={{ ...cardStyle, border: "1px solid #f59e0b44", background: "#f59e0b08" }}>
               <div style={{ fontSize: "11px", color: "#f59e0b", letterSpacing: "0.1em", marginBottom: "10px", textTransform: "uppercase", fontWeight: 700 }}>
                 ⚠️ Modalités de paiement
@@ -536,9 +512,7 @@ export default function DocumentPage() {
           </>
         )}
 
-        {/* ═══════════════════════════════════
-            TAB ARTICLES — facture + devis
-        ═══════════════════════════════════ */}
+        {/* ── ARTICLES ── */}
         {safeTab === "items" && (
           <div style={cardStyle}>
             <h3 style={{ marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>
@@ -578,9 +552,7 @@ export default function DocumentPage() {
           </div>
         )}
 
-        {/* ═══════════════════════════════════
-            TAB TOTAUX — tous les types
-        ═══════════════════════════════════ */}
+        {/* ── TOTAUX ── */}
         {safeTab === "totals" && (
           <>
             <div style={{ ...cardStyle, minHeight: "200px" }}>
@@ -589,24 +561,18 @@ export default function DocumentPage() {
                 <h3 style={{ marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>
                   {doc.type === "contrat" ? "💰 Montant du contrat" : "💰 Totaux"}
                 </h3>
-
-                {/* Remise — facture et devis seulement */}
                 {doc.type !== "contrat" && (
                   <div style={{ marginBottom: "12px" }}>
                     <label style={{ display: "block", fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px", textTransform: "uppercase" }}>Remise (%)</label>
                     <input type="number" value={doc.discountType === "percent" ? doc.discountValue : 0} onChange={(e) => { updateDiscount(currentId, "percent", Number(e.target.value)); calculateTotals(currentId); }} min="0" max="100" style={inputStyle}/>
                   </div>
                 )}
-
-                {/* Dépôt / Acompte */}
                 <div style={{ marginBottom: "16px" }}>
                   <label style={{ display: "block", fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px", textTransform: "uppercase" }}>
                     {doc.type === "contrat" ? "Acompte à la signature ($)" : doc.type === "devis" ? "Dépôt demandé ($)" : "Dépôt reçu ($)"}
                   </label>
                   <input type="number" value={doc.deposit ?? 0} onChange={(e) => updateDeposit(currentId, Number(e.target.value))} min="0" step="0.01" style={inputStyle}/>
                 </div>
-
-                {/* Récap financier */}
                 <div style={{ background: "var(--surface)", borderRadius: "10px", padding: "16px", border: "1px solid var(--border)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "14px", color: "var(--text-muted)" }}>
                     <span>Sous-total</span><span>{formatCurrency(doc.subtotal)}</span>
@@ -641,8 +607,6 @@ export default function DocumentPage() {
                 </div>
               </div>
             </div>
-
-            {/* Infos paiement auto */}
             {(company.etransferEmail || company.bankName) && (
               <div style={{ ...cardStyle, border: "1px solid #3b82f644", background: "#3b82f608" }}>
                 <div style={{ fontSize: "11px", color: "#3b82f6", letterSpacing: "0.1em", marginBottom: "10px", textTransform: "uppercase", fontWeight: 700 }}>
@@ -655,123 +619,89 @@ export default function DocumentPage() {
           </>
         )}
 
-        {/* ═══════════════════════════════════
-            TAB NOTES — facture + devis
-        ═══════════════════════════════════ */}
+        {/* ── NOTES ── */}
         {safeTab === "notes" && (
           <div style={{ ...cardStyle, minHeight: "260px" }}>
             <DocumentWatermark type={wm} logoUrl={company.logoUrl} companyName={company.name} opacity={0.05}/>
             <div style={{ position: "relative", zIndex: 1 }}>
               <h3 style={{ marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>📝 Notes & Signature</h3>
-
               <div style={{ marginBottom: "16px" }}>
                 <label style={{ display: "block", fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px", textTransform: "uppercase" }}>Notes pour le client</label>
                 <textarea value={doc.notes ?? ""} onChange={(e) => upd({ notes: e.target.value })} rows={4} style={{ ...inputStyle, resize: "vertical" }} placeholder="Merci pour votre confiance..."/>
               </div>
-
               {doc.type === "devis" && (
                 <div style={{ marginBottom: "16px" }}>
                   <label style={{ display: "block", fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px", textTransform: "uppercase" }}>Conditions d'acceptation</label>
                   <textarea value={doc.terms ?? ""} onChange={(e) => upd({ terms: e.target.value })} rows={3} style={{ ...inputStyle, resize: "vertical" }} placeholder="L'acceptation de ce devis vaut bon de commande..."/>
                 </div>
               )}
-
-              {/* Signature client (facture / devis) */}
-              <SignatureCanvas
-                label="Signature du client"
-                isXP={isXP}
-                canvasRef={singleSigRef}
-                onClear={() => clearCanvas(singleSigRef)}
-              />
+              <SignatureCanvas label="Signature du client" isXP={isXP} canvasRef={singleSigRef} onClear={() => clearCanvas(singleSigRef)}/>
             </div>
           </div>
         )}
 
-        {/* ═══════════════════════════════════
-            TAB SIGNATURES — contrat seulement
-        ═══════════════════════════════════ */}
+        {/* ── SIGNATURES CONTRAT ── */}
         {safeTab === "sign" && doc.type === "contrat" && (
-          <>
-            <div style={{ ...cardStyle, border: "1px solid #22c55e44", background: "#22c55e08" }}>
-              <DocumentWatermark type="CONTRAT" logoUrl={company.logoUrl} companyName={company.name} opacity={0.05}/>
-              <div style={{ position: "relative", zIndex: 1 }}>
-                <h3 style={{ marginTop: 0, marginBottom: "6px", color: "var(--text)" }}>✍️ Signatures des parties</h3>
-                <p style={{ margin: "0 0 20px", fontSize: "13px", color: "var(--text-muted)" }}>
-                  Les deux parties confirment avoir lu et accepté les termes du présent contrat.
-                </p>
+          <div style={{ ...cardStyle, border: "1px solid #22c55e44", background: "#22c55e08" }}>
+            <DocumentWatermark type="CONTRAT" logoUrl={company.logoUrl} companyName={company.name} opacity={0.05}/>
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <h3 style={{ marginTop: 0, marginBottom: "6px", color: "var(--text)" }}>✍️ Signatures des parties</h3>
+              <p style={{ margin: "0 0 20px", fontSize: "13px", color: "var(--text-muted)" }}>
+                Les deux parties confirment avoir lu et accepté les termes du présent contrat.
+              </p>
 
-                {/* ── Signature CONTRACTEUR ── */}
-                <div style={{ marginBottom: "8px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-                    <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
-                    <span style={{ fontSize: "12px", color: "var(--primary)", fontWeight: 700, whiteSpace: "nowrap", padding: "4px 12px", background: "var(--primary)18", borderRadius: "20px", border: "1px solid var(--primary)44" }}>
-                      🔨 CONTRACTEUR
-                    </span>
-                    <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
-                  </div>
-                  <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "12px", paddingLeft: "4px" }}>
-                    <strong style={{ color: "var(--text)" }}>{company.name}</strong>
-                    {company.ownerName && <span style={{ color: "var(--text-muted)" }}> — {company.ownerName}</span>}
-                  </div>
-                  <SignatureCanvas
-                    label="Signature du contracteur"
-                    isXP={isXP}
-                    canvasRef={contractorSigRef}
-                    onClear={() => clearCanvas(contractorSigRef)}
-                  />
-                  <Field label="Date de signature — contracteur" value={today()} type="date" readOnly/>
-                </div>
+              {/* Contracteur */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
+                <span style={{ fontSize: "12px", color: "var(--primary)", fontWeight: 700, whiteSpace: "nowrap", padding: "4px 12px", background: "var(--primary)18", borderRadius: "20px", border: "1px solid var(--primary)44" }}>
+                  🔨 CONTRACTEUR
+                </span>
+                <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
+              </div>
+              <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "12px" }}>
+                <strong style={{ color: "var(--text)" }}>{company.name}</strong>
+                {company.ownerName && <span> — {company.ownerName}</span>}
+              </div>
+              <SignatureCanvas label="Signature du contracteur" isXP={isXP} canvasRef={contractorSigRef} onClear={() => clearCanvas(contractorSigRef)}/>
+              <Field label="Date de signature — contracteur" value={today()} type="date" readOnly/>
 
-                {/* Séparateur */}
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "20px 0" }}>
-                  <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
-                  <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>ET</span>
-                  <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
-                </div>
+              {/* Séparateur */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "20px 0" }}>
+                <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>ET</span>
+                <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
+              </div>
 
-                {/* ── Signature CLIENT ── */}
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-                    <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
-                    <span style={{ fontSize: "12px", color: "#22c55e", fontWeight: 700, whiteSpace: "nowrap", padding: "4px 12px", background: "#22c55e18", borderRadius: "20px", border: "1px solid #22c55e44" }}>
-                      👤 CLIENT
-                    </span>
-                    <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
-                  </div>
-                  <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "12px", paddingLeft: "4px" }}>
-                    <strong style={{ color: doc.client.name ? "var(--text)" : "var(--danger)" }}>
-                      {doc.client.name || "⚠️ Client non défini — allez dans Info"}
-                    </strong>
-                  </div>
-                  <SignatureCanvas
-                    label="Signature du client"
-                    isXP={isXP}
-                    canvasRef={clientSigRef}
-                    onClear={() => clearCanvas(clientSigRef)}
-                  />
-                  <Field label="Date de signature — client" value={today()} type="date" readOnly/>
-                </div>
+              {/* Client */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
+                <span style={{ fontSize: "12px", color: "#22c55e", fontWeight: 700, whiteSpace: "nowrap", padding: "4px 12px", background: "#22c55e18", borderRadius: "20px", border: "1px solid #22c55e44" }}>
+                  👤 CLIENT
+                </span>
+                <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
+              </div>
+              <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "12px" }}>
+                <strong style={{ color: doc.client.name ? "var(--text)" : "var(--danger)" }}>
+                  {doc.client.name || "⚠️ Client non défini — allez dans Info"}
+                </strong>
+              </div>
+              <SignatureCanvas label="Signature du client" isXP={isXP} canvasRef={clientSigRef} onClear={() => clearCanvas(clientSigRef)}/>
+              <Field label="Date de signature — client" value={today()} type="date" readOnly/>
 
-                {/* Bloc légal */}
-                <div style={{ marginTop: "20px", padding: "14px", background: "var(--surface)", borderRadius: "10px", border: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.7" }}>
-                    En signant ce document, les deux parties reconnaissent avoir pris connaissance de l'ensemble des clauses et conditions et s'engagent à les respecter. Ce contrat constitue l'intégralité de l'entente entre les parties.
-                  </div>
+              <div style={{ marginTop: "20px", padding: "14px", background: "var(--surface)", borderRadius: "10px", border: "1px solid var(--border)" }}>
+                <div style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.7" }}>
+                  En signant ce document, les deux parties reconnaissent avoir pris connaissance de l'ensemble des clauses et conditions et s'engagent à les respecter. Ce contrat constitue l'intégralité de l'entente entre les parties.
                 </div>
               </div>
             </div>
-          </>
+          </div>
         )}
 
-        {/* ═══════════════════════════════════
-            BOUTONS D'ACTION
-        ═══════════════════════════════════ */}
+        {/* ── BOUTONS D'ACTION ── */}
         <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "10px" }}>
-
           <button style={btnPrimary} onClick={handleSave}>
             {saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}
           </button>
-
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
             <button onClick={handleSendEmail} style={{ padding: "13px", borderRadius: "10px", cursor: "pointer", border: "1px solid #3b82f644", background: "#3b82f608", color: "#3b82f6", fontWeight: 700, fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
               📧 Email
@@ -780,7 +710,6 @@ export default function DocumentPage() {
               💬 SMS
             </button>
           </div>
-
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
             <button onClick={() => setShowPreview(true)} style={{ padding: "13px", borderRadius: "10px", cursor: "pointer", border: "1px solid var(--primary)44", background: "var(--primary)08", color: "var(--primary)", fontWeight: 700, fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
               👁️ Aperçu
@@ -789,14 +718,13 @@ export default function DocumentPage() {
               🖨️ PDF
             </button>
           </div>
-
           <button onClick={() => { if (confirm("Supprimer ce document?")) { deleteDocument(currentId); router.push("/documents"); } }} style={{ padding: "12px", borderRadius: "10px", cursor: "pointer", border: "1px solid var(--danger)44", background: "var(--danger)08", color: "var(--danger)", fontWeight: 600, fontSize: "13px" }}>
             🗑️ Supprimer ce document
           </button>
         </div>
       </div>
 
-      {/* ── Modal client picker ── */}
+      {/* Modal client */}
       {showClientPicker && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "flex-end" }} onClick={() => setShowClientPicker(false)}>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", width: "100%", maxHeight: "70vh", borderRadius: "20px 20px 0 0", padding: "20px", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
@@ -815,7 +743,7 @@ export default function DocumentPage() {
         </div>
       )}
 
-      {/* ── Modal statut ── */}
+      {/* Modal statut */}
       {showStatusPicker && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "flex-end" }} onClick={() => setShowStatusPicker(false)}>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", width: "100%", borderRadius: "20px 20px 0 0", padding: "20px" }} onClick={(e) => e.stopPropagation()}>
@@ -830,12 +758,10 @@ export default function DocumentPage() {
         </div>
       )}
 
-      {/* ── Modal aperçu ── */}
+      {/* Modal aperçu */}
       {showPreview && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 200, overflowY: "auto" }} onClick={() => setShowPreview(false)}>
           <div style={{ background: "#fff", color: "#111", margin: "20px auto", maxWidth: "600px", borderRadius: "12px", padding: "32px" }} onClick={(e) => e.stopPropagation()}>
-
-            {/* En-tête aperçu */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
               <div>
                 {company.logoUrl && (
@@ -862,7 +788,6 @@ export default function DocumentPage() {
               </div>
             </div>
 
-            {/* Client */}
             <div style={{ background: "#f8f8f8", borderRadius: "8px", padding: "16px", marginBottom: "24px" }}>
               <div style={{ fontSize: "11px", color: "#888", textTransform: "uppercase", marginBottom: "6px" }}>
                 {doc.type === "contrat" ? "Partie cliente" : "Facturer à"}
@@ -873,7 +798,6 @@ export default function DocumentPage() {
               {doc.client.address && <div style={{ fontSize: "13px", color: "#555" }}>{doc.client.address}</div>}
             </div>
 
-            {/* Description travaux */}
             {workDesc && (
               <div style={{ marginBottom: "20px", padding: "14px", background: "#f0fdf4", borderRadius: "8px" }}>
                 <div style={{ fontSize: "11px", color: "#16a34a", textTransform: "uppercase", marginBottom: "6px" }}>Description des travaux</div>
@@ -881,7 +805,6 @@ export default function DocumentPage() {
               </div>
             )}
 
-            {/* Articles */}
             {doc.items.some(i => i.description) && (
               <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "24px" }}>
                 <thead>
@@ -905,7 +828,6 @@ export default function DocumentPage() {
               </table>
             )}
 
-            {/* Totaux aperçu */}
             <div style={{ marginLeft: "auto", maxWidth: "260px", marginBottom: "24px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "13px" }}>
                 <span style={{ color: "#666" }}>Sous-total</span><span>{formatCurrency(doc.subtotal)}</span>
@@ -931,7 +853,6 @@ export default function DocumentPage() {
               )}
             </div>
 
-            {/* Clauses contrat */}
             {doc.type === "contrat" && clauses && (
               <div style={{ marginBottom: "20px", padding: "14px", background: "#f8f8f8", borderRadius: "8px" }}>
                 <div style={{ fontSize: "11px", color: "#888", textTransform: "uppercase", marginBottom: "8px" }}>Clauses & Conditions</div>
@@ -939,7 +860,6 @@ export default function DocumentPage() {
               </div>
             )}
 
-            {/* Notes */}
             {doc.notes && (
               <div style={{ marginBottom: "16px", padding: "14px", background: "#f8f8f8", borderRadius: "8px" }}>
                 <div style={{ fontSize: "11px", color: "#888", textTransform: "uppercase", marginBottom: "6px" }}>Notes</div>
@@ -947,7 +867,6 @@ export default function DocumentPage() {
               </div>
             )}
 
-            {/* Paiement */}
             {(company.etransferEmail || company.bankName) && (
               <div style={{ marginBottom: "20px", padding: "14px", background: "#f0f9ff", borderRadius: "8px" }}>
                 <div style={{ fontSize: "11px", color: "#3b82f6", textTransform: "uppercase", marginBottom: "6px" }}>Paiement</div>
@@ -956,7 +875,6 @@ export default function DocumentPage() {
               </div>
             )}
 
-            {/* Zones signature dans l'aperçu */}
             <div style={{ display: "grid", gridTemplateColumns: doc.type === "contrat" ? "1fr 1fr" : "1fr", gap: "16px", marginTop: "24px" }}>
               {doc.type === "contrat" && (
                 <div style={{ borderTop: "2px solid #111", paddingTop: "10px" }}>
