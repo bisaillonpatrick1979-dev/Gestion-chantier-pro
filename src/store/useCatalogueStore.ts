@@ -12,10 +12,11 @@ export interface Material {
   nameen?: string
   emoji?: string
   unit?: Unit
-  prixClient?: number        // 🏷️ Prix de vente au client
   prixFournisseur?: number   // 🏭 Mon coût chez le fournisseur
+  margePercent?: number      // 📊 % de marge appliquée
+  prixClient?: number        // 🏷️ Prix de vente au client
   description?: string
-  // Champs legacy – compatibilité avec les documents existants
+  // Champs legacy – compatibilité documents existants
   price?: number
   priceMin?: number
   priceMax?: number
