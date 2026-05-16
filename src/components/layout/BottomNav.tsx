@@ -6,7 +6,8 @@ import { useEmployeeStore } from "@/store/useEmployeeStore";
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { currentEmployee } = useEmployeeStore();
+  const { employees, currentEmployeeId } = useEmployeeStore();
+  const currentEmployee = employees.find((e) => e.id === currentEmployeeId) ?? null;
   const isAdmin = currentEmployee?.role === "admin";
 
   function IconHome(active: boolean) {
@@ -121,7 +122,7 @@ export default function BottomNav() {
     { href: "/documents", label: "Docs", icon: IconDocs },
     { href: "/accounting", label: "Compta", icon: IconAccounting },
     { href: "/catalogue", label: "Catalogue", icon: IconCatalogue },
-    { href: "/settings", label: "Réglages", icon: IconSettings },
+    { href: "/settings", label: "Reglages", icon: IconSettings },
   ];
 
   const employeeItems = [
@@ -133,48 +134,14 @@ export default function BottomNav() {
   const items = isAdmin ? adminItems : employeeItems;
 
   return (
-    <nav style={{
-      position: "fixed",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      zIndex: 50,
-      backgroundColor: "#111",
-      borderTop: "1px solid #222",
-      paddingBottom: "env(safe-area-inset-bottom, 0px)",
-    }}>
-      <div style={{
-        display: "flex",
-        justifyContent: "space-around",
-        alignItems: "center",
-        height: "60px",
-        overflowX: "auto",
-        scrollbarWidth: "none",
-      }}>
+    <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, backgroundColor: "#111", borderTop: "1px solid #222", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center", height: "60px", overflowX: "auto", scrollbarWidth: "none" }}>
         {items.map((item) => {
           const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "2px",
-                minWidth: "52px",
-                padding: "6px 4px",
-                textDecoration: "none",
-              }}
-            >
+            <Link key={item.href} href={item.href} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", minWidth: "52px", padding: "6px 4px", textDecoration: "none" }}>
               {item.icon(isActive)}
-              <span style={{
-                fontSize: "9px",
-                fontWeight: isActive ? 700 : 400,
-                color: isActive ? "#D4AF37" : "#666",
-                whiteSpace: "nowrap",
-              }}>
+              <span style={{ fontSize: "9px", fontWeight: isActive ? 700 : 400, color: isActive ? "#D4AF37" : "#666", whiteSpace: "nowrap" }}>
                 {item.label}
               </span>
             </Link>
