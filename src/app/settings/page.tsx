@@ -8,7 +8,6 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { useLangStore } from '@/store/useLangStore';
 import BottomNav from '@/components/BottomNav';
 
-// ─── Icônes ───────────────────────────────────────────────────────────────────
 const ChevronRight = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
     <polyline points="9 18 15 12 9 6" />
@@ -22,16 +21,14 @@ const SaveIcon = () => (
   </svg>
 );
 
-// ─── Thèmes disponibles ───────────────────────────────────────────────────────
 const THEMES = [
-  { id: 'dark',    name: 'Sombre',    emoji: '🌑', bg: '#0f172a', accent: '#f97316' },
-  { id: 'light',   name: 'Clair',     emoji: '☀️', bg: '#f8fafc', accent: '#f97316' },
-  { id: 'blue',    name: 'Océan',     emoji: '🌊', bg: '#0c1a2e', accent: '#3b82f6' },
-  { id: 'green',   name: 'Forêt',     emoji: '🌲', bg: '#0a1f0a', accent: '#22c55e' },
-  { id: 'purple',  name: 'Violet',    emoji: '💜', bg: '#1a0a2e', accent: '#a855f7' },
+  { id: 'dark',   name: 'Sombre', emoji: '🌑', accent: '#f97316' },
+  { id: 'light',  name: 'Clair',  emoji: '☀️', accent: '#f97316' },
+  { id: 'blue',   name: 'Océan',  emoji: '🌊', accent: '#3b82f6' },
+  { id: 'green',  name: 'Forêt',  emoji: '🌲', accent: '#22c55e' },
+  { id: 'purple', name: 'Violet', emoji: '💜', accent: '#a855f7' },
 ];
 
-// ─── Section accordéon ────────────────────────────────────────────────────────
 function Section({ title, emoji, children, defaultOpen = false }: {
   title: string; emoji: string; children: React.ReactNode; defaultOpen?: boolean;
 }) {
@@ -50,7 +47,6 @@ function Section({ title, emoji, children, defaultOpen = false }: {
   );
 }
 
-// ─── Lien de navigation ───────────────────────────────────────────────────────
 function NavLink({ emoji, title, subtitle, onClick }: {
   emoji: string; title: string; subtitle?: string; onClick: () => void;
 }) {
@@ -112,35 +108,40 @@ type AnyEmployee = {
   id: string | number; role?: string; isAdmin?: boolean; name?: string; hourlyRate?: number; pin?: string;
 };
 
-// ─── Page principale ──────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const router = useRouter();
 
   const company = useCompanyStore(s => s.company);
   const updateCompany = useCompanyStore(s => s.updateCompany);
   const employees = useEmployeeStore(s => s.employees) as AnyEmployee[];
-  const addEmployee = useEmployeeStore(s => (s as unknown as { addEmployee?: (e: AnyEmployee) => void }).addEmployee);
-  const removeEmployee = useEmployeeStore(s => (s as unknown as { removeEmployee?: (id: string | number) => void }).removeEmployee);
-
+  const addEmployee = useEmployeeStore(
+    s => (s as unknown as { addEmployee?: (e: AnyEmployee) => void }).addEmployee
+  );
+  const removeEmployee = useEmployeeStore(
+    s => (s as unknown as { removeEmployee?: (id: string | number) => void }).removeEmployee
+  );
   const storeState = useEmployeeStore(s => s) as unknown as { currentEmployeeId?: string | number };
   const currentEmployeeId = storeState.currentEmployeeId;
-  const currentEmployee = currentEmployeeId != null ? employees.find(e => e.id === currentEmployeeId) : undefined;
-  const isAdmin = currentEmployee?.role === 'admin' || currentEmployee?.isAdmin === true || currentEmployeeId == null;
+  const currentEmployee = currentEmployeeId != null
+    ? employees.find(e => e.id === currentEmployeeId)
+    : undefined;
+  const isAdmin =
+    currentEmployee?.role === 'admin' ||
+    currentEmployee?.isAdmin === true ||
+    currentEmployeeId == null;
 
-  // Thème & Langue
-  const { setTheme, currentThemeId } = useThemeStore(s => s) as unknown as {
-    setTheme?: (id: string) => void; currentThemeId?: string;
-  };
-  const { lang, setLang } = useLangStore(s => s) as unknown as {
-    lang: string; setLang?: (l: string) => void;
-  };
+  // ── Thème — vrais noms du store ──
+  const themeId = useThemeStore(s => s.themeId);
+  const setTheme = useThemeStore(s => s.setTheme);
+
+  // ── Langue — vrais noms du store ──
+  const lang = useLangStore(s => s.lang);
+  const setLang = useLangStore(s => s.setLang);
 
   const [form, setForm] = useState<CompanyInfo>({ ...company });
   const [saved, setSaved] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string>(company.logo || company.logoUrl || '');
   const fileRef = useRef<HTMLInputElement>(null);
-
-  // Nouvel employé
   const [newEmp, setNewEmp] = useState({ name: '', role: 'employee', hourlyRate: 45, pin: '' });
   const [showAddEmp, setShowAddEmp] = useState(false);
 
@@ -165,14 +166,11 @@ export default function SettingsPage() {
 
   const handleAddEmployee = () => {
     if (!newEmp.name.trim()) return;
-    if (addEmployee) {
-      addEmployee({ id: Date.now().toString(), ...newEmp });
-    }
+    if (addEmployee) addEmployee({ id: Date.now().toString(), ...newEmp });
     setNewEmp({ name: '', role: 'employee', hourlyRate: 45, pin: '' });
     setShowAddEmp(false);
   };
 
-  // ── Accès restreint ──
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
@@ -194,8 +192,6 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
-
-      {/* Header */}
       <div className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-white">⚙️ Réglages</h1>
@@ -212,72 +208,66 @@ export default function SettingsPage() {
 
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-32 space-y-2">
 
-        {/* ── Liens rapides ── */}
+        {/* Liens rapides */}
         <div className="mb-2">
           <p className="text-xs text-gray-500 uppercase tracking-widest mb-2 px-1">Navigation rapide</p>
           <div className="space-y-2">
-            <NavLink emoji="👥" title="Clients" subtitle="Gérer la liste des clients"
-              onClick={() => router.push('/clients')} />
-            <NavLink emoji="📦" title="Catalogue matériaux" subtitle="Prix et inventaire"
-              onClick={() => router.push('/catalogue')} />
-            <NavLink emoji="💼" title="Comptabilité" subtitle="Revenus, dépenses, rapports"
-              onClick={() => router.push('/comptabilite')} />
-            <NavLink emoji="📋" title="Livre de paye" subtitle="Employés, heures, paie"
-              onClick={() => router.push('/paye')} />
-            <NavLink emoji="📁" title="Projets" subtitle="Chantiers en cours"
-              onClick={() => router.push('/projects')} />
+            <NavLink emoji="👥" title="Clients" subtitle="Gérer la liste des clients" onClick={() => router.push('/clients')} />
+            <NavLink emoji="📦" title="Catalogue matériaux" subtitle="Prix et inventaire" onClick={() => router.push('/catalogue')} />
+            <NavLink emoji="💼" title="Comptabilité" subtitle="Revenus, dépenses, rapports" onClick={() => router.push('/comptabilite')} />
+            <NavLink emoji="📋" title="Livre de paye" subtitle="Employés, heures, paie" onClick={() => router.push('/paye')} />
+            <NavLink emoji="📁" title="Projets" subtitle="Chantiers en cours" onClick={() => router.push('/projects')} />
           </div>
         </div>
 
-        {/* ── Langue ── */}
+        {/* Langue */}
         <Section emoji="🌐" title="Langue / Language">
           <div className="flex gap-3">
-            <button onClick={() => setLang && setLang('fr')}
+            <button onClick={() => setLang('fr')}
               className={`flex-1 py-3 rounded-xl font-bold text-sm border transition ${
-                lang === 'fr' ? 'bg-orange-500 border-orange-400 text-white' : 'bg-white/5 border-white/10 text-gray-300'
+                lang === 'fr' ? 'bg-orange-500 border-orange-400 text-white' : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
               }`}>
               🇫🇷 Français
             </button>
-            <button onClick={() => setLang && setLang('en')}
+            <button onClick={() => setLang('en')}
               className={`flex-1 py-3 rounded-xl font-bold text-sm border transition ${
-                lang === 'en' ? 'bg-orange-500 border-orange-400 text-white' : 'bg-white/5 border-white/10 text-gray-300'
+                lang === 'en' ? 'bg-orange-500 border-orange-400 text-white' : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
               }`}>
               🇨🇦 English
             </button>
           </div>
         </Section>
 
-        {/* ── Thèmes ── */}
+        {/* Thèmes */}
         <Section emoji="🎨" title="Thème / Skin">
           <div className="grid grid-cols-3 gap-2">
             {THEMES.map(th => (
-              <button key={th.id} onClick={() => setTheme && setTheme(th.id)}
+              <button key={th.id} onClick={() => setTheme(th.id)}
                 className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition ${
-                  currentThemeId === th.id ? 'border-orange-400 bg-orange-500/10' : 'border-white/10 bg-white/5'
+                  themeId === th.id ? 'border-orange-400 bg-orange-500/10' : 'border-white/10 bg-white/5 hover:bg-white/10'
                 }`}>
                 <div className="w-8 h-8 rounded-full border-2 border-white/20" style={{ backgroundColor: th.accent }} />
                 <span className="text-xs text-white font-medium">{th.emoji} {th.name}</span>
-                {currentThemeId === th.id && <span className="text-xs text-orange-400">✓ Actif</span>}
+                {themeId === th.id && <span className="text-xs text-orange-400 font-bold">✓ Actif</span>}
               </button>
             ))}
           </div>
         </Section>
 
-        {/* ── Infos compagnie ── */}
+        {/* Infos compagnie */}
         <Section emoji="🏢" title="Informations Compagnie" defaultOpen>
           <div className="flex items-center gap-4 mb-2">
             <div onClick={() => fileRef.current?.click()}
               className="w-20 h-20 rounded-2xl border-2 border-dashed border-white/30 flex items-center justify-center cursor-pointer hover:border-orange-400 transition overflow-hidden bg-white/5">
               {logoPreview
                 ? <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
-                : <div className="text-center text-gray-500 text-xs">📷<br/>Logo</div>
+                : <div className="text-center text-gray-500 text-xs">📷<br />Logo</div>
               }
             </div>
             <div className="flex-1">
               <p className="text-sm text-white font-medium">Logo compagnie</p>
               <p className="text-xs text-gray-400">PNG, JPG — max 2 MB</p>
-              <button onClick={() => fileRef.current?.click()}
-                className="mt-2 text-xs text-orange-400 hover:text-orange-300 underline">
+              <button onClick={() => fileRef.current?.click()} className="mt-2 text-xs text-orange-400 underline">
                 Changer le logo
               </button>
             </div>
@@ -295,7 +285,7 @@ export default function SettingsPage() {
           <Field label="Site web" value={form.website} onChange={setField('website')} placeholder="www.hailitexteriors.ca" />
         </Section>
 
-        {/* ── Numéros légaux ── */}
+        {/* Numéros légaux */}
         <Section emoji="📋" title="Numéros légaux & Taxes">
           <Field label="Numéro GST" value={form.gstNumber} onChange={setField('gstNumber')} placeholder="123456789 RT0001" />
           <Field label="Numéro WCB" value={form.wcbNumber} onChange={setField('wcbNumber')} placeholder="WCB-XXXX" />
@@ -305,7 +295,7 @@ export default function SettingsPage() {
             step={0.5} suffix="Alberta = 5% seulement" />
         </Section>
 
-        {/* ── Paiement ── */}
+        {/* Paiement */}
         <Section emoji="💳" title="Paiement & Modalités">
           <Field label="E-Transfer (courriel)" value={form.eTransferEmail} onChange={setField('eTransferEmail')} type="email" placeholder="factures@hailitexteriors.ca" />
           <Field label="Délai de paiement" value={form.paymentTerms} onChange={setField('paymentTerms')} placeholder="Net 30" />
@@ -315,7 +305,7 @@ export default function SettingsPage() {
             placeholder="E-Transfer : factures@hailitexteriors.ca" rows={2} />
         </Section>
 
-        {/* ── Numéros séquentiels ── */}
+        {/* Numéros séquentiels */}
         <Section emoji="🔢" title="Numéros séquentiels">
           <NumberField label="Prochain # Facture" value={form.invoiceNextNumber}
             onChange={v => setForm(p => ({ ...p, invoiceNextNumber: Math.floor(v) }))}
@@ -328,7 +318,7 @@ export default function SettingsPage() {
             min={1} max={99999} suffix="→ CONT-2026-XXXX" />
         </Section>
 
-        {/* ── Notes par défaut ── */}
+        {/* Notes */}
         <Section emoji="📝" title="Notes & Conditions par défaut">
           <TextArea label="Notes par défaut" value={form.invoiceNotes}
             onChange={v => setForm(p => ({ ...p, invoiceNotes: v, defaultNotes: v }))}
@@ -337,7 +327,7 @@ export default function SettingsPage() {
             placeholder="Paiement dû dans les 30 jours..." rows={3} />
         </Section>
 
-        {/* ── Employés ── */}
+        {/* Employés */}
         <Section emoji="👷" title="Employés & PIN">
           <div className="space-y-2">
             {employees.length === 0 ? (
@@ -355,16 +345,12 @@ export default function SettingsPage() {
                   </div>
                   {removeEmployee && (
                     <button onClick={() => removeEmployee(emp.id)}
-                      className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded-lg hover:bg-red-500/10">
-                      ✕
-                    </button>
+                      className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded-lg hover:bg-red-500/10">✕</button>
                   )}
                 </div>
               ))
             )}
           </div>
-
-          {/* Ajouter employé */}
           {!showAddEmp ? (
             <button onClick={() => setShowAddEmp(true)}
               className="w-full mt-2 py-2.5 border border-dashed border-orange-500/40 text-orange-400 rounded-xl text-sm font-semibold hover:bg-orange-500/5 transition">
@@ -392,24 +378,19 @@ export default function SettingsPage() {
                 className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-orange-400" />
               <div className="flex gap-2">
                 <button onClick={() => setShowAddEmp(false)}
-                  className="flex-1 py-2 border border-white/10 rounded-xl text-gray-400 text-sm hover:bg-white/5">
-                  Annuler
-                </button>
+                  className="flex-1 py-2 border border-white/10 rounded-xl text-gray-400 text-sm hover:bg-white/5">Annuler</button>
                 <button onClick={handleAddEmployee}
-                  className="flex-1 py-2 bg-orange-500 rounded-xl text-white font-bold text-sm hover:bg-orange-600">
-                  Ajouter
-                </button>
+                  className="flex-1 py-2 bg-orange-500 rounded-xl text-white font-bold text-sm hover:bg-orange-600">Ajouter</button>
               </div>
             </div>
           )}
-
           <button onClick={() => router.push('/paye')}
             className="w-full mt-2 py-2.5 bg-white/5 border border-white/10 text-gray-300 rounded-xl text-sm hover:bg-white/10 transition">
             📚 Livre de paye & Reset PIN →
           </button>
         </Section>
 
-        {/* ── Sécurité ── */}
+        {/* Sécurité */}
         <Section emoji="🔒" title="Sécurité">
           <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 text-sm text-orange-300">
             ⚠️ Reset PIN admin → <strong>Livre de paye</strong>
@@ -419,7 +400,6 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        {/* Bouton save */}
         <button onClick={handleSave}
           className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all ${
             saved ? 'bg-green-500/20 text-green-400 border border-green-500/40'
