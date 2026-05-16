@@ -1,5 +1,5 @@
 // src/lib/themes.ts
-// 6 thèmes premium — remplacent tous les anciens
+// 6 thèmes premium — Art Déco Prestige entièrement redesigné
 
 export interface Theme {
   id: string
@@ -67,6 +67,7 @@ const quantumGlass: Theme = {
   },
   globalCSS: `
     body{background:linear-gradient(160deg,#050B18 0%,#071226 55%,#0A1630 100%) !important;}
+    .metal-text{color:#38D9FF;text-shadow:0 0 20px rgba(56,217,255,0.5);}
     .quantum-glass{background:rgba(10,22,48,0.82);border:1px solid rgba(60,130,255,0.28);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);}
     .quantum-punch-ring{box-shadow:0 0 0 3px rgba(47,128,255,0.45),0 0 40px rgba(47,128,255,0.35),0 0 100px rgba(47,128,255,0.18);}
   `,
@@ -105,6 +106,7 @@ const gamificationXP: Theme = {
   },
   globalCSS: `
     body{background:linear-gradient(160deg,#08051A 0%,#100A2A 60%,#17103A 100%) !important;}
+    .metal-text{color:#FACC15;text-shadow:0 0 20px rgba(250,204,21,0.5);}
     .xp-bar{background:linear-gradient(90deg,#A855F7,#22D3EE);border-radius:999px;}
     .xp-punch-glow{box-shadow:0 0 0 4px rgba(168,85,247,0.40),0 0 50px rgba(168,85,247,0.40),0 0 120px rgba(168,85,247,0.20);}
     .xp-badge{background:linear-gradient(135deg,rgba(168,85,247,0.25),rgba(34,211,238,0.15));border:1px solid rgba(168,85,247,0.45);border-radius:999px;}
@@ -144,6 +146,7 @@ const aventureChantiers: Theme = {
   },
   globalCSS: `
     body{background:#1A1712 !important;}
+    .metal-text{color:#FFD166;text-shadow:0 0 16px rgba(255,209,102,0.5);}
     .adventure-card{background:#231D10;border:2px solid rgba(255,159,28,0.35);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,0.50),inset 0 1px 0 rgba(255,159,28,0.15);}
     .adventure-hazard{background:repeating-linear-gradient(-45deg,#FF9F1C 0px,#FF9F1C 10px,#1A1712 10px,#1A1712 20px);height:4px;opacity:0.6;}
     .adventure-punch{background:radial-gradient(circle at 40% 35%,#FFB020,#F97316 55%,#C85000);box-shadow:0 0 0 6px rgba(255,159,28,0.30),0 0 50px rgba(249,115,22,0.40),0 8px 30px rgba(0,0,0,0.60);}
@@ -159,39 +162,375 @@ const artDecoPrestige: Theme = {
   colors: {
     background: '#050505',
     surface: '#0A0B0B',
-    card: '#12120F',
+    card: '#111109',
     cardAlt: '#181713',
-    border: 'rgba(214,178,94,0.35)',
+    border: 'rgba(214,178,94,0.30)',
     borderStrong: 'rgba(214,178,94,0.70)',
     text: '#F4E8C1',
-    textMuted: '#D8C58A',
-    textWeak: '#8F8058',
+    textMuted: '#C8A96A',
+    textWeak: '#8A7040',
     primary: '#D6B25E',
     primaryLight: '#F2D27A',
     secondary: '#A67C2D',
     secondaryLight: '#C49A3C',
-    glow1: 'rgba(214,178,94,0.35)',
+    glow1: 'rgba(214,178,94,0.40)',
     glow2: 'rgba(214,178,94,0.15)',
     success: '#6FAF5A',
     warning: '#D6B25E',
     danger: '#A83A32',
     info: '#7A9EAD',
     navBackground: '#050505',
-    navBorder: 'rgba(214,178,94,0.30)',
+    navBorder: 'rgba(214,178,94,0.25)',
     navActive: '#D6B25E',
-    navInactive: '#8F8058',
+    navInactive: '#6B5830',
   },
   globalCSS: `
-    body{background:#050505 !important;color:#F4E8C1 !important;}
-    .deco-frame{position:relative;border:1px solid rgba(214,178,94,0.40);border-radius:8px;}
-    .deco-frame::before,.deco-frame::after{content:'';position:absolute;width:16px;height:16px;border-color:rgba(214,178,94,0.80);border-style:solid;}
-    .deco-frame::before{top:-2px;left:-2px;border-width:2px 0 0 2px;}
-    .deco-frame::after{bottom:-2px;right:-2px;border-width:0 2px 2px 0;}
-    .deco-rays{position:relative;overflow:hidden;}
-    .deco-rays::before{content:'';position:absolute;inset:0;pointer-events:none;background:conic-gradient(from 0deg,transparent 0deg,rgba(214,178,94,0.05) 10deg,transparent 20deg,rgba(214,178,94,0.05) 30deg,transparent 40deg,rgba(214,178,94,0.05) 50deg,transparent 60deg,rgba(214,178,94,0.05) 70deg,transparent 80deg,rgba(214,178,94,0.05) 90deg,transparent 100deg,rgba(214,178,94,0.05) 110deg,transparent 120deg,rgba(214,178,94,0.05) 130deg,transparent 140deg,rgba(214,178,94,0.05) 150deg,transparent 160deg,rgba(214,178,94,0.05) 170deg,transparent 180deg,rgba(214,178,94,0.05) 190deg,transparent 200deg,rgba(214,178,94,0.05) 210deg,transparent 220deg,rgba(214,178,94,0.05) 230deg,transparent 240deg,rgba(214,178,94,0.05) 250deg,transparent 260deg,rgba(214,178,94,0.05) 270deg,transparent 280deg,rgba(214,178,94,0.05) 290deg,transparent 300deg,rgba(214,178,94,0.05) 310deg,transparent 320deg,rgba(214,178,94,0.05) 330deg,transparent 340deg,rgba(214,178,94,0.05) 350deg,transparent 360deg);}
-    .deco-punch{background:radial-gradient(circle at 40% 35%,#F2D27A,#D6B25E 50%,#A67C2D 80%,#7A5A1A);box-shadow:0 0 0 4px rgba(214,178,94,0.40),0 0 40px rgba(214,178,94,0.30),0 8px 30px rgba(0,0,0,0.70);}
-    .deco-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(214,178,94,0.50),transparent);}
-    .deco-label{letter-spacing:0.15em;text-transform:uppercase;font-size:0.75rem;}
+    /* ══════════════════════════════════════════════
+       ART DÉCO PRESTIGE — CSS Complet
+    ══════════════════════════════════════════════ */
+
+    body {
+      background: #050505 !important;
+      color: #F4E8C1 !important;
+    }
+
+    /* ── Fond global avec grille subtile ─────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 59px, rgba(214,178,94,0.04) 59px, rgba(214,178,94,0.04) 60px),
+        repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(214,178,94,0.04) 59px, rgba(214,178,94,0.04) 60px);
+    }
+
+    /* ── ANIMATIONS ──────────────────────────────── */
+    @keyframes decoGoldShimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position:  200% center; }
+    }
+    @keyframes decoGlow {
+      0%,100% { box-shadow: 0 0 0 3px rgba(214,178,94,0.50), 0 0 0 7px rgba(214,178,94,0.18), 0 0 45px rgba(214,178,94,0.35), 0 8px 40px rgba(0,0,0,0.85); }
+      50%      { box-shadow: 0 0 0 3px rgba(214,178,94,0.75), 0 0 0 9px rgba(214,178,94,0.25), 0 0 70px rgba(214,178,94,0.55), 0 8px 40px rgba(0,0,0,0.85); }
+    }
+    @keyframes decoGlowOut {
+      0%,100% { box-shadow: 0 0 0 3px rgba(168,58,50,0.55), 0 0 0 7px rgba(168,58,50,0.18), 0 0 45px rgba(168,58,50,0.40), 0 8px 40px rgba(0,0,0,0.85); }
+      50%      { box-shadow: 0 0 0 3px rgba(168,58,50,0.80), 0 0 0 9px rgba(168,58,50,0.25), 0 0 70px rgba(168,58,50,0.60), 0 8px 40px rgba(0,0,0,0.85); }
+    }
+    @keyframes decoRaysRotateSlow {
+      from { transform: translate(-50%,-50%) rotate(0deg);   }
+      to   { transform: translate(-50%,-50%) rotate(360deg); }
+    }
+    @keyframes decoRaysRotateReverse {
+      from { transform: translate(-50%,-50%) rotate(0deg);    }
+      to   { transform: translate(-50%,-50%) rotate(-360deg); }
+    }
+    @keyframes decoPress {
+      0%  { transform: scale(1);    }
+      40% { transform: scale(0.95); }
+      100%{ transform: scale(1);    }
+    }
+    @keyframes decoFadeUp {
+      from { opacity:0; transform:translateY(10px); }
+      to   { opacity:1; transform:translateY(0);    }
+    }
+    @keyframes decoShimmerText {
+      0%   { background-position: -200% center; }
+      100% { background-position:  200% center; }
+    }
+    @keyframes decoBorderPulse {
+      0%,100% { opacity: 0.55; }
+      50%      { opacity: 1.00; }
+    }
+    @keyframes decoStatusPulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:0.7; transform:scale(0.85); }
+    }
+
+    /* ── TEXTE MÉTALLIQUE OR ─────────────────────── */
+    .metal-text {
+      background: linear-gradient(90deg,
+        #7A5A1A 0%, #C49A3C 20%, #F2D27A 40%,
+        #FFE9A0 50%, #F2D27A 60%, #C49A3C 80%, #7A5A1A 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: decoShimmerText 5s linear infinite;
+    }
+
+    /* ── MONTANTS $ DORÉS ────────────────────────── */
+    .deco-amount {
+      background: linear-gradient(90deg,
+        #C49A3C 0%, #F2D27A 30%, #FFE9A0 50%, #F2D27A 70%, #C49A3C 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: decoShimmerText 3.5s linear infinite;
+    }
+
+    /* ── DIVISEUR ART DÉCO ───────────────────────── */
+    .deco-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(214,178,94,0.60) 50%, transparent 100%);
+      margin: 6px 0;
+    }
+    .deco-divider-thick {
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, rgba(214,178,94,0.80) 50%, transparent 100%);
+    }
+
+    /* ── ÉTIQUETTE ───────────────────────────────── */
+    .deco-label {
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-size: 0.68rem;
+      color: rgba(214,178,94,0.70);
+      font-weight: 700;
+    }
+
+    /* ── FRAME AVEC COINS DORÉS ──────────────────── */
+    .deco-frame {
+      position: relative;
+      border: 1px solid rgba(214,178,94,0.35);
+      border-radius: 10px;
+      animation: decoBorderPulse 4s ease-in-out infinite;
+    }
+    .deco-frame::before, .deco-frame::after {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-color: rgba(214,178,94,0.85);
+      border-style: solid;
+      pointer-events: none;
+    }
+    .deco-frame::before { top:-2px; left:-2px; border-width:2px 0 0 2px; border-radius:3px 0 0 0; }
+    .deco-frame::after  { bottom:-2px; right:-2px; border-width:0 2px 2px 0; border-radius:0 0 3px 0; }
+
+    /* ── CARTE ART DÉCO ──────────────────────────── */
+    .deco-card {
+      background: #111109;
+      border: 1px solid rgba(214,178,94,0.28);
+      border-radius: 10px;
+      position: relative;
+      animation: decoFadeUp 0.4s ease;
+    }
+    .deco-card::before, .deco-card::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-color: rgba(214,178,94,0.55);
+      border-style: solid;
+      pointer-events: none;
+    }
+    .deco-card::before { top:-1px; left:-1px; border-width:1.5px 0 0 1.5px; }
+    .deco-card::after  { bottom:-1px; right:-1px; border-width:0 1.5px 1.5px 0; }
+
+    /* ── WRAPPER DU BOUTON PUNCH ─────────────────── */
+    .deco-punch-wrapper {
+      position: relative;
+      background: #0A0B0B;
+      border: 1px solid rgba(214,178,94,0.40);
+      border-radius: 12px;
+      padding: 40px 16px;
+      overflow: hidden;
+      animation: decoFadeUp 0.5s ease;
+    }
+    /* Coins du wrapper */
+    .deco-punch-wrapper::before,
+    .deco-punch-wrapper::after {
+      content: '';
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-color: rgba(214,178,94,0.75);
+      border-style: solid;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .deco-punch-wrapper::before { top:8px; left:8px; border-width:2px 0 0 2px; }
+    .deco-punch-wrapper::after  { bottom:8px; right:8px; border-width:0 2px 2px 0; }
+
+    /* ── RAYONS ART DÉCO (derrière le bouton) ────── */
+    .deco-rays-outer {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 480px;
+      height: 480px;
+      background: repeating-conic-gradient(
+        rgba(214,178,94,0.07) 0deg 8deg,
+        transparent 8deg 18deg
+      );
+      border-radius: 50%;
+      pointer-events: none;
+      animation: decoRaysRotateSlow 80s linear infinite;
+    }
+    .deco-rays-inner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 320px;
+      height: 320px;
+      background: repeating-conic-gradient(
+        rgba(214,178,94,0.10) 0deg 5deg,
+        transparent 5deg 10deg
+      );
+      border-radius: 50%;
+      pointer-events: none;
+      animation: decoRaysRotateReverse 40s linear infinite;
+    }
+
+    /* ── BOUTON PUNCH PRINCIPAL ──────────────────── */
+    .deco-punch-btn {
+      background: radial-gradient(
+        circle at 38% 32%,
+        #FFF0C0 0%,
+        #F5DC90 15%,
+        #D6B25E 40%,
+        #B8922A 65%,
+        #8C6A18 82%,
+        #5C4010 100%
+      ) !important;
+      box-shadow:
+        0 0 0 3px rgba(214,178,94,0.60),
+        0 0 0 8px rgba(214,178,94,0.18),
+        0 0 50px rgba(214,178,94,0.45),
+        0 0 100px rgba(214,178,94,0.18),
+        inset 0 2px 6px rgba(255,240,180,0.35),
+        inset 0 -3px 8px rgba(0,0,0,0.40),
+        0 10px 40px rgba(0,0,0,0.90) !important;
+      animation: decoGlow 3s ease-in-out infinite;
+      transition: transform 0.2s ease, filter 0.2s ease !important;
+      cursor: pointer;
+    }
+    .deco-punch-btn:active {
+      animation: decoPress 0.25s ease forwards, decoGlow 3s ease-in-out infinite;
+      filter: brightness(1.15);
+    }
+
+    /* ── BOUTON PUNCH — SORTIE (rouge) ───────────── */
+    .deco-punch-btn-out {
+      background: radial-gradient(
+        circle at 38% 32%,
+        #FF9090 0%,
+        #D45050 20%,
+        #A83A32 55%,
+        #7B1D1D 100%
+      ) !important;
+      box-shadow:
+        0 0 0 3px rgba(168,58,50,0.65),
+        0 0 0 8px rgba(168,58,50,0.20),
+        0 0 50px rgba(168,58,50,0.45),
+        inset 0 2px 4px rgba(255,150,150,0.25),
+        inset 0 -3px 8px rgba(0,0,0,0.40),
+        0 10px 40px rgba(0,0,0,0.90) !important;
+      animation: decoGlowOut 3s ease-in-out infinite;
+    }
+
+    /* ── BOUTONS SECONDAIRES ─────────────────────── */
+    .deco-btn {
+      background: transparent;
+      border: 1px solid rgba(214,178,94,0.40);
+      color: #D6B25E;
+      border-radius: 8px;
+      font-weight: 700;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .deco-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(214,178,94,0.15) 50%,
+        transparent 100%);
+      transform: translateX(-100%);
+      transition: transform 0.45s ease;
+    }
+    .deco-btn:active {
+      background: rgba(214,178,94,0.12);
+      border-color: rgba(214,178,94,0.70);
+      box-shadow: 0 0 18px rgba(214,178,94,0.30);
+      transform: scale(0.97);
+    }
+    .deco-btn:active::after {
+      transform: translateX(100%);
+    }
+
+    /* ── PIN PAD ─────────────────────────────────── */
+    .deco-pin-btn {
+      background: #111109;
+      border: 1px solid rgba(214,178,94,0.28);
+      color: #F4E8C1;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .deco-pin-btn:active {
+      background: rgba(214,178,94,0.14);
+      border-color: rgba(214,178,94,0.70);
+      box-shadow: 0 0 18px rgba(214,178,94,0.30), inset 0 0 12px rgba(214,178,94,0.08);
+      transform: scale(0.93);
+    }
+
+    /* ── POINT DE STATUT ─────────────────────────── */
+    .deco-status-dot {
+      animation: decoStatusPulse 2s ease-in-out infinite;
+    }
+
+    /* ── NAVIGATION BAS ──────────────────────────── */
+    .deco-nav-active {
+      color: #D6B25E !important;
+      text-shadow: 0 0 14px rgba(214,178,94,0.80) !important;
+      filter: drop-shadow(0 0 6px rgba(214,178,94,0.60));
+    }
+    .deco-nav-item {
+      transition: all 0.18s ease;
+    }
+    .deco-nav-item:active {
+      transform: scale(0.88);
+    }
+
+    /* ── CALENDRIER ──────────────────────────────── */
+    .deco-cal-today {
+      border: 2px solid rgba(214,178,94,0.80) !important;
+      box-shadow: 0 0 14px rgba(214,178,94,0.35), inset 0 0 8px rgba(214,178,94,0.08);
+    }
+    .deco-cal-day:active {
+      background: rgba(214,178,94,0.16) !important;
+      border-color: rgba(214,178,94,0.65) !important;
+      transform: scale(0.92);
+      transition: all 0.12s ease;
+    }
+
+    /* ── TOGGLE FR/EN ────────────────────────────── */
+    .deco-lang-toggle {
+      background: #111109;
+      border: 1px solid rgba(214,178,94,0.40);
+      border-radius: 999px;
+      padding: 3px;
+      display: inline-flex;
+    }
+    .deco-lang-active {
+      background: linear-gradient(135deg, #C49A3C, #D6B25E);
+      border-radius: 999px;
+      color: #0A0A08 !important;
+      font-weight: 800 !important;
+      box-shadow: 0 0 10px rgba(214,178,94,0.40);
+    }
   `,
 }
 
@@ -228,6 +567,7 @@ const zenOrganique: Theme = {
   },
   globalCSS: `
     body{background:#F8F3EA !important;color:#2E2B27 !important;}
+    .metal-text{color:#C85F3D;font-weight:800;}
     .organic-bg{position:relative;overflow:hidden;}
     .organic-bg::before{content:'';position:absolute;width:280px;height:280px;border-radius:50% 40% 60% 30% / 40% 60% 40% 60%;background:rgba(200,95,61,0.07);top:-60px;left:-80px;pointer-events:none;}
     .organic-bg::after{content:'';position:absolute;width:220px;height:220px;border-radius:60% 40% 30% 70% / 60% 30% 70% 40%;background:rgba(122,139,103,0.07);bottom:-40px;right:-60px;pointer-events:none;}
@@ -269,6 +609,7 @@ const ludiquePremium: Theme = {
   },
   globalCSS: `
     body{background:#F5F7FA !important;color:#102027 !important;}
+    .metal-text{color:#FF7A1A;font-weight:900;}
     .ludique-header{background:linear-gradient(135deg,#003B3D,#063B3A);color:#FFFFFF;}
     .ludique-punch{background:radial-gradient(circle at 40% 35%,#FF9B3D,#FF7A1A 55%,#E05E00);box-shadow:0 0 0 5px rgba(255,122,26,0.25),0 0 50px rgba(255,122,26,0.35),0 12px 30px rgba(15,23,42,0.25);}
     .ludique-card{background:#FFFFFF;border:1px solid rgba(15,23,42,0.08);border-radius:20px;box-shadow:0 12px 30px rgba(15,23,42,0.10);}
@@ -280,10 +621,10 @@ const ludiquePremium: Theme = {
 // ─── Registry ─────────────────────────────────────────────────────────────────
 const THEMES: Record<string, Theme> = {
   quantum: quantumGlass,
-  xp: gamificationXP,
+  xp:      gamificationXP,
   aventure: aventureChantiers,
-  deco: artDecoPrestige,
-  zen: zenOrganique,
+  deco:    artDecoPrestige,
+  zen:     zenOrganique,
   ludique: ludiquePremium,
 }
 
