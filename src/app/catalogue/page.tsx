@@ -1,11 +1,13 @@
 'use client'
 import { useState } from 'react'
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import { useThemeStore } from '@/store/useThemeStore'
 import { useLangStore } from '@/store/useLangStore'
 import { useDocumentStore } from '@/store/useDocumentStore'
 import { useRouter } from 'next/navigation'
 
-type Unit = 'pi²' | 'pi lin.' | 'boîte' | 'rouleau' | 'feuille' | 'tube' | 'unité'
+type Unit = 'pi²' | 'pi lin.' | 'boîte' | 'rouleau' | 'feuille' | 'tube' | 'unité' | 'heure'
 type Category = 'toiture' | 'siding' | 'fixations' | 'etancheite' | 'structure' | 'maindoeuvre'
 
 interface Material {
@@ -22,50 +24,56 @@ interface Material {
   descriptionen: string
 }
 
+// ─── Store persistant ────────────────────────────────────────────────────────
+interface CatalogueStore {
+  materials: Material[]
+  addMaterial: (m: Omit<Material, 'id'>) => void
+  updateMaterial: (id: string, updates: Partial<Material>) => void
+  deleteMaterial: (id: string) => void
+}
+
 const defaultMaterials: Material[] = [
-  // TOITURE
-  { id: '1', category: 'toiture', name: 'Bardeau asphalte 3 tabs', nameen: 'Asphalt shingle 3 tabs', emoji: '🏠', unit: 'pi²', priceMin: 5, priceMax: 12, price: 7, description: 'Le plus populaire au Québec, durée de vie 20-30 ans', descriptionen: 'Most popular in Quebec, lifespan 20-30 years' },
-  { id: '2', category: 'toiture', name: 'Bardeau architectural', nameen: 'Architectural shingle', emoji: '🏠', unit: 'pi²', priceMin: 8, priceMax: 15, price: 11, description: 'Bardeau épais, aspect 3D, durée de vie 30+ ans', descriptionen: 'Thick shingle, 3D look, lifespan 30+ years' },
-  { id: '3', category: 'toiture', name: 'Tôle acier prépeint', nameen: 'Prepainted steel roofing', emoji: '🔩', unit: 'pi²', priceMin: 13, priceMax: 25, price: 18, description: 'Durée de vie 50+ ans, très résistant', descriptionen: 'Lifespan 50+ years, very resistant' },
-  { id: '4', category: 'toiture', name: 'Tôle aluminium', nameen: 'Aluminum roofing', emoji: '🔩', unit: 'pi²', priceMin: 15, priceMax: 30, price: 22, description: 'Léger, résistant à la grêle, recyclable 100%', descriptionen: 'Light, hail resistant, 100% recyclable' },
-  { id: '5', category: 'toiture', name: 'Membrane élastomère', nameen: 'Elastomeric membrane', emoji: '🌊', unit: 'pi²', priceMin: 8, priceMax: 14, price: 10, description: 'Idéal pour toit plat, très étanche', descriptionen: 'Ideal for flat roof, very waterproof' },
-  { id: '6', category: 'toiture', name: 'Membrane TPO', nameen: 'TPO membrane', emoji: '🌊', unit: 'pi²', priceMin: 6, priceMax: 12, price: 9, description: 'Toit plat commercial et résidentiel', descriptionen: 'Commercial and residential flat roof' },
-  { id: '7', category: 'toiture', name: 'Sous-couche synthétique', nameen: 'Synthetic underlayment', emoji: '📄', unit: 'rouleau', priceMin: 80, priceMax: 150, price: 110, description: 'Protection sous le revêtement, résistant à l\'humidité', descriptionen: 'Protection under cladding, moisture resistant' },
-  { id: '8', category: 'toiture', name: 'Ice & Water Shield', nameen: 'Ice & Water Shield', emoji: '❄️', unit: 'rouleau', priceMin: 120, priceMax: 200, price: 155, description: 'Protection contre les dégâts de glace, zone de rive', descriptionen: 'Ice damage protection, eave zone' },
-  { id: '9', category: 'toiture', name: 'Papier de construction 15 lb', nameen: '15 lb building paper', emoji: '📄', unit: 'rouleau', priceMin: 40, priceMax: 70, price: 55, description: 'Sous-couche économique, papier goudronné', descriptionen: 'Economical underlayment, tar paper' },
-  // SIDING
-  { id: '10', category: 'siding', name: 'Siding vinyle', nameen: 'Vinyl siding', emoji: '🏡', unit: 'pi²', priceMin: 2, priceMax: 5, price: 3.5, description: 'Économique, facile d\'entretien, grande variété de couleurs', descriptionen: 'Affordable, easy maintenance, wide color variety' },
-  { id: '11', category: 'siding', name: 'Siding aluminium', nameen: 'Aluminum siding', emoji: '🏡', unit: 'pi²', priceMin: 4, priceMax: 8, price: 6, description: 'Durable, résistant aux insectes et à la pourriture', descriptionen: 'Durable, insect and rot resistant' },
-  { id: '12', category: 'siding', name: 'Siding fibrociment (Hardie)', nameen: 'Fiber cement siding (Hardie)', emoji: '🏡', unit: 'pi²', priceMin: 6, priceMax: 12, price: 9, description: 'Aspect bois, résistant au feu et aux intempéries, 50+ ans', descriptionen: 'Wood look, fire and weather resistant, 50+ years' },
-  { id: '13', category: 'siding', name: 'Siding bois composite', nameen: 'Composite wood siding', emoji: '🌲', unit: 'pi²', priceMin: 5, priceMax: 10, price: 7.5, description: 'Aspect naturel du bois sans l\'entretien', descriptionen: 'Natural wood look without the maintenance' },
-  { id: '14', category: 'siding', name: 'Siding PVC', nameen: 'PVC siding', emoji: '🏡', unit: 'pi²', priceMin: 3, priceMax: 6, price: 4.5, description: 'Imperméable, sans entretien, longue durée', descriptionen: 'Waterproof, maintenance-free, long-lasting' },
-  { id: '15', category: 'siding', name: 'Panneau de cèdre', nameen: 'Cedar panel', emoji: '🌲', unit: 'pi²', priceMin: 8, priceMax: 18, price: 13, description: 'Bois naturel, aspect haut de gamme, traitement requis', descriptionen: 'Natural wood, high-end look, treatment required' },
-  // FIXATIONS
-  { id: '16', category: 'fixations', name: 'Clous galvanisés', nameen: 'Galvanized nails', emoji: '🔨', unit: 'boîte', priceMin: 15, priceMax: 25, price: 20, description: 'Résistants à la rouille, boîte de 1 kg', descriptionen: 'Rust resistant, 1 kg box' },
-  { id: '17', category: 'fixations', name: 'Vis à toiture', nameen: 'Roofing screws', emoji: '🔩', unit: 'boîte', priceMin: 20, priceMax: 35, price: 27, description: 'Avec rondelle EPDM, boîte de 250', descriptionen: 'With EPDM washer, box of 250' },
-  { id: '18', category: 'fixations', name: 'Agrafe inox', nameen: 'Stainless staples', emoji: '📌', unit: 'boîte', priceMin: 18, priceMax: 30, price: 24, description: 'Inoxydable, boîte de 1000', descriptionen: 'Rust-proof, box of 1000' },
-  { id: '19', category: 'fixations', name: 'Calfeutrant acrylique', nameen: 'Acrylic caulk', emoji: '🔧', unit: 'tube', priceMin: 8, priceMax: 15, price: 11, description: 'Scellant flexible, peinturable', descriptionen: 'Flexible sealant, paintable' },
-  { id: '20', category: 'fixations', name: 'Calfeutrant polyuréthane', nameen: 'Polyurethane caulk', emoji: '🔧', unit: 'tube', priceMin: 12, priceMax: 22, price: 17, description: 'Haute performance, résistant aux UV', descriptionen: 'High performance, UV resistant' },
-  // ETANCHEITE
-  { id: '21', category: 'etancheite', name: 'Solin aluminium', nameen: 'Aluminum flashing', emoji: '💧', unit: 'pi lin.', priceMin: 2, priceMax: 4, price: 3, description: 'Protection aux jonctions, bandes préformées', descriptionen: 'Junction protection, preformed strips' },
-  { id: '22', category: 'etancheite', name: 'Solin de plomb', nameen: 'Lead flashing', emoji: '💧', unit: 'pi lin.', priceMin: 3, priceMax: 6, price: 4.5, description: 'Autour des cheminées et pénétrations', descriptionen: 'Around chimneys and penetrations' },
-  { id: '23', category: 'etancheite', name: 'Ruban d\'étanchéité', nameen: 'Waterproof tape', emoji: '📏', unit: 'rouleau', priceMin: 25, priceMax: 45, price: 35, description: 'Joints et raccords, auto-adhésif', descriptionen: 'Joints and connections, self-adhesive' },
-  { id: '24', category: 'etancheite', name: 'Pare-vapeur 6 mil', nameen: '6 mil vapor barrier', emoji: '🛡️', unit: 'rouleau', priceMin: 60, priceMax: 100, price: 80, description: 'Contrôle de l\'humidité, rouleau 10x100 pi', descriptionen: 'Moisture control, 10x100 ft roll' },
-  // STRUCTURE
-  { id: '25', category: 'structure', name: 'OSB 7/16', nameen: 'OSB 7/16', emoji: '🪵', unit: 'feuille', priceMin: 25, priceMax: 40, price: 32, description: 'Panneau de structure, 4x8 pi', descriptionen: 'Structural panel, 4x8 ft' },
-  { id: '26', category: 'structure', name: 'Contreplaqué 1/2"', nameen: 'Plywood 1/2"', emoji: '🪵', unit: 'feuille', priceMin: 30, priceMax: 50, price: 40, description: 'Feuille de bois multiplis, 4x8 pi', descriptionen: 'Multilayer wood sheet, 4x8 ft' },
-  { id: '27', category: 'structure', name: 'Latte 1x3', nameen: '1x3 strapping', emoji: '📏', unit: 'pi lin.', priceMin: 1, priceMax: 2, price: 1.5, description: 'Support pour siding, bois traité', descriptionen: 'Siding support, treated wood' },
-  { id: '28', category: 'structure', name: 'Solive 2x4', nameen: '2x4 joist', emoji: '📏', unit: 'pi lin.', priceMin: 3, priceMax: 5, price: 4, description: 'Bois de charpente standard', descriptionen: 'Standard framing lumber' },
-  { id: '29', category: 'structure', name: 'Solive 2x6', nameen: '2x6 joist', emoji: '📏', unit: 'pi lin.', priceMin: 4, priceMax: 7, price: 5.5, description: 'Charpente renforcée, murs extérieurs', descriptionen: 'Reinforced framing, exterior walls' },
-  // MAIN D'OEUVRE
-  { id: '30', category: 'maindoeuvre', name: 'Installation bardeau', nameen: 'Shingle installation', emoji: '👷', unit: 'pi²', priceMin: 2, priceMax: 4, price: 3, description: 'Main d\'oeuvre installation bardeau asphalte', descriptionen: 'Labor for asphalt shingle installation' },
-  { id: '31', category: 'maindoeuvre', name: 'Installation tôle', nameen: 'Metal roofing installation', emoji: '👷', unit: 'pi²', priceMin: 4, priceMax: 8, price: 6, description: 'Main d\'oeuvre installation toiture métallique', descriptionen: 'Labor for metal roofing installation' },
-  { id: '32', category: 'maindoeuvre', name: 'Installation siding', nameen: 'Siding installation', emoji: '👷', unit: 'pi²', priceMin: 3, priceMax: 6, price: 4.5, description: 'Main d\'oeuvre pose de revêtement extérieur', descriptionen: 'Labor for exterior cladding installation' },
-  { id: '33', category: 'maindoeuvre', name: 'Démolition / Enlèvement', nameen: 'Demolition / Removal', emoji: '🗑️', unit: 'pi²', priceMin: 1, priceMax: 2, price: 1.5, description: 'Enlèvement ancien revêtement et disposition', descriptionen: 'Old cladding removal and disposal' },
-  { id: '34', category: 'maindoeuvre', name: 'Heure technicien', nameen: 'Technician hour', emoji: '⏱️', unit: 'unité', priceMin: 45, priceMax: 95, price: 65, description: 'Taux horaire technicien qualifié', descriptionen: 'Qualified technician hourly rate' },
+  { id: '1',  category: 'toiture',     name: 'Bardeau asphalte 3 tabs',    nameen: 'Asphalt shingle 3 tabs',      emoji: '🏠', unit: 'pi²',     priceMin: 5,   priceMax: 12,  price: 7,    description: 'Le plus populaire, durée de vie 20-30 ans',       descriptionen: 'Most popular, lifespan 20-30 years' },
+  { id: '2',  category: 'toiture',     name: 'Bardeau architectural',       nameen: 'Architectural shingle',       emoji: '🏠', unit: 'pi²',     priceMin: 8,   priceMax: 15,  price: 11,   description: 'Bardeau épais, aspect 3D, durée de vie 30+ ans',  descriptionen: 'Thick shingle, 3D look, 30+ years' },
+  { id: '3',  category: 'toiture',     name: 'Tôle acier prépeint',         nameen: 'Prepainted steel roofing',    emoji: '🔩', unit: 'pi²',     priceMin: 13,  priceMax: 25,  price: 18,   description: 'Durée de vie 50+ ans, très résistant',            descriptionen: 'Lifespan 50+ years, very resistant' },
+  { id: '4',  category: 'toiture',     name: 'Membrane élastomère',         nameen: 'Elastomeric membrane',        emoji: '🌊', unit: 'pi²',     priceMin: 8,   priceMax: 14,  price: 10,   description: 'Idéal pour toit plat, très étanche',              descriptionen: 'Ideal for flat roof, very waterproof' },
+  { id: '5',  category: 'toiture',     name: 'Sous-couche synthétique',     nameen: 'Synthetic underlayment',      emoji: '📄', unit: 'rouleau', priceMin: 80,  priceMax: 150, price: 110,  description: 'Protection sous le revêtement',                   descriptionen: 'Protection under cladding' },
+  { id: '6',  category: 'toiture',     name: 'Ice & Water Shield',          nameen: 'Ice & Water Shield',          emoji: '❄️', unit: 'rouleau', priceMin: 120, priceMax: 200, price: 155,  description: 'Protection contre les dégâts de glace',           descriptionen: 'Ice damage protection' },
+  { id: '7',  category: 'siding',      name: 'Siding vinyle',               nameen: 'Vinyl siding',                emoji: '🏡', unit: 'pi²',     priceMin: 2,   priceMax: 5,   price: 3.5,  description: 'Économique, facile entretien',                     descriptionen: 'Affordable, easy maintenance' },
+  { id: '8',  category: 'siding',      name: 'Siding fibrociment (Hardie)', nameen: 'Fiber cement siding (Hardie)',emoji: '🏡', unit: 'pi²',     priceMin: 6,   priceMax: 12,  price: 9,    description: 'Résistant au feu et aux intempéries, 50+ ans',    descriptionen: 'Fire and weather resistant, 50+ years' },
+  { id: '9',  category: 'fixations',   name: 'Clous galvanisés',            nameen: 'Galvanized nails',            emoji: '🔨', unit: 'boîte',   priceMin: 15,  priceMax: 25,  price: 20,   description: 'Résistants à la rouille, boîte de 1 kg',          descriptionen: 'Rust resistant, 1 kg box' },
+  { id: '10', category: 'fixations',   name: 'Vis à toiture',               nameen: 'Roofing screws',              emoji: '🔩', unit: 'boîte',   priceMin: 20,  priceMax: 35,  price: 27,   description: 'Avec rondelle EPDM, boîte de 250',                descriptionen: 'With EPDM washer, box of 250' },
+  { id: '11', category: 'fixations',   name: 'Calfeutrant acrylique',       nameen: 'Acrylic caulk',               emoji: '🔧', unit: 'tube',    priceMin: 8,   priceMax: 15,  price: 11,   description: 'Scellant flexible, peinturable',                   descriptionen: 'Flexible sealant, paintable' },
+  { id: '12', category: 'etancheite',  name: 'Solin aluminium',             nameen: 'Aluminum flashing',           emoji: '💧', unit: 'pi lin.', priceMin: 2,   priceMax: 4,   price: 3,    description: 'Protection aux jonctions',                        descriptionen: 'Junction protection' },
+  { id: '13', category: 'etancheite',  name: 'Ruban d\'étanchéité',         nameen: 'Waterproof tape',             emoji: '📏', unit: 'rouleau', priceMin: 25,  priceMax: 45,  price: 35,   description: 'Joints et raccords, auto-adhésif',                descriptionen: 'Self-adhesive, joints and connections' },
+  { id: '14', category: 'etancheite',  name: 'Pare-vapeur 6 mil',           nameen: '6 mil vapor barrier',         emoji: '🛡️', unit: 'rouleau', priceMin: 60,  priceMax: 100, price: 80,   description: 'Contrôle de l\'humidité, rouleau 10x100 pi',      descriptionen: 'Moisture control, 10x100 ft roll' },
+  { id: '15', category: 'structure',   name: 'OSB 7/16',                    nameen: 'OSB 7/16',                    emoji: '🪵', unit: 'feuille', priceMin: 25,  priceMax: 40,  price: 32,   description: 'Panneau de structure, 4x8 pi',                    descriptionen: 'Structural panel, 4x8 ft' },
+  { id: '16', category: 'structure',   name: 'Contreplaqué 1/2"',           nameen: 'Plywood 1/2"',                emoji: '🪵', unit: 'feuille', priceMin: 30,  priceMax: 50,  price: 40,   description: 'Feuille de bois multiplis, 4x8 pi',               descriptionen: 'Multilayer wood sheet, 4x8 ft' },
+  { id: '17', category: 'maindoeuvre', name: 'Installation bardeau',        nameen: 'Shingle installation',        emoji: '👷', unit: 'pi²',     priceMin: 2,   priceMax: 4,   price: 3,    description: 'Main d\'oeuvre installation bardeau asphalte',     descriptionen: 'Labor for asphalt shingle installation' },
+  { id: '18', category: 'maindoeuvre', name: 'Installation tôle',           nameen: 'Metal roofing installation',  emoji: '👷', unit: 'pi²',     priceMin: 4,   priceMax: 8,   price: 6,    description: 'Main d\'oeuvre toiture métallique',               descriptionen: 'Labor for metal roofing' },
+  { id: '19', category: 'maindoeuvre', name: 'Installation siding',         nameen: 'Siding installation',         emoji: '👷', unit: 'pi²',     priceMin: 3,   priceMax: 6,   price: 4.5,  description: 'Main d\'oeuvre revêtement extérieur',             descriptionen: 'Labor for exterior cladding' },
+  { id: '20', category: 'maindoeuvre', name: 'Heure technicien',            nameen: 'Technician hour',             emoji: '⏱️', unit: 'heure',   priceMin: 45,  priceMax: 95,  price: 65,   description: 'Taux horaire technicien qualifié',                descriptionen: 'Qualified technician hourly rate' },
 ]
 
-const CATEGORIES = {
+const useCatalogueStore = create<CatalogueStore>()(
+  persist(
+    (set) => ({
+      materials: defaultMaterials,
+      addMaterial: (m) => set(s => ({
+        materials: [...s.materials, { ...m, id: Date.now().toString() }]
+      })),
+      updateMaterial: (id, updates) => set(s => ({
+        materials: s.materials.map(m => m.id === id ? { ...m, ...updates } : m)
+      })),
+      deleteMaterial: (id) => set(s => ({
+        materials: s.materials.filter(m => m.id !== id)
+      })),
+    }),
+    { name: 'catalogue-store-v1' }
+  )
+)
+
+const CATEGORIES: Record<Category, { label: string; labelen: string; emoji: string; color: string }> = {
   toiture:     { label: 'Toiture',       labelen: 'Roofing',       emoji: '🏠', color: '#ea580c' },
   siding:      { label: 'Siding',        labelen: 'Siding',        emoji: '🏡', color: '#f59e0b' },
   fixations:   { label: 'Fixations',     labelen: 'Fasteners',     emoji: '🔩', color: '#06b6d4' },
@@ -74,37 +82,39 @@ const CATEGORIES = {
   maindoeuvre: { label: "Main d'oeuvre", labelen: 'Labor',         emoji: '👷', color: '#a855f7' },
 }
 
+const UNITS: Unit[] = ['pi²', 'pi lin.', 'boîte', 'rouleau', 'feuille', 'tube', 'unité', 'heure']
+
+const emptyNew = (): Omit<Material, 'id'> => ({
+  category: 'toiture', name: '', nameen: '', emoji: '📦',
+  unit: 'pi²', priceMin: 0, priceMax: 0, price: 0,
+  description: '', descriptionen: '',
+})
+
 export default function CataloguePage() {
   const { theme } = useThemeStore()
   const { lang } = useLangStore()
-  const { documents, addDocument, updateDocument, addLineItem, updateLineItem, calculateTotals } = useDocumentStore()
+  const { addDocument, addLineItem, updateLineItem, calculateTotals } = useDocumentStore()
+  const { materials, addMaterial, updateMaterial, deleteMaterial } = useCatalogueStore()
   const router = useRouter()
 
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all')
   const [search, setSearch] = useState('')
-  const [materials, setMaterials] = useState<Material[]>(defaultMaterials)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showAddToDoc, setShowAddToDoc] = useState<Material | null>(null)
   const [qty, setQty] = useState(1)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newMat, setNewMat] = useState<Omit<Material, 'id'>>(emptyNew())
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
   const filtered = materials.filter(m => {
     const matchCat = selectedCategory === 'all' || m.category === selectedCategory
     const name = lang === 'fr' ? m.name : m.nameen
-    const matchSearch = name.toLowerCase().includes(search.toLowerCase())
-    return matchCat && matchSearch
+    return matchCat && name.toLowerCase().includes(search.toLowerCase())
   })
 
-  const card = {
-    background: theme.colors.card,
-    border: `1px solid ${theme.colors.border}`,
-    borderRadius: '12px',
-    padding: '16px',
-  }
-
-  const handleAddToDoc = (material: Material) => {
-    setShowAddToDoc(material)
-    setQty(1)
-  }
+  const handleAddToDoc = (material: Material) => { setShowAddToDoc(material); setQty(1) }
 
   const handleConfirmAdd = () => {
     if (!showAddToDoc) return
@@ -121,64 +131,142 @@ export default function CataloguePage() {
     router.push(`/documents/${doc.id}`)
   }
 
-  const updatePrice = (id: string, price: number) => {
-    setMaterials(prev => prev.map(m => m.id === id ? { ...m, price } : m))
+  const handleSaveNew = () => {
+    if (!newMat.name.trim()) return
+    addMaterial(newMat)
+    setNewMat(emptyNew())
+    setShowAddForm(false)
+  }
+
+  const card = {
+    background: theme.colors.card,
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: '12px',
+    padding: '16px',
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-      {/* TITLE */}
-      <h1 style={{
-        color: theme.colors.primary, fontSize: '14px',
-        letterSpacing: '3px', fontWeight: '700'
-      }}>
-        📦 {lang === 'fr' ? 'CATALOGUE' : 'CATALOG'}
-      </h1>
+      {/* TITRE + BOUTON AJOUTER */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 style={{ color: theme.colors.primary, fontSize: '14px', letterSpacing: '3px', fontWeight: '700' }}>
+          📦 {t('CATALOGUE', 'CATALOG')}
+        </h1>
+        <button onClick={() => setShowAddForm(!showAddForm)} style={{
+          padding: '8px 16px', borderRadius: '10px', cursor: 'pointer',
+          background: theme.colors.primary, border: 'none',
+          color: 'white', fontSize: '13px', fontWeight: '700',
+        }}>
+          {showAddForm ? '✕ Fermer' : '＋ Ajouter'}
+        </button>
+      </div>
 
-      {/* SEARCH */}
-      <input
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        placeholder={lang === 'fr' ? '🔍 Rechercher un matériau...' : '🔍 Search material...'}
+      {/* FORMULAIRE AJOUT */}
+      {showAddForm && (
+        <div style={{ ...card, display: 'flex', flexDirection: 'column', gap: '10px', border: `2px solid ${theme.colors.primary}` }}>
+          <p style={{ color: theme.colors.primary, fontSize: '12px', fontWeight: '700', letterSpacing: '2px' }}>
+            ＋ {t('NOUVEAU MATÉRIAU', 'NEW MATERIAL')}
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <input value={newMat.name} onChange={e => setNewMat(p => ({ ...p, name: e.target.value }))}
+              placeholder={t('Nom (FR)', 'Name (FR)')}
+              style={{ background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '8px', padding: '10px', color: theme.colors.text, fontSize: '13px' }} />
+            <input value={newMat.nameen} onChange={e => setNewMat(p => ({ ...p, nameen: e.target.value }))}
+              placeholder="Name (EN)"
+              style={{ background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '8px', padding: '10px', color: theme.colors.text, fontSize: '13px' }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+            <select value={newMat.category} onChange={e => setNewMat(p => ({ ...p, category: e.target.value as Category }))}
+              style={{ background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '8px', padding: '10px', color: theme.colors.text, fontSize: '13px' }}>
+              {(Object.entries(CATEGORIES) as [Category, typeof CATEGORIES[Category]][]).map(([k, v]) => (
+                <option key={k} value={k}>{v.emoji} {lang === 'fr' ? v.label : v.labelen}</option>
+              ))}
+            </select>
+            <select value={newMat.unit} onChange={e => setNewMat(p => ({ ...p, unit: e.target.value as Unit }))}
+              style={{ background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '8px', padding: '10px', color: theme.colors.text, fontSize: '13px' }}>
+              {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+            <input value={newMat.emoji} onChange={e => setNewMat(p => ({ ...p, emoji: e.target.value }))}
+              placeholder="Emoji"
+              style={{ background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '8px', padding: '10px', color: theme.colors.text, fontSize: '13px', textAlign: 'center' as const }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ color: theme.colors.textMuted, fontSize: '10px' }}>Prix $</label>
+              <input type="number" value={newMat.price} onChange={e => setNewMat(p => ({ ...p, price: parseFloat(e.target.value) || 0 }))}
+                style={{ width: '100%', background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '8px', padding: '10px', color: theme.colors.text, fontSize: '13px' }} />
+            </div>
+            <div>
+              <label style={{ color: theme.colors.textMuted, fontSize: '10px' }}>Min $</label>
+              <input type="number" value={newMat.priceMin} onChange={e => setNewMat(p => ({ ...p, priceMin: parseFloat(e.target.value) || 0 }))}
+                style={{ width: '100%', background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '8px', padding: '10px', color: theme.colors.text, fontSize: '13px' }} />
+            </div>
+            <div>
+              <label style={{ color: theme.colors.textMuted, fontSize: '10px' }}>Max $</label>
+              <input type="number" value={newMat.priceMax} onChange={e => setNewMat(p => ({ ...p, priceMax: parseFloat(e.target.value) || 0 }))}
+                style={{ width: '100%', background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '8px', padding: '10px', color: theme.colors.text, fontSize: '13px' }} />
+            </div>
+          </div>
+          <input value={newMat.description} onChange={e => setNewMat(p => ({ ...p, description: e.target.value }))}
+            placeholder={t('Description (FR)', 'Description (FR)')}
+            style={{ background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '8px', padding: '10px', color: theme.colors.text, fontSize: '13px' }} />
+          <button onClick={handleSaveNew} style={{
+            padding: '12px', borderRadius: '10px', cursor: 'pointer',
+            background: theme.colors.primary, border: 'none',
+            color: 'white', fontSize: '14px', fontWeight: '700',
+          }}>
+            ✅ {t('Sauvegarder le matériau', 'Save material')}
+          </button>
+        </div>
+      )}
+
+      {/* RECHERCHE */}
+      <input value={search} onChange={e => setSearch(e.target.value)}
+        placeholder={t('🔍 Rechercher un matériau...', '🔍 Search material...')}
         style={{
           width: '100%', background: theme.colors.card,
           border: `1px solid ${theme.colors.border}`,
           borderRadius: '10px', padding: '12px 16px',
           color: theme.colors.text, fontSize: '14px', outline: 'none',
-        }}
-      />
+        }} />
 
-      {/* CATEGORY FILTERS */}
+      {/* FILTRES CATÉGORIE */}
       <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
         <button onClick={() => setSelectedCategory('all')} style={{
           padding: '8px 16px', borderRadius: '20px', cursor: 'pointer',
           whiteSpace: 'nowrap' as const, fontSize: '12px', fontWeight: '700',
-          border: selectedCategory === 'all'
-            ? `2px solid ${theme.colors.primary}`
-            : `1px solid ${theme.colors.border}`,
+          border: selectedCategory === 'all' ? `2px solid ${theme.colors.primary}` : `1px solid ${theme.colors.border}`,
           background: selectedCategory === 'all' ? theme.colors.glow1 : 'transparent',
           color: selectedCategory === 'all' ? theme.colors.primary : theme.colors.textMuted,
         }}>
-          {lang === 'fr' ? 'Tous' : 'All'}
+          {t('Tous', 'All')} ({materials.length})
         </button>
-        {(Object.entries(CATEGORIES) as [Category, typeof CATEGORIES[Category]][]).map(([key, cat]) => (
-          <button key={key} onClick={() => setSelectedCategory(key)} style={{
-            padding: '8px 16px', borderRadius: '20px', cursor: 'pointer',
-            whiteSpace: 'nowrap' as const, fontSize: '12px', fontWeight: '700',
-            border: selectedCategory === key
-              ? `2px solid ${cat.color}`
-              : `1px solid ${theme.colors.border}`,
-            background: selectedCategory === key ? `${cat.color}22` : 'transparent',
-            color: selectedCategory === key ? cat.color : theme.colors.textMuted,
-          }}>
-            {cat.emoji} {lang === 'fr' ? cat.label : cat.labelen}
-          </button>
-        ))}
+        {(Object.entries(CATEGORIES) as [Category, typeof CATEGORIES[Category]][]).map(([key, cat]) => {
+          const count = materials.filter(m => m.category === key).length
+          return (
+            <button key={key} onClick={() => setSelectedCategory(key)} style={{
+              padding: '8px 16px', borderRadius: '20px', cursor: 'pointer',
+              whiteSpace: 'nowrap' as const, fontSize: '12px', fontWeight: '700',
+              border: selectedCategory === key ? `2px solid ${cat.color}` : `1px solid ${theme.colors.border}`,
+              background: selectedCategory === key ? `${cat.color}22` : 'transparent',
+              color: selectedCategory === key ? cat.color : theme.colors.textMuted,
+            }}>
+              {cat.emoji} {lang === 'fr' ? cat.label : cat.labelen} ({count})
+            </button>
+          )
+        })}
       </div>
 
-      {/* MATERIALS LIST */}
+      {/* LISTE */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {filtered.length === 0 && (
+          <div style={{ ...card, textAlign: 'center' as const, padding: '40px' }}>
+            <p style={{ color: theme.colors.textMuted }}>
+              {t('Aucun matériau trouvé.', 'No material found.')}
+            </p>
+          </div>
+        )}
         {filtered.map(mat => {
           const cat = CATEGORIES[mat.category]
           const name = lang === 'fr' ? mat.name : mat.nameen
@@ -186,125 +274,135 @@ export default function CataloguePage() {
           const isEditing = editingId === mat.id
 
           return (
-            <div key={mat.id} style={{
-              ...card,
-              borderLeft: `4px solid ${cat.color}`,
-            }}>
+            <div key={mat.id} style={{ ...card, borderLeft: `4px solid ${cat.color}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-                
-                {/* LEFT: Info */}
+
+                {/* INFO */}
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                     <span style={{ fontSize: '20px' }}>{mat.emoji}</span>
-                    <p style={{ color: theme.colors.text, fontSize: '14px', fontWeight: '700' }}>
-                      {name}
-                    </p>
+                    <p style={{ color: theme.colors.text, fontSize: '14px', fontWeight: '700' }}>{name}</p>
                   </div>
-                  <p style={{ color: theme.colors.textMuted, fontSize: '11px', marginBottom: '8px' }}>
-                    {desc}
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{
-                      background: `${cat.color}22`,
-                      color: cat.color, fontSize: '10px',
-                      fontWeight: '700', padding: '3px 8px',
-                      borderRadius: '10px',
-                    }}>
-                      {lang === 'fr' ? cat.label : cat.labelen}
-                    </span>
-                    <span style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
-                      {lang === 'fr' ? 'Unité:' : 'Unit:'} {mat.unit}
-                    </span>
-                  </div>
-                </div>
+                  <p style={{ color: theme.colors.textMuted, fontSize: '11px', marginBottom: '8px' }}>{desc}</p>
 
-                {/* RIGHT: Price + Actions */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                   {isEditing ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <input
-                        type="number"
-                        value={mat.price}
-                        onChange={e => updatePrice(mat.id, Number(e.target.value))}
-                        style={{
-                          width: '80px', background: theme.colors.surface,
-                          border: `1px solid ${theme.colors.primary}`,
-                          borderRadius: '6px', padding: '6px 8px',
-                          color: theme.colors.text, fontSize: '14px',
-                          textAlign: 'right' as const,
-                        }}
-                      />
-                      <span style={{ color: theme.colors.textMuted, fontSize: '11px' }}>$</span>
+                    /* ── Mode édition ── */
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                        <input value={mat.name}
+                          onChange={e => updateMaterial(mat.id, { name: e.target.value })}
+                          placeholder="Nom FR"
+                          style={{ background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '6px', padding: '6px 8px', color: theme.colors.text, fontSize: '12px' }} />
+                        <input value={mat.nameen}
+                          onChange={e => updateMaterial(mat.id, { nameen: e.target.value })}
+                          placeholder="Name EN"
+                          style={{ background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '6px', padding: '6px 8px', color: theme.colors.text, fontSize: '12px' }} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
+                        <div>
+                          <label style={{ color: theme.colors.textMuted, fontSize: '10px' }}>Prix $</label>
+                          <input type="number" value={mat.price}
+                            onChange={e => updateMaterial(mat.id, { price: parseFloat(e.target.value) || 0 })}
+                            style={{ width: '100%', background: theme.colors.surface, border: `1px solid ${theme.colors.primary}`, borderRadius: '6px', padding: '6px 8px', color: theme.colors.text, fontSize: '13px' }} />
+                        </div>
+                        <div>
+                          <label style={{ color: theme.colors.textMuted, fontSize: '10px' }}>Min $</label>
+                          <input type="number" value={mat.priceMin}
+                            onChange={e => updateMaterial(mat.id, { priceMin: parseFloat(e.target.value) || 0 })}
+                            style={{ width: '100%', background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '6px', padding: '6px 8px', color: theme.colors.text, fontSize: '13px' }} />
+                        </div>
+                        <div>
+                          <label style={{ color: theme.colors.textMuted, fontSize: '10px' }}>Max $</label>
+                          <input type="number" value={mat.priceMax}
+                            onChange={e => updateMaterial(mat.id, { priceMax: parseFloat(e.target.value) || 0 })}
+                            style={{ width: '100%', background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '6px', padding: '6px 8px', color: theme.colors.text, fontSize: '13px' }} />
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                        <select value={mat.unit} onChange={e => updateMaterial(mat.id, { unit: e.target.value as Unit })}
+                          style={{ background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '6px', padding: '6px 8px', color: theme.colors.text, fontSize: '12px' }}>
+                          {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                        <select value={mat.category} onChange={e => updateMaterial(mat.id, { category: e.target.value as Category })}
+                          style={{ background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '6px', padding: '6px 8px', color: theme.colors.text, fontSize: '12px' }}>
+                          {(Object.entries(CATEGORIES) as [Category, typeof CATEGORIES[Category]][]).map(([k, v]) => (
+                            <option key={k} value={k}>{v.emoji} {lang === 'fr' ? v.label : v.labelen}</option>
+                          ))}
+                        </select>
+                      </div>
                       <button onClick={() => setEditingId(null)} style={{
+                        padding: '8px', borderRadius: '8px', cursor: 'pointer',
                         background: theme.colors.primary, border: 'none',
-                        borderRadius: '6px', padding: '6px 10px',
-                        color: 'white', cursor: 'pointer', fontSize: '12px',
-                      }}>✓</button>
+                        color: 'white', fontSize: '12px', fontWeight: '700',
+                      }}>✅ {t('Sauvegarder', 'Save')}</button>
                     </div>
                   ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ background: `${cat.color}22`, color: cat.color, fontSize: '10px', fontWeight: '700', padding: '3px 8px', borderRadius: '10px' }}>
+                        {lang === 'fr' ? cat.label : cat.labelen}
+                      </span>
+                      <span style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
+                        {t('Unité:', 'Unit:')} {mat.unit}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* PRIX + ACTIONS */}
+                {!isEditing && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                     <div style={{ textAlign: 'right' as const }}>
-                      <p style={{
-                        color: theme.colors.secondary,
-                        fontSize: '18px', fontWeight: '800',
-                      }}>
+                      <p style={{ color: theme.colors.secondary, fontSize: '18px', fontWeight: '800' }}>
                         {mat.price.toFixed(2)}$
                       </p>
-                      <p style={{ color: theme.colors.textMuted, fontSize: '10px' }}>
-                        /{mat.unit}
-                      </p>
+                      <p style={{ color: theme.colors.textMuted, fontSize: '10px' }}>/{mat.unit}</p>
                       <p style={{ color: theme.colors.textMuted, fontSize: '10px' }}>
                         ({mat.priceMin}-{mat.priceMax}$)
                       </p>
                     </div>
-                  )}
-
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button onClick={() => setEditingId(isEditing ? null : mat.id)} style={{
-                      padding: '6px 10px', borderRadius: '8px', cursor: 'pointer',
-                      border: `1px solid ${theme.colors.border}`,
-                      background: 'transparent', color: theme.colors.textMuted,
-                      fontSize: '12px',
-                    }}>
-                      ✏️
-                    </button>
-                    <button onClick={() => handleAddToDoc(mat)} style={{
-                      padding: '6px 12px', borderRadius: '8px', cursor: 'pointer',
-                      border: `1px solid ${cat.color}`,
-                      background: `${cat.color}22`, color: cat.color,
-                      fontSize: '12px', fontWeight: '700',
-                    }}>
-                      + {lang === 'fr' ? 'Facture' : 'Invoice'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {/* Éditer */}
+                      <button onClick={() => setEditingId(mat.id)} style={{
+                        padding: '6px 10px', borderRadius: '8px', cursor: 'pointer',
+                        border: `1px solid ${theme.colors.border}`,
+                        background: 'transparent', color: theme.colors.textMuted, fontSize: '12px',
+                      }}>✏️</button>
+                      {/* Supprimer */}
+                      {confirmDeleteId === mat.id ? (
+                        <button onClick={() => { deleteMaterial(mat.id); setConfirmDeleteId(null) }} style={{
+                          padding: '6px 10px', borderRadius: '8px', cursor: 'pointer',
+                          border: '1px solid #ef4444', background: '#ef444422', color: '#ef4444', fontSize: '11px', fontWeight: '700',
+                        }}>Confirmer ✕</button>
+                      ) : (
+                        <button onClick={() => setConfirmDeleteId(mat.id)} style={{
+                          padding: '6px 10px', borderRadius: '8px', cursor: 'pointer',
+                          border: `1px solid ${theme.colors.border}`,
+                          background: 'transparent', color: '#ef4444', fontSize: '12px',
+                        }}>🗑️</button>
+                      )}
+                      {/* Ajouter à facture */}
+                      <button onClick={() => handleAddToDoc(mat)} style={{
+                        padding: '6px 12px', borderRadius: '8px', cursor: 'pointer',
+                        border: `1px solid ${cat.color}`,
+                        background: `${cat.color}22`, color: cat.color, fontSize: '12px', fontWeight: '700',
+                      }}>+ {t('Facture', 'Invoice')}</button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           )
         })}
       </div>
 
-      {/* ADD TO DOCUMENT MODAL */}
+      {/* MODAL AJOUTER À FACTURE */}
       {showAddToDoc && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.85)', zIndex: 100,
-          display: 'flex', alignItems: 'flex-end',
-        }}>
-          <div style={{
-            background: theme.colors.surface,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: '20px 20px 0 0',
-            padding: '24px', width: '100%',
-            display: 'flex', flexDirection: 'column', gap: '16px',
-          }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}>
+          <div style={{ background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '20px 20px 0 0', padding: '24px', width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <h2 style={{ color: theme.colors.primary, fontSize: '16px', fontWeight: '800' }}>
-              + {lang === 'fr' ? 'Ajouter à une nouvelle facture' : 'Add to new invoice'}
+              + {t('Ajouter à une nouvelle facture', 'Add to new invoice')}
             </h2>
-
-            <div style={{
-              background: theme.colors.card, borderRadius: '12px', padding: '12px',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            }}>
+            <div style={{ background: theme.colors.card, borderRadius: '12px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <p style={{ color: theme.colors.text, fontSize: '14px', fontWeight: '700' }}>
                   {lang === 'fr' ? showAddToDoc.name : showAddToDoc.nameen}
@@ -314,55 +412,26 @@ export default function CataloguePage() {
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <button onClick={() => setQty(Math.max(1, qty - 1))} style={{
-                  width: '36px', height: '36px', borderRadius: '50%',
-                  border: `1px solid ${theme.colors.border}`,
-                  background: theme.colors.surface, color: theme.colors.text,
-                  fontSize: '20px', cursor: 'pointer',
-                }}>-</button>
-                <span style={{ color: theme.colors.text, fontSize: '18px', fontWeight: '700', minWidth: '30px', textAlign: 'center' as const }}>
-                  {qty}
-                </span>
-                <button onClick={() => setQty(qty + 1)} style={{
-                  width: '36px', height: '36px', borderRadius: '50%',
-                  border: `1px solid ${theme.colors.primary}`,
-                  background: theme.colors.glow1, color: theme.colors.primary,
-                  fontSize: '20px', cursor: 'pointer',
-                }}>+</button>
+                <button onClick={() => setQty(Math.max(1, qty - 1))} style={{ width: '36px', height: '36px', borderRadius: '50%', border: `1px solid ${theme.colors.border}`, background: theme.colors.surface, color: theme.colors.text, fontSize: '20px', cursor: 'pointer' }}>-</button>
+                <span style={{ color: theme.colors.text, fontSize: '18px', fontWeight: '700', minWidth: '30px', textAlign: 'center' as const }}>{qty}</span>
+                <button onClick={() => setQty(qty + 1)} style={{ width: '36px', height: '36px', borderRadius: '50%', border: `1px solid ${theme.colors.primary}`, background: theme.colors.glow1, color: theme.colors.primary, fontSize: '20px', cursor: 'pointer' }}>+</button>
               </div>
             </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: theme.colors.textMuted, fontSize: '13px' }}>
-                {lang === 'fr' ? 'Total:' : 'Total:'}
-              </span>
-              <span style={{ color: theme.colors.secondary, fontSize: '18px', fontWeight: '800' }}>
-                {(showAddToDoc.price * qty).toFixed(2)}$
-              </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: theme.colors.textMuted }}>Total:</span>
+              <span style={{ color: theme.colors.secondary, fontSize: '18px', fontWeight: '800' }}>{(showAddToDoc.price * qty).toFixed(2)}$</span>
             </div>
-
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <button onClick={() => setShowAddToDoc(null)} style={{
-                padding: '14px', borderRadius: '12px', cursor: 'pointer',
-                border: `1px solid ${theme.colors.border}`,
-                background: 'transparent', color: theme.colors.textMuted,
-                fontSize: '14px', fontWeight: '700',
-              }}>
-                {lang === 'fr' ? 'Annuler' : 'Cancel'}
+              <button onClick={() => setShowAddToDoc(null)} style={{ padding: '14px', borderRadius: '12px', cursor: 'pointer', border: `1px solid ${theme.colors.border}`, background: 'transparent', color: theme.colors.textMuted, fontSize: '14px', fontWeight: '700' }}>
+                {t('Annuler', 'Cancel')}
               </button>
-              <button onClick={handleConfirmAdd} style={{
-                padding: '14px', borderRadius: '12px', cursor: 'pointer',
-                border: 'none', background: theme.colors.primary,
-                color: 'white', fontSize: '14px', fontWeight: '700',
-              }}>
-                ✅ {lang === 'fr' ? 'Créer facture' : 'Create invoice'}
+              <button onClick={handleConfirmAdd} style={{ padding: '14px', borderRadius: '12px', cursor: 'pointer', border: 'none', background: theme.colors.primary, color: 'white', fontSize: '14px', fontWeight: '700' }}>
+                ✅ {t('Créer facture', 'Create invoice')}
               </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   )
 }
-
