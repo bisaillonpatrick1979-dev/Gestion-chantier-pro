@@ -6,7 +6,10 @@ import { useCompanyStore, CompanyInfo } from '@/store/useCompanyStore';
 import { useEmployeeStore } from '@/store/useEmployeeStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useLangStore } from '@/store/useLangStore';
+import { getAllThemes } from '@/lib/themes';
 import BottomNav from '@/components/BottomNav';
+
+const THEMES = getAllThemes();
 
 const ChevronRight = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
@@ -20,14 +23,6 @@ const SaveIcon = () => (
     <polyline points="7 3 7 8 15 8" />
   </svg>
 );
-
-const THEMES = [
-  { id: 'dark',   name: 'Sombre', emoji: '🌑', accent: '#f97316' },
-  { id: 'light',  name: 'Clair',  emoji: '☀️', accent: '#f97316' },
-  { id: 'blue',   name: 'Océan',  emoji: '🌊', accent: '#3b82f6' },
-  { id: 'green',  name: 'Forêt',  emoji: '🌲', accent: '#22c55e' },
-  { id: 'purple', name: 'Violet', emoji: '💜', accent: '#a855f7' },
-];
 
 function Section({ title, emoji, children, defaultOpen = false }: {
   title: string; emoji: string; children: React.ReactNode; defaultOpen?: boolean;
@@ -120,11 +115,9 @@ export default function SettingsPage() {
     currentEmployee?.role === 'admin' ||
     currentEmployeeId == null;
 
-  // ── Thème — vrais noms du store ──
   const themeId = useThemeStore(s => s.themeId);
   const setTheme = useThemeStore(s => s.setTheme);
 
-  // ── Langue — vrais noms du store ──
   const lang = useLangStore(s => s.lang);
   const setLang = useLangStore(s => s.setLang);
 
@@ -242,11 +235,15 @@ export default function SettingsPage() {
             {THEMES.map(th => (
               <button key={th.id} onClick={() => setTheme(th.id)}
                 className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition ${
-                  themeId === th.id ? 'border-orange-400 bg-orange-500/10' : 'border-white/10 bg-white/5 hover:bg-white/10'
+                  themeId === th.id
+                    ? 'border-orange-400 bg-orange-500/10'
+                    : 'border-white/10 bg-white/5 hover:bg-white/10'
                 }`}>
-                <div className="w-8 h-8 rounded-full border-2 border-white/20" style={{ backgroundColor: th.accent }} />
-                <span className="text-xs text-white font-medium">{th.emoji} {th.name}</span>
-                {themeId === th.id && <span className="text-xs text-orange-400 font-bold">✓ Actif</span>}
+                <span className="text-2xl">{th.emoji}</span>
+                <span className="text-xs text-white font-medium text-center leading-tight">{th.nameFr}</span>
+                {themeId === th.id && (
+                  <span className="text-xs text-orange-400 font-bold">✓ Actif</span>
+                )}
               </button>
             ))}
           </div>
@@ -284,7 +281,7 @@ export default function SettingsPage() {
         </Section>
 
         {/* Numéros légaux */}
-        <Section emoji="📋" title="Numéros légaux & Taxes">
+        <Section emoji="📋" title="Numéros légaux et Taxes">
           <Field label="Numéro GST" value={form.gstNumber} onChange={setField('gstNumber')} placeholder="123456789 RT0001" />
           <Field label="Numéro WCB" value={form.wcbNumber} onChange={setField('wcbNumber')} placeholder="WCB-XXXX" />
           <Field label="Numéro de licence" value={form.licenseNumber} onChange={setField('licenseNumber')} placeholder="Contractor #" />
@@ -294,7 +291,7 @@ export default function SettingsPage() {
         </Section>
 
         {/* Paiement */}
-        <Section emoji="💳" title="Paiement & Modalités">
+        <Section emoji="💳" title="Paiement et Modalités">
           <Field label="E-Transfer (courriel)" value={form.eTransferEmail} onChange={setField('eTransferEmail')} type="email" placeholder="factures@hailitexteriors.ca" />
           <Field label="Délai de paiement" value={form.paymentTerms} onChange={setField('paymentTerms')} placeholder="Net 30" />
           <NumberField label="Dépôt par défaut (%)" value={form.defaultDepositPercent}
@@ -307,17 +304,17 @@ export default function SettingsPage() {
         <Section emoji="🔢" title="Numéros séquentiels">
           <NumberField label="Prochain # Facture" value={form.invoiceNextNumber}
             onChange={v => setForm(p => ({ ...p, invoiceNextNumber: Math.floor(v) }))}
-            min={1} max={99999} suffix="→ FACT-2026-XXXX" />
+            min={1} max={99999} suffix="FACT-2026-XXXX" />
           <NumberField label="Prochain # Devis" value={form.quoteNextNumber}
             onChange={v => setForm(p => ({ ...p, quoteNextNumber: Math.floor(v) }))}
-            min={1} max={99999} suffix="→ DEV-2026-XXXX" />
+            min={1} max={99999} suffix="DEV-2026-XXXX" />
           <NumberField label="Prochain # Contrat" value={form.contractNextNumber}
             onChange={v => setForm(p => ({ ...p, contractNextNumber: Math.floor(v) }))}
-            min={1} max={99999} suffix="→ CONT-2026-XXXX" />
+            min={1} max={99999} suffix="CONT-2026-XXXX" />
         </Section>
 
         {/* Notes */}
-        <Section emoji="📝" title="Notes & Conditions par défaut">
+        <Section emoji="📝" title="Notes et Conditions par défaut">
           <TextArea label="Notes par défaut" value={form.invoiceNotes}
             onChange={v => setForm(p => ({ ...p, invoiceNotes: v, defaultNotes: v }))}
             placeholder="Merci pour votre confiance!" rows={3} />
@@ -326,7 +323,7 @@ export default function SettingsPage() {
         </Section>
 
         {/* Employés */}
-        <Section emoji="👷" title="Employés & PIN">
+        <Section emoji="👷" title="Employés et PIN">
           <div className="space-y-2">
             {employees.length === 0 ? (
               <p className="text-gray-500 text-sm text-center py-3">Aucun employé enregistré.</p>
@@ -350,7 +347,7 @@ export default function SettingsPage() {
           {!showAddEmp ? (
             <button onClick={() => setShowAddEmp(true)}
               className="w-full mt-2 py-2.5 border border-dashed border-orange-500/40 text-orange-400 rounded-xl text-sm font-semibold hover:bg-orange-500/5 transition">
-              ＋ Ajouter un employé
+              + Ajouter un employé
             </button>
           ) : (
             <div className="mt-2 space-y-2 border border-white/10 rounded-xl p-3 bg-white/5">
@@ -371,7 +368,7 @@ export default function SettingsPage() {
               </div>
               <select value={newEmp.workMode} onChange={e => setNewEmp(p => ({ ...p, workMode: e.target.value as 'heure' | 'surface' }))}
                 className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:outline-none">
-                <option value="heure">⏱️ À l'heure</option>
+                <option value="heure">⏱️ À heure</option>
                 <option value="surface">📐 Au pied carré</option>
               </select>
               <input value={newEmp.pin} onChange={e => setNewEmp(p => ({ ...p, pin: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
@@ -387,7 +384,7 @@ export default function SettingsPage() {
           )}
           <button onClick={() => router.push('/paye')}
             className="w-full mt-2 py-2.5 bg-white/5 border border-white/10 text-gray-300 rounded-xl text-sm hover:bg-white/10 transition">
-            📚 Livre de paye & Reset PIN →
+            📚 Livre de paye et Reset PIN →
           </button>
         </Section>
 
@@ -408,8 +405,8 @@ export default function SettingsPage() {
           }`}>
           {saved ? '✅ Réglages sauvegardés!' : <><SaveIcon /> Sauvegarder tous les réglages</>}
         </button>
-      </div>
 
+      </div>
       <BottomNav />
     </div>
   );
