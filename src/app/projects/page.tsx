@@ -264,7 +264,7 @@ function NewProjectModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end justify-center">
       {/* ── Le modal prend toute la hauteur sauf la BottomNav (h-16 = 64px) ── */}
       <div className="w-full max-w-lg bg-gray-900 rounded-t-3xl border-t border-white/10 flex flex-col"
-        style={{ maxHeight: 'calc(100vh - 64px)' }}>
+        style={{ maxHeight: 'calc(100dvh - 80px)' }}>
 
         <div className="px-5 pt-5 pb-3 border-b border-white/10 flex items-center justify-between shrink-0">
           <h2 className="font-black text-white text-xl">🏗️ Nouveau projet</h2>
