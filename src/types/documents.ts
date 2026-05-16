@@ -58,10 +58,15 @@ export interface Document {
   discountAmount: number
   taxes: DocumentTax[]
   total: number
+  totalTax?: number
   deposit: number
   balanceDue: number
   notes: string
   terms: string
+  clientSignature?: string
+  clientSignatureDate?: string
+  contractorSignature?: string
+  contractorSignatureDate?: string
   [key: string]: unknown
 }
 
