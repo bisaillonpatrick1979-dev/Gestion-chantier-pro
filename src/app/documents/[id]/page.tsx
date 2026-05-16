@@ -7,7 +7,13 @@ import { useCompanyStore } from "@/store/useCompanyStore";
 import { useClientStore } from "@/store/useClientStore";
 import { useThemeStore } from "@/store/useThemeStore";
 import DocumentWatermark from "@/components/DocumentWatermark";
-import type { DocumentType, DocumentStatus, LineItem } from "@/types/documents";
+
+// ─────────────────────────────────────────
+// Types locaux (évite les problèmes d'import depuis @/types/documents)
+// ─────────────────────────────────────────
+type DocumentType   = "facture" | "devis" | "contrat";
+type DocumentStatus = "brouillon" | "envoye" | "accepte" | "refuse" | "paye";
+interface LineItem  { id: string; description: string; quantity: number; unitPrice: number; total: number; }
 
 // ─────────────────────────────────────────
 // Utilitaires
@@ -69,8 +75,7 @@ function SignatureCanvas({
         ✍️ {label}
       </label>
       <canvas
-        ref={canvasRef}
-        width={320} height={110}
+        ref={canvasRef} width={320} height={110}
         style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", touchAction: "none", display: "block", width: "100%" }}
         onMouseDown={() => { setIsDrawing(true); canvasRef.current?.getContext("2d")?.beginPath(); }}
         onMouseUp={() => setIsDrawing(false)}
@@ -106,10 +111,7 @@ function SignatureCanvas({
         }}
         onTouchEnd={() => setIsDrawing(false)}
       />
-      <button
-        onClick={onClear}
-        style={{ marginTop: "8px", background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", borderRadius: "6px", padding: "6px 14px", cursor: "pointer", fontSize: "13px" }}
-      >
+      <button onClick={onClear} style={{ marginTop: "8px", background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", borderRadius: "6px", padding: "6px 14px", cursor: "pointer", fontSize: "13px" }}>
         Effacer
       </button>
     </div>
@@ -120,9 +122,9 @@ function SignatureCanvas({
 // Constantes
 // ─────────────────────────────────────────
 const TYPE_META: Record<DocumentType, { label: string; emoji: string; color: string }> = {
-  facture: { label: "Facture",  emoji: "📄", color: "#f59e0b" },
-  devis:   { label: "Devis",    emoji: "📋", color: "#3b82f6" },
-  contrat: { label: "Contrat",  emoji: "📝", color: "#22c55e" },
+  facture: { label: "Facture", emoji: "📄", color: "#f59e0b" },
+  devis:   { label: "Devis",   emoji: "📋", color: "#3b82f6" },
+  contrat: { label: "Contrat", emoji: "📝", color: "#22c55e" },
 };
 
 const STATUS_COLORS: Record<DocumentStatus, string> = {
@@ -142,7 +144,7 @@ const STATUS_LABELS: Record<DocumentStatus, string> = {
 
 function getWatermarkType(type: DocumentType): "FACTURE" | "DEVIS" | "CONTRAT" {
   if (type === "facture") return "FACTURE";
-  if (type === "devis") return "DEVIS";
+  if (type === "devis")   return "DEVIS";
   return "CONTRAT";
 }
 
@@ -183,10 +185,7 @@ export default function DocumentPage() {
     updateLineItem: storeUpdateLine,
     addLineItem:    storeAddLine,
     removeLineItem: storeRemoveLine,
-    updateDiscount,
-    updateDeposit,
-    calculateTotals,
-    deleteDocument,
+    updateDiscount, updateDeposit, calculateTotals, deleteDocument,
   } = useDocumentStore();
 
   const { company } = useCompanyStore();
@@ -246,13 +245,7 @@ export default function DocumentPage() {
   function selectClient(clientId: string) {
     const client = clients.find((c) => c.id === clientId);
     if (!client) return;
-    upd({
-      client: {
-        name: client.name, email: client.email || "",
-        phone: client.phone || "", address: client.address || "",
-        city: "", province: "AB", postalCode: "",
-      },
-    });
+    upd({ client: { name: client.name, email: client.email || "", phone: client.phone || "", address: client.address || "", city: "", province: "AB", postalCode: "" } });
     setShowClientPicker(false);
   }
 
@@ -265,9 +258,7 @@ export default function DocumentPage() {
   function handleSendEmail() {
     if (!doc) return;
     const subject = encodeURIComponent(`${TYPE_META[doc.type].label} ${doc.number} — ${company.name}`);
-    const body = encodeURIComponent(
-      `Bonjour ${doc.client.name || ""},\n\nVeuillez trouver ci-joint votre ${TYPE_META[doc.type].label.toLowerCase()} numéro ${doc.number} d'un montant de ${formatCurrency(doc.total)}.\n\nMerci de votre confiance.\n\n${company.name}\n${company.phone || ""}\n${company.email || ""}`
-    );
+    const body = encodeURIComponent(`Bonjour ${doc.client.name || ""},\n\nVeuillez trouver ci-joint votre ${TYPE_META[doc.type].label.toLowerCase()} numéro ${doc.number} d'un montant de ${formatCurrency(doc.total)}.\n\nMerci de votre confiance.\n\n${company.name}\n${company.phone || ""}\n${company.email || ""}`);
     window.open(`mailto:${encodeURIComponent(doc.client.email || "")}?subject=${subject}&body=${body}`);
     upd({ status: "envoye" });
     showToastMsg("📧 Email ouvert — statut → Envoyé");
@@ -275,9 +266,7 @@ export default function DocumentPage() {
 
   function handleSendSMS() {
     if (!doc) return;
-    const msg = encodeURIComponent(
-      `Bonjour ${doc.client.name || ""}! Votre ${TYPE_META[doc.type].label.toLowerCase()} #${doc.number} de ${formatCurrency(doc.total)} est prête. — ${company.name} ${company.phone || ""}`
-    );
+    const msg = encodeURIComponent(`Bonjour ${doc.client.name || ""}! Votre ${TYPE_META[doc.type].label.toLowerCase()} #${doc.number} de ${formatCurrency(doc.total)} est prête. — ${company.name} ${company.phone || ""}`);
     window.open(`sms:${(doc.client.phone || "").replace(/\D/g, "")}?body=${msg}`);
     showToastMsg("💬 SMS ouvert");
   }
@@ -288,8 +277,8 @@ export default function DocumentPage() {
   }
 
   const currentTabs = doc ? TABS_BY_TYPE[doc.type] : TABS_BY_TYPE["facture"];
-  const validTabIds = currentTabs.map(t => t.id);
-  const safeTab = validTabIds.includes(activeTab) ? activeTab : "info";
+  const validTabIds  = currentTabs.map(t => t.id);
+  const safeTab      = validTabIds.includes(activeTab) ? activeTab : "info";
 
   if (!doc) {
     return (
@@ -365,7 +354,7 @@ export default function DocumentPage() {
         ))}
       </div>
 
-      {/* Tabs dynamiques */}
+      {/* Tabs */}
       <div style={{ display: "flex", borderBottom: "1px solid var(--border)", overflowX: "auto", scrollbarWidth: "none" }}>
         {currentTabs.map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
@@ -397,10 +386,10 @@ export default function DocumentPage() {
                 <div style={{ fontWeight: 700, fontSize: "15px", color: "var(--text)" }}>{company.name}</div>
                 {company.tagline && <div style={{ fontSize: "12px", color: typeMeta.color, marginBottom: "6px" }}>{company.tagline}</div>}
                 <div style={{ fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.7" }}>
-                  {company.address && <div>{company.address}</div>}
-                  {company.city && <div>{company.city}, {company.province} {company.postalCode}</div>}
-                  {company.phone && <div>📞 {company.phone}</div>}
-                  {company.email && <div>✉️ {company.email}</div>}
+                  {company.address  && <div>{company.address}</div>}
+                  {company.city     && <div>{company.city}, {company.province} {company.postalCode}</div>}
+                  {company.phone    && <div>📞 {company.phone}</div>}
+                  {company.email    && <div>✉️ {company.email}</div>}
                   {company.gstNumber && <div>GST: {company.gstNumber}</div>}
                   {company.wcbNumber && <div>WCB: {company.wcbNumber}</div>}
                 </div>
@@ -411,19 +400,11 @@ export default function DocumentPage() {
               <Field label="Numéro de document" value={doc.number} onChange={(v) => upd({ number: v })}/>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                 <Field label="Date" value={doc.date} onChange={(v) => upd({ date: v })} type="date"/>
-                {doc.type === "facture" && (
-                  <Field label="Échéance paiement" value={doc.dueDate} onChange={(v) => upd({ dueDate: v })} type="date"/>
-                )}
-                {doc.type === "devis" && (
-                  <Field label="Valide (jours)" value={validDays} onChange={setValidDays} type="number" placeholder="30"/>
-                )}
-                {doc.type === "contrat" && (
-                  <Field label="Début des travaux" value={startDate} onChange={setStartDate} type="date"/>
-                )}
+                {doc.type === "facture" && <Field label="Échéance paiement" value={doc.dueDate} onChange={(v) => upd({ dueDate: v })} type="date"/>}
+                {doc.type === "devis"   && <Field label="Valide (jours)" value={validDays} onChange={setValidDays} type="number" placeholder="30"/>}
+                {doc.type === "contrat" && <Field label="Début des travaux" value={startDate} onChange={setStartDate} type="date"/>}
               </div>
-              {doc.type === "contrat" && (
-                <Field label="Date fin prévue" value={endDate} onChange={setEndDate} type="date"/>
-              )}
+              {doc.type === "contrat" && <Field label="Date fin prévue" value={endDate} onChange={setEndDate} type="date"/>}
             </div>
 
             <div style={cardStyle}>
@@ -451,11 +432,7 @@ export default function DocumentPage() {
               <label style={{ display: "block", fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px", textTransform: "uppercase" }}>
                 {doc.type === "devis" ? "Travaux proposés" : "Travaux à réaliser"}
               </label>
-              <textarea
-                value={workDesc} onChange={(e) => setWorkDesc(e.target.value)}
-                rows={8} placeholder="Décrire en détail les travaux à effectuer..."
-                style={{ ...inputStyle, resize: "vertical", lineHeight: "1.6" }}
-              />
+              <textarea value={workDesc} onChange={(e) => setWorkDesc(e.target.value)} rows={8} placeholder="Décrire en détail les travaux à effectuer..." style={{ ...inputStyle, resize: "vertical", lineHeight: "1.6" }}/>
             </div>
             {doc.type === "devis" && (
               <div style={{ ...cardStyle, border: "1px solid #3b82f644", background: "#3b82f608" }}>
@@ -463,23 +440,15 @@ export default function DocumentPage() {
                 <p style={{ margin: 0, fontSize: "14px", color: "var(--text-muted)" }}>
                   Ce devis est valide <strong style={{ color: "var(--text)" }}>{validDays} jours</strong> à compter du <strong style={{ color: "var(--text)" }}>{doc.date}</strong>.
                 </p>
-                <p style={{ margin: "8px 0 0", fontSize: "13px", color: "var(--text-muted)" }}>
-                  L'acceptation de ce devis vaut bon de commande. Les travaux débuteront après réception du dépôt.
-                </p>
+                <p style={{ margin: "8px 0 0", fontSize: "13px", color: "var(--text-muted)" }}>L'acceptation de ce devis vaut bon de commande.</p>
               </div>
             )}
             {doc.type === "contrat" && (
               <div style={{ ...cardStyle, border: "1px solid #22c55e44", background: "#22c55e08" }}>
                 <div style={{ fontSize: "11px", color: "#22c55e", letterSpacing: "0.1em", marginBottom: "10px", textTransform: "uppercase", fontWeight: 700 }}>📅 Calendrier</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                  <div>
-                    <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>DÉBUT</div>
-                    <div style={{ fontWeight: 700, color: "var(--text)", fontSize: "15px" }}>{startDate}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>FIN PRÉVUE</div>
-                    <div style={{ fontWeight: 700, color: "var(--text)", fontSize: "15px" }}>{endDate}</div>
-                  </div>
+                  <div><div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>DÉBUT</div><div style={{ fontWeight: 700, color: "var(--text)", fontSize: "15px" }}>{startDate}</div></div>
+                  <div><div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>FIN PRÉVUE</div><div style={{ fontWeight: 700, color: "var(--text)", fontSize: "15px" }}>{endDate}</div></div>
                 </div>
               </div>
             )}
@@ -491,23 +460,11 @@ export default function DocumentPage() {
           <>
             <div style={cardStyle}>
               <h3 style={{ marginTop: 0, marginBottom: "14px", color: "var(--text)" }}>⚖️ Clauses & Conditions</h3>
-              <textarea
-                value={clauses} onChange={(e) => setClauses(e.target.value)}
-                rows={12} style={{ ...inputStyle, resize: "vertical", lineHeight: "1.7" }}
-                placeholder="1. ..."
-              />
+              <textarea value={clauses} onChange={(e) => setClauses(e.target.value)} rows={12} style={{ ...inputStyle, resize: "vertical", lineHeight: "1.7" }} placeholder="1. ..."/>
             </div>
             <div style={{ ...cardStyle, border: "1px solid #f59e0b44", background: "#f59e0b08" }}>
-              <div style={{ fontSize: "11px", color: "#f59e0b", letterSpacing: "0.1em", marginBottom: "10px", textTransform: "uppercase", fontWeight: 700 }}>
-                ⚠️ Modalités de paiement
-              </div>
-              <textarea
-                value={doc.terms ?? ""}
-                onChange={(e) => upd({ terms: e.target.value })}
-                rows={4}
-                placeholder="Ex: 30% à la signature, 40% à mi-travaux, 30% à la réception..."
-                style={{ ...inputStyle, resize: "vertical" }}
-              />
+              <div style={{ fontSize: "11px", color: "#f59e0b", letterSpacing: "0.1em", marginBottom: "10px", textTransform: "uppercase", fontWeight: 700 }}>⚠️ Modalités de paiement</div>
+              <textarea value={doc.terms ?? ""} onChange={(e) => upd({ terms: e.target.value })} rows={4} placeholder="Ex: 30% à la signature..." style={{ ...inputStyle, resize: "vertical" }}/>
             </div>
           </>
         )}
@@ -595,8 +552,7 @@ export default function DocumentPage() {
                     {(doc.deposit ?? 0) > 0 && (
                       <>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px", color: "#3b82f6", marginBottom: "6px" }}>
-                          <span>{doc.type === "contrat" ? "Acompte" : "Dépôt"}</span>
-                          <span>−{formatCurrency(doc.deposit)}</span>
+                          <span>{doc.type === "contrat" ? "Acompte" : "Dépôt"}</span><span>−{formatCurrency(doc.deposit)}</span>
                         </div>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", fontWeight: 700, color: "var(--danger)" }}>
                           <span>Solde dû</span><span>{formatCurrency(doc.balanceDue)}</span>
@@ -609,9 +565,7 @@ export default function DocumentPage() {
             </div>
             {(company.etransferEmail || company.bankName) && (
               <div style={{ ...cardStyle, border: "1px solid #3b82f644", background: "#3b82f608" }}>
-                <div style={{ fontSize: "11px", color: "#3b82f6", letterSpacing: "0.1em", marginBottom: "10px", textTransform: "uppercase", fontWeight: 700 }}>
-                  💳 Paiement (Auto — Réglages)
-                </div>
+                <div style={{ fontSize: "11px", color: "#3b82f6", letterSpacing: "0.1em", marginBottom: "10px", textTransform: "uppercase", fontWeight: 700 }}>💳 Paiement (Auto — Réglages)</div>
                 {company.etransferEmail && <div style={{ fontSize: "14px", color: "var(--text-muted)", marginBottom: "4px" }}>Interac: <strong style={{ color: "var(--text)" }}>{company.etransferEmail}</strong></div>}
                 {company.bankName && <div style={{ fontSize: "14px", color: "var(--text-muted)" }}>{company.bankName}{company.bankAccount && " — " + company.bankAccount}</div>}
               </div>
@@ -646,52 +600,34 @@ export default function DocumentPage() {
             <DocumentWatermark type="CONTRAT" logoUrl={company.logoUrl} companyName={company.name} opacity={0.05}/>
             <div style={{ position: "relative", zIndex: 1 }}>
               <h3 style={{ marginTop: 0, marginBottom: "6px", color: "var(--text)" }}>✍️ Signatures des parties</h3>
-              <p style={{ margin: "0 0 20px", fontSize: "13px", color: "var(--text-muted)" }}>
-                Les deux parties confirment avoir lu et accepté les termes du présent contrat.
-              </p>
-
-              {/* Contracteur */}
+              <p style={{ margin: "0 0 20px", fontSize: "13px", color: "var(--text-muted)" }}>Les deux parties confirment avoir lu et accepté les termes du présent contrat.</p>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
                 <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
-                <span style={{ fontSize: "12px", color: "var(--primary)", fontWeight: 700, whiteSpace: "nowrap", padding: "4px 12px", background: "var(--primary)18", borderRadius: "20px", border: "1px solid var(--primary)44" }}>
-                  🔨 CONTRACTEUR
-                </span>
+                <span style={{ fontSize: "12px", color: "var(--primary)", fontWeight: 700, whiteSpace: "nowrap", padding: "4px 12px", background: "var(--primary)18", borderRadius: "20px", border: "1px solid var(--primary)44" }}>🔨 CONTRACTEUR</span>
                 <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
               </div>
               <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "12px" }}>
-                <strong style={{ color: "var(--text)" }}>{company.name}</strong>
-                {company.ownerName && <span> — {company.ownerName}</span>}
+                <strong style={{ color: "var(--text)" }}>{company.name}</strong>{company.ownerName && <span> — {company.ownerName}</span>}
               </div>
               <SignatureCanvas label="Signature du contracteur" isXP={isXP} canvasRef={contractorSigRef} onClear={() => clearCanvas(contractorSigRef)}/>
               <Field label="Date de signature — contracteur" value={today()} type="date" readOnly/>
-
-              {/* Séparateur */}
               <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "20px 0" }}>
                 <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
                 <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>ET</span>
                 <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
               </div>
-
-              {/* Client */}
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
                 <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
-                <span style={{ fontSize: "12px", color: "#22c55e", fontWeight: 700, whiteSpace: "nowrap", padding: "4px 12px", background: "#22c55e18", borderRadius: "20px", border: "1px solid #22c55e44" }}>
-                  👤 CLIENT
-                </span>
+                <span style={{ fontSize: "12px", color: "#22c55e", fontWeight: 700, whiteSpace: "nowrap", padding: "4px 12px", background: "#22c55e18", borderRadius: "20px", border: "1px solid #22c55e44" }}>👤 CLIENT</span>
                 <div style={{ flex: 1, height: "1px", background: "var(--border)" }}/>
               </div>
               <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "12px" }}>
-                <strong style={{ color: doc.client.name ? "var(--text)" : "var(--danger)" }}>
-                  {doc.client.name || "⚠️ Client non défini — allez dans Info"}
-                </strong>
+                <strong style={{ color: doc.client.name ? "var(--text)" : "var(--danger)" }}>{doc.client.name || "⚠️ Client non défini — allez dans Info"}</strong>
               </div>
               <SignatureCanvas label="Signature du client" isXP={isXP} canvasRef={clientSigRef} onClear={() => clearCanvas(clientSigRef)}/>
               <Field label="Date de signature — client" value={today()} type="date" readOnly/>
-
               <div style={{ marginTop: "20px", padding: "14px", background: "var(--surface)", borderRadius: "10px", border: "1px solid var(--border)" }}>
-                <div style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.7" }}>
-                  En signant ce document, les deux parties reconnaissent avoir pris connaissance de l'ensemble des clauses et conditions et s'engagent à les respecter. Ce contrat constitue l'intégralité de l'entente entre les parties.
-                </div>
+                <div style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.7" }}>En signant ce document, les deux parties reconnaissent avoir pris connaissance de l'ensemble des clauses et conditions et s'engagent à les respecter.</div>
               </div>
             </div>
           </div>
@@ -699,24 +635,14 @@ export default function DocumentPage() {
 
         {/* ── BOUTONS D'ACTION ── */}
         <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "10px" }}>
-          <button style={btnPrimary} onClick={handleSave}>
-            {saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}
-          </button>
+          <button style={btnPrimary} onClick={handleSave}>{saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}</button>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-            <button onClick={handleSendEmail} style={{ padding: "13px", borderRadius: "10px", cursor: "pointer", border: "1px solid #3b82f644", background: "#3b82f608", color: "#3b82f6", fontWeight: 700, fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-              📧 Email
-            </button>
-            <button onClick={handleSendSMS} style={{ padding: "13px", borderRadius: "10px", cursor: "pointer", border: "1px solid #22c55e44", background: "#22c55e08", color: "#22c55e", fontWeight: 700, fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-              💬 SMS
-            </button>
+            <button onClick={handleSendEmail} style={{ padding: "13px", borderRadius: "10px", cursor: "pointer", border: "1px solid #3b82f644", background: "#3b82f608", color: "#3b82f6", fontWeight: 700, fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>📧 Email</button>
+            <button onClick={handleSendSMS}   style={{ padding: "13px", borderRadius: "10px", cursor: "pointer", border: "1px solid #22c55e44", background: "#22c55e08", color: "#22c55e", fontWeight: 700, fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>💬 SMS</button>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-            <button onClick={() => setShowPreview(true)} style={{ padding: "13px", borderRadius: "10px", cursor: "pointer", border: "1px solid var(--primary)44", background: "var(--primary)08", color: "var(--primary)", fontWeight: 700, fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-              👁️ Aperçu
-            </button>
-            <button onClick={() => window.print()} style={{ padding: "13px", borderRadius: "10px", cursor: "pointer", border: "1px solid #f59e0b44", background: "#f59e0b08", color: "#f59e0b", fontWeight: 700, fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-              🖨️ PDF
-            </button>
+            <button onClick={() => setShowPreview(true)} style={{ padding: "13px", borderRadius: "10px", cursor: "pointer", border: "1px solid var(--primary)44", background: "var(--primary)08", color: "var(--primary)", fontWeight: 700, fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>👁️ Aperçu</button>
+            <button onClick={() => window.print()}       style={{ padding: "13px", borderRadius: "10px", cursor: "pointer", border: "1px solid #f59e0b44", background: "#f59e0b08", color: "#f59e0b", fontWeight: 700, fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>🖨️ PDF</button>
           </div>
           <button onClick={() => { if (confirm("Supprimer ce document?")) { deleteDocument(currentId); router.push("/documents"); } }} style={{ padding: "12px", borderRadius: "10px", cursor: "pointer", border: "1px solid var(--danger)44", background: "var(--danger)08", color: "var(--danger)", fontWeight: 600, fontSize: "13px" }}>
             🗑️ Supprimer ce document
@@ -771,10 +697,10 @@ export default function DocumentPage() {
                 <div style={{ fontWeight: 800, fontSize: "18px" }}>{company.name}</div>
                 {company.tagline && <div style={{ fontSize: "12px", color: "#666" }}>{company.tagline}</div>}
                 <div style={{ fontSize: "12px", color: "#666", marginTop: "6px", lineHeight: "1.6" }}>
-                  {company.address && <div>{company.address}</div>}
-                  {company.city && <div>{company.city}, {company.province} {company.postalCode}</div>}
-                  {company.phone && <div>{company.phone}</div>}
-                  {company.email && <div>{company.email}</div>}
+                  {company.address  && <div>{company.address}</div>}
+                  {company.city     && <div>{company.city}, {company.province} {company.postalCode}</div>}
+                  {company.phone    && <div>{company.phone}</div>}
+                  {company.email    && <div>{company.email}</div>}
                   {company.gstNumber && <div>GST: {company.gstNumber}</div>}
                 </div>
               </div>
@@ -787,7 +713,6 @@ export default function DocumentPage() {
                 {doc.type === "contrat" && <div style={{ fontSize: "12px", color: "#666" }}>{startDate} → {endDate}</div>}
               </div>
             </div>
-
             <div style={{ background: "#f8f8f8", borderRadius: "8px", padding: "16px", marginBottom: "24px" }}>
               <div style={{ fontSize: "11px", color: "#888", textTransform: "uppercase", marginBottom: "6px" }}>
                 {doc.type === "contrat" ? "Partie cliente" : "Facturer à"}
@@ -797,14 +722,12 @@ export default function DocumentPage() {
               {doc.client.phone   && <div style={{ fontSize: "13px", color: "#555" }}>{doc.client.phone}</div>}
               {doc.client.address && <div style={{ fontSize: "13px", color: "#555" }}>{doc.client.address}</div>}
             </div>
-
             {workDesc && (
               <div style={{ marginBottom: "20px", padding: "14px", background: "#f0fdf4", borderRadius: "8px" }}>
                 <div style={{ fontSize: "11px", color: "#16a34a", textTransform: "uppercase", marginBottom: "6px" }}>Description des travaux</div>
                 <div style={{ fontSize: "13px", color: "#333", whiteSpace: "pre-wrap", lineHeight: "1.6" }}>{workDesc}</div>
               </div>
             )}
-
             {doc.items.some(i => i.description) && (
               <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "24px" }}>
                 <thead>
@@ -827,7 +750,6 @@ export default function DocumentPage() {
                 </tbody>
               </table>
             )}
-
             <div style={{ marginLeft: "auto", maxWidth: "260px", marginBottom: "24px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "13px" }}>
                 <span style={{ color: "#666" }}>Sous-total</span><span>{formatCurrency(doc.subtotal)}</span>
@@ -852,21 +774,18 @@ export default function DocumentPage() {
                 </>
               )}
             </div>
-
             {doc.type === "contrat" && clauses && (
               <div style={{ marginBottom: "20px", padding: "14px", background: "#f8f8f8", borderRadius: "8px" }}>
                 <div style={{ fontSize: "11px", color: "#888", textTransform: "uppercase", marginBottom: "8px" }}>Clauses & Conditions</div>
                 <div style={{ fontSize: "12px", color: "#444", whiteSpace: "pre-wrap", lineHeight: "1.7" }}>{clauses}</div>
               </div>
             )}
-
             {doc.notes && (
               <div style={{ marginBottom: "16px", padding: "14px", background: "#f8f8f8", borderRadius: "8px" }}>
                 <div style={{ fontSize: "11px", color: "#888", textTransform: "uppercase", marginBottom: "6px" }}>Notes</div>
                 <div style={{ fontSize: "13px", color: "#444" }}>{doc.notes}</div>
               </div>
             )}
-
             {(company.etransferEmail || company.bankName) && (
               <div style={{ marginBottom: "20px", padding: "14px", background: "#f0f9ff", borderRadius: "8px" }}>
                 <div style={{ fontSize: "11px", color: "#3b82f6", textTransform: "uppercase", marginBottom: "6px" }}>Paiement</div>
@@ -874,7 +793,6 @@ export default function DocumentPage() {
                 {company.bankName && <div style={{ fontSize: "13px" }}>{company.bankName}{company.bankAccount && " — " + company.bankAccount}</div>}
               </div>
             )}
-
             <div style={{ display: "grid", gridTemplateColumns: doc.type === "contrat" ? "1fr 1fr" : "1fr", gap: "16px", marginTop: "24px" }}>
               {doc.type === "contrat" && (
                 <div style={{ borderTop: "2px solid #111", paddingTop: "10px" }}>
@@ -887,14 +805,9 @@ export default function DocumentPage() {
                 <div style={{ fontSize: "11px", color: "#888" }}>Client — {doc.client.name || "—"}</div>
               </div>
             </div>
-
             <div style={{ marginTop: "24px", display: "flex", gap: "10px" }}>
-              <button onClick={() => setShowPreview(false)} style={{ flex: 1, padding: "12px", background: "#111", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 700 }}>
-                ✕ Fermer
-              </button>
-              <button onClick={() => window.print()} style={{ flex: 1, padding: "12px", background: typeMeta.color, color: "#000", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 700 }}>
-                🖨️ Imprimer / PDF
-              </button>
+              <button onClick={() => setShowPreview(false)} style={{ flex: 1, padding: "12px", background: "#111", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 700 }}>✕ Fermer</button>
+              <button onClick={() => window.print()} style={{ flex: 1, padding: "12px", background: typeMeta.color, color: "#000", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 700 }}>🖨️ Imprimer / PDF</button>
             </div>
           </div>
         </div>
