@@ -1,7 +1,8 @@
 // src/types/documents.ts
 
-export type DocumentType   = 'facture' | 'devis' | 'contrat'
-export type DocumentStatus = 'brouillon' | 'envoye' | 'accepte' | 'refuse' | 'paye'
+export type DocumentType      = 'facture' | 'devis' | 'contrat'
+export type DocumentStatus    = 'brouillon' | 'envoye' | 'accepte' | 'refuse' | 'paye'
+export type DocumentDiscount  = 'none' | 'percent' | 'fixed'
 
 export interface LineItem {
   id: string
@@ -56,7 +57,7 @@ export interface Document {
   company?: DocumentCompany
   items: LineItem[]
   subtotal: number
-  discountType: 'percent' | 'fixed'
+  discountType: DocumentDiscount
   discountValue: number
   discountAmount: number
   taxes: DocumentTax[]
