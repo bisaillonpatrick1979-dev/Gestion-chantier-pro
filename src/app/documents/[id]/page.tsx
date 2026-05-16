@@ -44,35 +44,58 @@ function Field({ label, value, onChange, type = "text", placeholder = "", readOn
 }
 
 // ─── SignatureCanvas ──────────────────────────────────────────────────────────
+// React 19: useRef retourne RefObject<T | null>, donc on accepte les deux
 function SignatureCanvas({ label, isXP, onClear, canvasRef }: {
-  label: string; isXP: boolean; onClear: () => void; canvasRef: React.RefObject<HTMLCanvasElement>;
+  label: string;
+  isXP: boolean;
+  onClear: () => void;
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
 }) {
   const [isDrawing, setIsDrawing] = useState(false);
+
+  function getCtx() {
+    return canvasRef.current?.getContext("2d") ?? null;
+  }
+  function getRect() {
+    return canvasRef.current?.getBoundingClientRect() ?? null;
+  }
+  function getScale() {
+    const el = canvasRef.current;
+    const rect = getRect();
+    if (!el || !rect) return { sx: 1, sy: 1 };
+    return { sx: el.width / rect.width, sy: el.height / rect.height };
+  }
+
   return (
     <div style={{ background: "var(--surface)", borderRadius: "10px", padding: "14px", border: "1px solid var(--border)", marginBottom: "14px" }}>
       <label style={{ display: "block", fontSize: "11px", color: "var(--text-muted)", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.05em" }}>✍️ {label}</label>
-      <canvas ref={canvasRef} width={320} height={110}
+      <canvas
+        ref={canvasRef as React.RefObject<HTMLCanvasElement>}
+        width={320} height={110}
         style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", touchAction: "none", display: "block", width: "100%" }}
-        onMouseDown={() => { setIsDrawing(true); canvasRef.current?.getContext("2d")?.beginPath(); }}
-        onMouseUp={() => setIsDrawing(false)} onMouseLeave={() => setIsDrawing(false)}
+        onMouseDown={() => { setIsDrawing(true); getCtx()?.beginPath(); }}
+        onMouseUp={() => setIsDrawing(false)}
+        onMouseLeave={() => setIsDrawing(false)}
         onMouseMove={(e) => {
-          if (!isDrawing || !canvasRef.current) return;
-          const ctx = canvasRef.current.getContext("2d"); if (!ctx) return;
-          const rect = canvasRef.current.getBoundingClientRect();
-          const sx = canvasRef.current.width / rect.width; const sy = canvasRef.current.height / rect.height;
-          ctx.strokeStyle = isXP ? "#a855f7" : "var(--primary, #D4AF37)"; ctx.lineWidth = 2; ctx.lineCap = "round";
-          ctx.lineTo((e.clientX - rect.left) * sx, (e.clientY - rect.top) * sy); ctx.stroke(); ctx.beginPath();
+          if (!isDrawing) return;
+          const ctx = getCtx(); const rect = getRect(); const { sx, sy } = getScale();
+          if (!ctx || !rect) return;
+          ctx.strokeStyle = isXP ? "#a855f7" : "var(--primary, #D4AF37)";
+          ctx.lineWidth = 2; ctx.lineCap = "round";
+          ctx.lineTo((e.clientX - rect.left) * sx, (e.clientY - rect.top) * sy);
+          ctx.stroke(); ctx.beginPath();
           ctx.moveTo((e.clientX - rect.left) * sx, (e.clientY - rect.top) * sy);
         }}
-        onTouchStart={(e) => { e.preventDefault(); setIsDrawing(true); canvasRef.current?.getContext("2d")?.beginPath(); }}
+        onTouchStart={(e) => { e.preventDefault(); setIsDrawing(true); getCtx()?.beginPath(); }}
         onTouchMove={(e) => {
-          e.preventDefault(); if (!isDrawing || !canvasRef.current) return;
-          const ctx = canvasRef.current.getContext("2d"); if (!ctx) return;
-          const rect = canvasRef.current.getBoundingClientRect();
-          const sx = canvasRef.current.width / rect.width; const sy = canvasRef.current.height / rect.height;
+          e.preventDefault(); if (!isDrawing) return;
+          const ctx = getCtx(); const rect = getRect(); const { sx, sy } = getScale();
+          if (!ctx || !rect) return;
           const t = e.touches[0];
-          ctx.strokeStyle = isXP ? "#a855f7" : "var(--primary, #D4AF37)"; ctx.lineWidth = 2; ctx.lineCap = "round";
-          ctx.lineTo((t.clientX - rect.left) * sx, (t.clientY - rect.top) * sy); ctx.stroke(); ctx.beginPath();
+          ctx.strokeStyle = isXP ? "#a855f7" : "var(--primary, #D4AF37)";
+          ctx.lineWidth = 2; ctx.lineCap = "round";
+          ctx.lineTo((t.clientX - rect.left) * sx, (t.clientY - rect.top) * sy);
+          ctx.stroke(); ctx.beginPath();
           ctx.moveTo((t.clientX - rect.left) * sx, (t.clientY - rect.top) * sy);
         }}
         onTouchEnd={() => setIsDrawing(false)}
@@ -114,8 +137,8 @@ export default function DocumentPage() {
 
   const { documents, addDocument, updateDocument, updateLineItem: storeUpdateLine, addLineItem: storeAddLine, removeLineItem: storeRemoveLine, updateDiscount, updateDeposit, calculateTotals, deleteDocument } = useDocumentStore();
   const { company } = useCompanyStore();
-  const { clients } = useClientStore();
-  const { themeId } = useThemeStore();
+  const { clients }  = useClientStore();
+  const { themeId }  = useThemeStore();
   const isXP = themeId === "xp";
 
   const [activeTab,        setActiveTab]        = useState("info");
@@ -131,6 +154,8 @@ export default function DocumentPage() {
   const [clauses,   setClauses]   = useState(
     "1. Les travaux seront exécutés selon les règles de l'art.\n2. Tout travail supplémentaire fera l'objet d'un avenant écrit.\n3. Le client s'engage à fournir un accès libre au chantier.\n4. Le paiement final est dû à la réception des travaux.\n5. Garantie sur la main-d'œuvre : 1 an."
   );
+
+  // React 19 : useRef retourne RefObject<T | null>
   const contractorSigRef = useRef<HTMLCanvasElement>(null);
   const clientSigRef     = useRef<HTMLCanvasElement>(null);
   const singleSigRef     = useRef<HTMLCanvasElement>(null);
@@ -142,9 +167,7 @@ export default function DocumentPage() {
     return newDoc.id;
   });
 
-  const doc = documents.find((d) => d.id === currentId) ?? null;
-
-  // ── Cast sûr du type document ────────────────────────────────────────────────
+  const doc     = documents.find((d) => d.id === currentId) ?? null;
   const docType: DocumentType = safeDocType(doc?.type);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -179,18 +202,16 @@ export default function DocumentPage() {
     window.open(`sms:${(doc.client.phone || "").replace(/\D/g, "")}?body=${msg}`);
     showToastMsg("💬 SMS ouvert");
   }
-  function clearCanvas(ref: React.RefObject<HTMLCanvasElement>) {
-    const ctx = ref.current?.getContext("2d");
-    if (ctx && ref.current) ctx.clearRect(0, 0, ref.current.width, ref.current.height);
+  function clearCanvas(ref: React.RefObject<HTMLCanvasElement | null>) {
+    const el = ref.current;
+    if (el) el.getContext("2d")?.clearRect(0, 0, el.width, el.height);
   }
 
   const currentTabs = TABS_BY_TYPE[docType];
   const validTabIds = currentTabs.map(t => t.id);
   const safeTab     = validTabIds.includes(activeTab) ? activeTab : "info";
 
-  if (!doc) {
-    return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", color: "var(--text-muted)", fontSize: "15px" }}>Chargement...</div>;
-  }
+  if (!doc) return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", color: "var(--text-muted)", fontSize: "15px" }}>Chargement...</div>;
 
   const wm       = getWatermarkType(docType);
   const typeMeta = TYPE_META[docType];
@@ -258,7 +279,6 @@ export default function DocumentPage() {
                 </div>
               </div>
             </div>
-
             <div style={cardStyle}>
               <Field label="Numéro de document" value={doc.number} onChange={(v) => upd({ number: v })}/>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
@@ -269,7 +289,6 @@ export default function DocumentPage() {
               </div>
               {docType === "contrat" && <Field label="Date fin prévue" value={endDate} onChange={setEndDate} type="date"/>}
             </div>
-
             <div style={cardStyle}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
                 <span style={{ fontWeight: 700, color: "var(--text)" }}>{docType === "contrat" ? "🤝 Partie cliente" : "👤 Client"}</span>
