@@ -42,9 +42,9 @@ export default function PublicInvoicePage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
               <div>
                 <h1 style={{ fontSize: '22px', fontWeight: '900', color: '#ea580c', margin: 0 }}>HAILITE XTERIORS</h1>
-                <p style={{ fontSize: '11px', color: '#666', margin: '4px 0 0' }}>{doc.company.address}, {doc.company.city}</p>
-                <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0' }}>{doc.company.phone} · {doc.company.email}</p>
-                <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0' }}>RBQ: {doc.company.license}</p>
+                <p style={{ fontSize: '11px', color: '#666', margin: '4px 0 0' }}>{doc.company?.address}, {doc.company?.city}</p>
+                <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0' }}>{doc.company?.phone} · {doc.company?.email}</p>
+                <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0' }}>RBQ: {doc.company?.license}</p>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <h2 style={{ fontSize: '22px', fontWeight: '900', margin: 0 }}>{TYPE_LABELS[doc.type]}</h2>
@@ -89,7 +89,7 @@ export default function PublicInvoicePage() {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #eee' }}>
                   <span style={{ fontSize: '12px', color: '#666' }}>Taxes</span>
-                  <span style={{ fontSize: '12px' }}>{formatCurrency(doc.totalTax)}</span>
+                  <span style={{ fontSize: '12px' }}>{formatCurrency(doc.totalTax ?? 0)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '2px solid #ea580c', marginTop: '4px' }}>
                   <span style={{ fontSize: '14px', fontWeight: '800' }}>TOTAL</span>
@@ -102,19 +102,21 @@ export default function PublicInvoicePage() {
             <div style={{ display: 'flex', justifyContent: doc.type === 'contrat' ? 'space-between' : 'flex-end', marginTop: '32px', gap: '20px' }}>
               {doc.type === 'contrat' && doc.clientSignature && (
                 <div style={{ textAlign: 'center' }}>
-                  <img src={doc.clientSignature} alt="Signature client" style={{ height: '50px', display: 'block', marginBottom: '4px' }} />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={doc.clientSignature as string} alt="Signature client" style={{ height: '50px', display: 'block', marginBottom: '4px' }} />
                   <div style={{ borderTop: '1px solid #999', paddingTop: '4px' }}>
                     <p style={{ fontSize: '11px', color: '#666', margin: 0 }}>Signature du client</p>
-                    <p style={{ fontSize: '10px', color: '#999', margin: 0 }}>{doc.clientSignatureDate}</p>
+                    <p style={{ fontSize: '10px', color: '#999', margin: 0 }}>{doc.clientSignatureDate as string}</p>
                   </div>
                 </div>
               )}
               {doc.contractorSignature && (
                 <div style={{ textAlign: 'center' }}>
-                  <img src={doc.contractorSignature} alt="Signature contracteur" style={{ height: '50px', display: 'block', marginBottom: '4px' }} />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={doc.contractorSignature as string} alt="Signature contracteur" style={{ height: '50px', display: 'block', marginBottom: '4px' }} />
                   <div style={{ borderTop: '1px solid #999', paddingTop: '4px' }}>
                     <p style={{ fontSize: '11px', color: '#666', margin: 0 }}>Signature du contracteur</p>
-                    <p style={{ fontSize: '10px', color: '#999', margin: 0 }}>{doc.contractorSignatureDate}</p>
+                    <p style={{ fontSize: '10px', color: '#999', margin: 0 }}>{doc.contractorSignatureDate as string}</p>
                   </div>
                 </div>
               )}
