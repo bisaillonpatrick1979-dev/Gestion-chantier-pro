@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useCompanyStore } from "@/store/useCompanyStore";
 import { useEmployeeStore } from "@/store/useEmployeeStore";
@@ -37,6 +37,7 @@ export default function SettingsPage() {
   const { materials, addMaterial } = useCatalogueStore();
   const { themeId, setTheme } = useThemeStore();
   const allThemes = getAllThemes();
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const currentEmployee = employees.find((e) => e.id === currentEmployeeId) ?? null;
   const isAdmin = currentEmployee?.role === "admin";
@@ -99,17 +100,24 @@ export default function SettingsPage() {
 
   function save() { setSaved(true); setTimeout(() => setSaved(false), 2000); }
 
+  // ── Upload logo ──────────────────────────────────────────────────────────────
+  function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target?.result as string;
+      updateCompany({ logoUrl: base64 });
+    };
+    reader.readAsDataURL(file);
+  }
+
   function handleAddEmployee() {
     if (!newEmpName.trim()) { setEmpError("Le nom est requis"); return; }
     if (!/^\d{4}$/.test(newEmpPin)) { setEmpError("PIN = 4 chiffres exactement (ex: 1234)"); return; }
     addEmployee({
-      name: newEmpName.trim(),
-      role: newEmpRole,
-      pin: newEmpPin,
-      workMode: newEmpMode,
-      hourlyRate: newEmpRate,
-      color: "",
-      active: true,
+      name: newEmpName.trim(), role: newEmpRole, pin: newEmpPin,
+      workMode: newEmpMode, hourlyRate: newEmpRate, color: "", active: true,
     });
     setNewEmpName(""); setNewEmpPin(""); setNewEmpRole("employee");
     setNewEmpMode("heure"); setNewEmpRate(25); setEmpError("");
@@ -125,68 +133,49 @@ export default function SettingsPage() {
     });
     setNewCName(""); setNewCPhone(""); setNewCEmail("");
     setNewCAddress(""); setNewCCity(""); setNewCProvince("AB");
-    setNewCPostal(""); setNewCNotes("");
-    setShowAddClient(false);
+    setNewCPostal(""); setNewCNotes(""); setShowAddClient(false);
   }
 
   function handleAddMaterial() {
     if (!newMatName.trim()) return;
     addMaterial({
       name: newMatName.trim(), nameen: newMatName.trim(),
-      category: newMatCat as "toiture" | "siding" | "fixations" | "etancheite" | "structure" | "maindoeuvre",
-      unit: newMatUnit as "pi²" | "pi lin." | "boîte" | "rouleau" | "feuille" | "tube" | "unité" | "heure",
+      category: newMatCat as "toiture"|"siding"|"fixations"|"etancheite"|"structure"|"maindoeuvre",
+      unit: newMatUnit as "pi²"|"pi lin."|"boîte"|"rouleau"|"feuille"|"tube"|"unité"|"heure",
       price: newMatPrice, priceMin: newMatPrice, priceMax: newMatPrice,
       emoji: newMatEmoji || "📦", description: "", descriptionen: "",
     });
     setNewMatName(""); setNewMatPrice(0); setNewMatEmoji("📦"); setShowAddMat(false);
   }
 
-  // ── Styles réutilisables ─────────────────────────────────────────────────────
+  // ── Styles ───────────────────────────────────────────────────────────────────
   const cardStyle: React.CSSProperties = {
-    background: "var(--card)",
-    border: "1px solid var(--border)",
-    borderRadius: "12px",
-    padding: "20px",
-    marginBottom: "16px",
+    background: "var(--card)", border: "1px solid var(--border)",
+    borderRadius: "12px", padding: "20px", marginBottom: "16px",
   };
 
   const btnPrimary: React.CSSProperties = {
     background: isXP
       ? "linear-gradient(135deg, #7c3aed, #a855f7)"
       : "linear-gradient(135deg, var(--primary), var(--secondary, #B8963E))",
-    color: isXP ? "#fff" : "#000",
-    border: "none",
-    borderRadius: "10px",
-    padding: "13px 24px",
-    fontWeight: 800,
-    fontSize: "14px",
-    cursor: "pointer",
-    width: "100%",
-    letterSpacing: "0.5px",
+    color: isXP ? "#fff" : "#000", border: "none", borderRadius: "10px",
+    padding: "13px 24px", fontWeight: 800, fontSize: "14px", cursor: "pointer",
+    width: "100%", letterSpacing: "0.5px",
     boxShadow: isXP ? "0 0 16px rgba(168,85,247,0.3)" : "none",
   };
 
   const btnDanger: React.CSSProperties = {
-    background: "#7f1d1d",
-    color: "#fca5a5",
-    border: "1px solid #991b1b",
-    borderRadius: "10px",
-    padding: "13px 24px",
-    fontWeight: 700,
-    fontSize: "14px",
-    cursor: "pointer",
-    width: "100%",
-    marginTop: "10px",
+    background: "#7f1d1d", color: "#fca5a5", border: "1px solid #991b1b",
+    borderRadius: "10px", padding: "13px 24px", fontWeight: 700, fontSize: "14px",
+    cursor: "pointer", width: "100%", marginTop: "10px",
   };
 
   const btnSmallPrimary: React.CSSProperties = {
     background: isXP
       ? "linear-gradient(135deg, #7c3aed, #a855f7)"
       : "linear-gradient(135deg, var(--primary), var(--secondary, #B8963E))",
-    color: isXP ? "#fff" : "#000",
-    border: "none", borderRadius: "8px",
-    padding: "8px 16px", cursor: "pointer",
-    fontSize: "13px", fontWeight: 700,
+    color: isXP ? "#fff" : "#000", border: "none", borderRadius: "8px",
+    padding: "8px 16px", cursor: "pointer", fontSize: "13px", fontWeight: 700,
     boxShadow: isXP ? "0 0 10px rgba(168,85,247,0.3)" : "none",
   };
 
@@ -210,22 +199,17 @@ export default function SettingsPage() {
   function TabButton({ id, emoji, label }: { id: AnySection; emoji: string; label: string }) {
     const isActive = activeSection === id;
     return (
-      <button
-        onClick={() => setActiveSection(id)}
-        style={{
-          flexShrink: 0, padding: "8px 14px", borderRadius: "20px",
-          cursor: "pointer", whiteSpace: "nowrap", fontSize: "13px",
-          fontWeight: isActive ? 700 : 400,
-          border: isActive ? "none" : "1px solid var(--border)",
-          background: isActive
-            ? isXP
-              ? "linear-gradient(135deg, #7c3aed, #a855f7)"
-              : "linear-gradient(135deg, var(--primary), var(--secondary, #B8963E))"
-            : "transparent",
-          color: isActive ? (isXP ? "#fff" : "#000") : "var(--text-muted)",
-          boxShadow: isActive && isXP ? "0 0 12px rgba(168,85,247,0.4)" : "none",
-        }}
-      >
+      <button onClick={() => setActiveSection(id)} style={{
+        flexShrink: 0, padding: "8px 14px", borderRadius: "20px",
+        cursor: "pointer", whiteSpace: "nowrap", fontSize: "13px",
+        fontWeight: isActive ? 700 : 400,
+        border: isActive ? "none" : "1px solid var(--border)",
+        background: isActive
+          ? isXP ? "linear-gradient(135deg, #7c3aed, #a855f7)" : "linear-gradient(135deg, var(--primary), var(--secondary, #B8963E))"
+          : "transparent",
+        color: isActive ? (isXP ? "#fff" : "#000") : "var(--text-muted)",
+        boxShadow: isActive && isXP ? "0 0 12px rgba(168,85,247,0.4)" : "none",
+      }}>
         {emoji} {label}
       </button>
     );
@@ -246,16 +230,13 @@ export default function SettingsPage() {
             <button key={theme.id} onClick={() => setTheme(theme.id)} style={{
               background: theme.colors.background,
               border: isActive ? `2px solid ${theme.colors.primary}` : "2px solid transparent",
-              borderRadius: "12px", padding: "14px 12px",
-              cursor: "pointer", textAlign: "left",
+              borderRadius: "12px", padding: "14px 12px", cursor: "pointer", textAlign: "left",
               position: "relative", overflow: "hidden", transition: "all 0.2s",
             }}>
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: theme.colors.primary }}/>
               <div style={{ fontSize: "20px", marginBottom: "6px" }}>{theme.emoji}</div>
               <div style={{ fontSize: "12px", fontWeight: 700, color: theme.colors.text, lineHeight: 1.3 }}>{theme.nameFr}</div>
-              {isActive && (
-                <div style={{ marginTop: "6px", fontSize: "10px", color: theme.colors.primary, fontWeight: 800, letterSpacing: "1px" }}>✓ ACTIF</div>
-              )}
+              {isActive && <div style={{ marginTop: "6px", fontSize: "10px", color: theme.colors.primary, fontWeight: 800, letterSpacing: "1px" }}>✓ ACTIF</div>}
             </button>
           );
         })}
@@ -280,7 +261,6 @@ export default function SettingsPage() {
           {activeSection === "pin" && (
             <div style={cardStyle}>
               <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>🔒 Changer mon PIN</h2>
-              <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "16px" }}>Contactez votre administrateur pour changer votre PIN.</p>
               <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", padding: "16px", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>
                 👑 Seul l&apos;admin peut modifier les PINs
               </div>
@@ -323,6 +303,67 @@ export default function SettingsPage() {
             <Field label="Nom de la compagnie" value={company.name} onChange={(v) => updateCompany({ name: v })}/>
             <Field label="Slogan" value={company.tagline} onChange={(v) => updateCompany({ tagline: v })}/>
             <Field label="Nom du propriétaire" value={company.ownerName} onChange={(v) => updateCompany({ ownerName: v })}/>
+
+            {/* ── Logo upload ── */}
+            <div style={{ marginBottom: "16px", marginTop: "4px" }}>
+              <label style={labelStyle}>Logo de la compagnie</label>
+              <p style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "10px", marginTop: "2px" }}>
+                Apparaît en filigrane sur toutes les factures, devis, contrats et commandes.
+              </p>
+
+              {/* Aperçu logo actuel */}
+              {company.logoUrl ? (
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px", padding: "12px", background: "var(--surface)", borderRadius: "10px", border: "1px solid var(--border)" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={company.logoUrl}
+                    alt="Logo"
+                    style={{ width: "56px", height: "56px", objectFit: "contain", borderRadius: "8px", background: "#fff" }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)", margin: 0 }}>Logo actuel</p>
+                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0" }}>Visible en filigrane sur les documents</p>
+                  </div>
+                  <button
+                    onClick={() => updateCompany({ logoUrl: "" })}
+                    style={{ background: "#7f1d1d22", border: "1px solid #7f1d1d55", color: "#fca5a5", borderRadius: "8px", padding: "6px 12px", cursor: "pointer", fontSize: "12px", fontWeight: 700 }}
+                  >
+                    ✕ Retirer
+                  </button>
+                </div>
+              ) : (
+                <div style={{ padding: "20px", background: "var(--surface)", borderRadius: "10px", border: "2px dashed var(--border)", textAlign: "center", marginBottom: "10px" }}>
+                  <div style={{ fontSize: "32px", marginBottom: "6px" }}>🖼️</div>
+                  <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: 0 }}>Aucun logo — cliquez pour en ajouter un</p>
+                </div>
+              )}
+
+              {/* Bouton upload */}
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                onChange={handleLogoUpload}
+                style={{ display: "none" }}
+              />
+              <button
+                onClick={() => logoInputRef.current?.click()}
+                style={{
+                  width: "100%", padding: "12px", borderRadius: "10px", cursor: "pointer",
+                  border: `1px solid var(--primary)`,
+                  background: "var(--primary)12",
+                  color: "var(--primary)",
+                  fontSize: "14px", fontWeight: 700,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                }}
+              >
+                📁 {company.logoUrl ? "Changer le logo" : "Choisir un logo"}
+              </button>
+              <p style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "6px", textAlign: "center" }}>
+                PNG, JPG, SVG ou WEBP recommandé · Fond transparent idéal
+              </p>
+            </div>
+
             <button style={btnPrimary} onClick={save}>{saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}</button>
           </div>
         )}
@@ -394,54 +435,37 @@ export default function SettingsPage() {
               </button>
             </div>
 
-            {/* ── Formulaire ajout employé ── */}
             {showAddEmp && (
               <div style={{ background: "var(--surface)", border: `2px solid var(--primary)`, borderRadius: "12px", padding: "16px", marginBottom: "16px" }}>
                 <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)", marginTop: 0, marginBottom: "14px", letterSpacing: "1px", textTransform: "uppercase" }}>
                   ➕ Nouvel Employé
                 </p>
-
                 {empError && (
                   <div style={{ background: "#7f1d1d22", border: "1px solid #7f1d1d", borderRadius: "8px", padding: "10px", marginBottom: "12px", fontSize: "13px", color: "#fca5a5" }}>
                     ⚠️ {empError}
                   </div>
                 )}
-
                 <div style={{ marginBottom: "10px" }}>
                   <label style={labelStyle}>Nom complet *</label>
-                  <input
-                    value={newEmpName}
-                    onChange={e => setNewEmpName(e.target.value)}
-                    placeholder="Ex: Jean Tremblay"
-                    style={inputStyle}
-                  />
+                  <input value={newEmpName} onChange={e => setNewEmpName(e.target.value)} placeholder="Ex: Jean Tremblay" style={inputStyle}/>
                 </div>
-
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
                   <div>
                     <label style={labelStyle}>PIN (4 chiffres) *</label>
-                    <input
-                      value={newEmpPin}
-                      onChange={e => setNewEmpPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                      placeholder="1234"
-                      maxLength={4}
-                      type="password"
-                      style={inputStyle}
-                    />
+                    <input value={newEmpPin} onChange={e => setNewEmpPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="1234" maxLength={4} type="password" style={inputStyle}/>
                   </div>
                   <div>
                     <label style={labelStyle}>Rôle</label>
-                    <select value={newEmpRole} onChange={e => setNewEmpRole(e.target.value as "admin" | "employee")} style={selectStyle}>
+                    <select value={newEmpRole} onChange={e => setNewEmpRole(e.target.value as "admin"|"employee")} style={selectStyle}>
                       <option value="employee">👷 Employé</option>
                       <option value="admin">👑 Admin</option>
                     </select>
                   </div>
                 </div>
-
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
                   <div>
                     <label style={labelStyle}>Mode de travail</label>
-                    <select value={newEmpMode} onChange={e => setNewEmpMode(e.target.value as "heure" | "surface" | "forfait")} style={selectStyle}>
+                    <select value={newEmpMode} onChange={e => setNewEmpMode(e.target.value as "heure"|"surface"|"forfait")} style={selectStyle}>
                       <option value="heure">⏱ Par heure</option>
                       <option value="surface">📐 Par surface</option>
                       <option value="forfait">💼 Forfait</option>
@@ -449,23 +473,13 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <label style={labelStyle}>Taux horaire ($)</label>
-                    <input
-                      type="number"
-                      value={newEmpRate}
-                      onChange={e => setNewEmpRate(Number(e.target.value))}
-                      min={0}
-                      style={inputStyle}
-                    />
+                    <input type="number" value={newEmpRate} onChange={e => setNewEmpRate(Number(e.target.value))} min={0} style={inputStyle}/>
                   </div>
                 </div>
-
-                <button onClick={handleAddEmployee} style={btnPrimary}>
-                  ✅ Créer l&apos;employé
-                </button>
+                <button onClick={handleAddEmployee} style={btnPrimary}>✅ Créer l&apos;employé</button>
               </div>
             )}
 
-            {/* ── Liste employés ── */}
             {employees.length === 0 ? (
               <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "20px 0" }}>Aucun employé enregistré</p>
             ) : (
@@ -505,18 +519,15 @@ export default function SettingsPage() {
               </button>
             </div>
 
-            {/* ── Formulaire ajout client ── */}
             {showAddClient && (
               <div style={{ background: "var(--surface)", border: `2px solid var(--primary)`, borderRadius: "12px", padding: "16px", marginBottom: "16px" }}>
                 <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)", marginTop: 0, marginBottom: "14px", letterSpacing: "1px", textTransform: "uppercase" }}>
                   ➕ Nouveau Client
                 </p>
-
                 <div style={{ marginBottom: "10px" }}>
                   <label style={labelStyle}>Nom *</label>
-                  <input value={newCName} onChange={e => setNewCName(e.target.value)} placeholder="Nom du client ou de la compagnie" style={inputStyle}/>
+                  <input value={newCName} onChange={e => setNewCName(e.target.value)} placeholder="Nom du client ou compagnie" style={inputStyle}/>
                 </div>
-
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
                   <div>
                     <label style={labelStyle}>Téléphone</label>
@@ -527,12 +538,10 @@ export default function SettingsPage() {
                     <input value={newCEmail} onChange={e => setNewCEmail(e.target.value)} placeholder="client@email.com" type="email" style={inputStyle}/>
                   </div>
                 </div>
-
                 <div style={{ marginBottom: "10px" }}>
                   <label style={labelStyle}>Adresse</label>
                   <input value={newCAddress} onChange={e => setNewCAddress(e.target.value)} placeholder="123 rue Exemple" style={inputStyle}/>
                 </div>
-
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
                   <div>
                     <label style={labelStyle}>Ville</label>
@@ -543,14 +552,10 @@ export default function SettingsPage() {
                     <input value={newCPostal} onChange={e => setNewCPostal(e.target.value)} placeholder="T2X 0A1" style={inputStyle}/>
                   </div>
                 </div>
-
-                <button onClick={handleAddClient} style={btnPrimary}>
-                  ✅ Ajouter le client
-                </button>
+                <button onClick={handleAddClient} style={btnPrimary}>✅ Ajouter le client</button>
               </div>
             )}
 
-            {/* ── Liste clients ── */}
             {clients.length === 0 ? (
               <div style={{ textAlign: "center", padding: "30px 0", color: "var(--text-muted)" }}>
                 <div style={{ fontSize: "32px", marginBottom: "8px" }}>👥</div>
@@ -569,10 +574,7 @@ export default function SettingsPage() {
                       {!client.phone && !client.city && client.email ? `✉️ ${client.email}` : ""}
                     </div>
                   </div>
-                  <button
-                    onClick={() => { if (confirm(`Supprimer ${client.name}?`)) deleteClient(client.id); }}
-                    style={{ background: "#7f1d1d", color: "#fca5a5", border: "none", borderRadius: "8px", padding: "8px 14px", cursor: "pointer", fontSize: "12px", fontWeight: 700 }}
-                  >
+                  <button onClick={() => { if (confirm(`Supprimer ${client.name}?`)) deleteClient(client.id); }} style={{ background: "#7f1d1d", color: "#fca5a5", border: "none", borderRadius: "8px", padding: "8px 14px", cursor: "pointer", fontSize: "12px", fontWeight: 700 }}>
                     Supprimer
                   </button>
                 </div>
@@ -593,18 +595,15 @@ export default function SettingsPage() {
               </button>
             </div>
 
-            {/* ── Formulaire ajout rapide ── */}
             {showAddMat && (
               <div style={{ background: "var(--surface)", border: `2px solid var(--primary)`, borderRadius: "12px", padding: "16px", marginBottom: "16px" }}>
                 <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)", marginTop: 0, marginBottom: "14px", letterSpacing: "1px", textTransform: "uppercase" }}>
                   ➕ Nouveau Matériau
                 </p>
-
                 <div style={{ marginBottom: "10px" }}>
                   <label style={labelStyle}>Nom *</label>
                   <input value={newMatName} onChange={e => setNewMatName(e.target.value)} placeholder="Ex: Bardeau premium" style={inputStyle}/>
                 </div>
-
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "10px" }}>
                   <div>
                     <label style={labelStyle}>Prix ($)</label>
@@ -613,9 +612,7 @@ export default function SettingsPage() {
                   <div>
                     <label style={labelStyle}>Unité</label>
                     <select value={newMatUnit} onChange={e => setNewMatUnit(e.target.value)} style={selectStyle}>
-                      {["pi²","pi lin.","boîte","rouleau","feuille","tube","unité","heure"].map(u => (
-                        <option key={u} value={u}>{u}</option>
-                      ))}
+                      {["pi²","pi lin.","boîte","rouleau","feuille","tube","unité","heure"].map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </div>
                   <div>
@@ -623,7 +620,6 @@ export default function SettingsPage() {
                     <input value={newMatEmoji} onChange={e => setNewMatEmoji(e.target.value)} placeholder="📦" style={{ ...inputStyle, textAlign: "center" }}/>
                   </div>
                 </div>
-
                 <div style={{ marginBottom: "16px" }}>
                   <label style={labelStyle}>Catégorie</label>
                   <select value={newMatCat} onChange={e => setNewMatCat(e.target.value)} style={selectStyle}>
@@ -635,22 +631,18 @@ export default function SettingsPage() {
                     <option value="maindoeuvre">👷 Main d&apos;oeuvre</option>
                   </select>
                 </div>
-
-                <button onClick={handleAddMaterial} style={btnPrimary}>
-                  ✅ Ajouter au catalogue
-                </button>
+                <button onClick={handleAddMaterial} style={btnPrimary}>✅ Ajouter au catalogue</button>
               </div>
             )}
 
-            {/* ── Résumé par catégorie ── */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "14px" }}>
               {[
-                { key: "toiture",     label: "Toiture",      emoji: "🏠", color: "#ea580c" },
-                { key: "siding",      label: "Siding",       emoji: "🏡", color: "#f59e0b" },
-                { key: "fixations",   label: "Fixations",    emoji: "🔩", color: "#06b6d4" },
-                { key: "etancheite",  label: "Étanchéité",   emoji: "💧", color: "#3b82f6" },
-                { key: "structure",   label: "Structure",    emoji: "🪵", color: "#22c55e" },
-                { key: "maindoeuvre", label: "Main-d&apos;oeuvre", emoji: "👷", color: "#a855f7" },
+                { key: "toiture",     label: "Toiture",       emoji: "🏠", color: "#ea580c" },
+                { key: "siding",      label: "Siding",        emoji: "🏡", color: "#f59e0b" },
+                { key: "fixations",   label: "Fixations",     emoji: "🔩", color: "#06b6d4" },
+                { key: "etancheite",  label: "Étanchéité",    emoji: "💧", color: "#3b82f6" },
+                { key: "structure",   label: "Structure",     emoji: "🪵", color: "#22c55e" },
+                { key: "maindoeuvre", label: "Main-d'oeuvre", emoji: "👷", color: "#a855f7" },
               ].map(cat => {
                 const count = materials.filter(m => m.category === cat.key).length;
                 return (
@@ -662,11 +654,7 @@ export default function SettingsPage() {
               })}
             </div>
 
-            {/* ── Lien vers page catalogue complète ── */}
-            <button
-              onClick={() => router.push("/catalogue")}
-              style={{ width: "100%", padding: "14px", borderRadius: "10px", cursor: "pointer", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: "14px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
-            >
+            <button onClick={() => router.push("/catalogue")} style={{ width: "100%", padding: "14px", borderRadius: "10px", cursor: "pointer", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: "14px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
               📦 Gérer le catalogue complet →
             </button>
           </div>
