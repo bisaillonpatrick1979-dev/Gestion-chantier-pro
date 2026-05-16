@@ -28,6 +28,19 @@ export interface DocumentClient {
   postalCode: string
 }
 
+export interface DocumentCompany {
+  name?: string
+  address?: string
+  city?: string
+  phone?: string
+  email?: string
+  license?: string
+  gst?: string
+  wcb?: string
+  logo?: string
+  [key: string]: string | undefined
+}
+
 export interface Document {
   id: string
   type: DocumentType
@@ -37,6 +50,7 @@ export interface Document {
   createdAt?: string
   status: DocumentStatus
   client: DocumentClient
+  company?: DocumentCompany
   items: LineItem[]
   subtotal: number
   discountType: 'percent' | 'fixed'
@@ -48,6 +62,7 @@ export interface Document {
   balanceDue: number
   notes: string
   terms: string
+  [key: string]: unknown
 }
 
 export default Document
