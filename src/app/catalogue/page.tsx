@@ -22,7 +22,7 @@ type PriceView = 'tous' | 'fournisseur' | 'client'
 
 const emptyForm = () => ({
   name: '', nameen: '', emoji: '📦', category: 'toiture' as Category,
-  unit: '' as Unit | '',
+              unit: '' as Unit | '',
   prixClient: '', prixFournisseur: '', description: '',
 })
 
@@ -44,7 +44,7 @@ export default function CataloguePage() {
   const [qty, setQty] = useState(1)
 
   // Édition inline
-  const [editForm, setEditForm] = useState<Partial<Material> & { unit?: Unit | '' }>({})
+  const [editForm, setEditForm] = useState<Partial<Material>>({})
 
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
@@ -81,7 +81,7 @@ export default function CataloguePage() {
     setEditingId(mat.id)
     setEditForm({
       name: mat.name, nameen: mat.nameen || '', emoji: mat.emoji || '',
-      category: mat.category, unit: mat.unit || '',
+      category: mat.category, unit: mat.unit ?? undefined,
       prixClient: mat.prixClient, prixFournisseur: mat.prixFournisseur,
       description: mat.description || '',
     })
@@ -374,7 +374,7 @@ export default function CataloguePage() {
                   </div>
                   <div>
                     <label style={lbl}>Unité</label>
-                    <select value={(editForm.unit as string) || ''} onChange={e => setEditForm(p => ({ ...p, unit: e.target.value as Unit | '' }))} style={inp}>
+                    <select value={(editForm.unit as string) || ''} onChange={e => setEditForm(p => ({ ...p, unit: (e.target.value as Unit) || undefined }))} style={inp}>
                       <option value="">— aucune —</option>
                       {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
