@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useCompanyStore } from "@/store/useCompanyStore";
 import { useEmployeeStore } from "@/store/useEmployeeStore";
+import { useClientStore } from "@/store/useClientStore";
+import { useCatalogueStore } from "@/store/useCatalogueStore";
 import { useThemeStore } from "@/store/useThemeStore";
 import { getAllThemes } from "@/lib/themes";
 
@@ -27,8 +30,11 @@ function Field({
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { company, updateCompany, resetNumbering } = useCompanyStore();
-  const { employees, deleteEmployee, currentEmployeeId } = useEmployeeStore();
+  const { employees, addEmployee, deleteEmployee, currentEmployeeId } = useEmployeeStore();
+  const { clients, addClient, deleteClient } = useClientStore();
+  const { materials, addMaterial } = useCatalogueStore();
   const { themeId, setTheme } = useThemeStore();
   const allThemes = getAllThemes();
 
@@ -38,7 +44,35 @@ export default function SettingsPage() {
 
   const [saved, setSaved] = useState(false);
 
-  type AdminSection = "company"|"contact"|"legal"|"payment"|"billing"|"employees"|"theme"|"numbering"|"danger";
+  // ── Formulaire Employé ───────────────────────────────────────────────────────
+  const [showAddEmp, setShowAddEmp] = useState(false);
+  const [newEmpName, setNewEmpName] = useState("");
+  const [newEmpPin, setNewEmpPin] = useState("");
+  const [newEmpRole, setNewEmpRole] = useState<"admin" | "employee">("employee");
+  const [newEmpMode, setNewEmpMode] = useState<"heure" | "surface" | "forfait">("heure");
+  const [newEmpRate, setNewEmpRate] = useState<number>(25);
+  const [empError, setEmpError] = useState("");
+
+  // ── Formulaire Client ────────────────────────────────────────────────────────
+  const [showAddClient, setShowAddClient] = useState(false);
+  const [newCName, setNewCName] = useState("");
+  const [newCPhone, setNewCPhone] = useState("");
+  const [newCEmail, setNewCEmail] = useState("");
+  const [newCAddress, setNewCAddress] = useState("");
+  const [newCCity, setNewCCity] = useState("");
+  const [newCProvince, setNewCProvince] = useState("AB");
+  const [newCPostal, setNewCPostal] = useState("");
+  const [newCNotes, setNewCNotes] = useState("");
+
+  // ── Formulaire Catalogue ─────────────────────────────────────────────────────
+  const [showAddMat, setShowAddMat] = useState(false);
+  const [newMatName, setNewMatName] = useState("");
+  const [newMatPrice, setNewMatPrice] = useState<number>(0);
+  const [newMatCat, setNewMatCat] = useState("toiture");
+  const [newMatUnit, setNewMatUnit] = useState("pi²");
+  const [newMatEmoji, setNewMatEmoji] = useState("📦");
+
+  type AdminSection = "company"|"contact"|"legal"|"payment"|"billing"|"employees"|"clients"|"catalogue"|"theme"|"numbering"|"danger";
   type EmpSection = "theme"|"pin"|"paye";
   type AnySection = AdminSection | EmpSection;
   const [activeSection, setActiveSection] = useState<AnySection>(isAdmin ? "company" : "theme");
@@ -50,6 +84,8 @@ export default function SettingsPage() {
     { id: "payment"   as AdminSection, emoji: "💳", label: "Paiement"     },
     { id: "billing"   as AdminSection, emoji: "🧾", label: "Facturation"  },
     { id: "employees" as AdminSection, emoji: "👷", label: "Employés"     },
+    { id: "clients"   as AdminSection, emoji: "👥", label: "Clients"      },
+    { id: "catalogue" as AdminSection, emoji: "📦", label: "Catalogue"    },
     { id: "theme"     as AdminSection, emoji: "🎨", label: "Thème"        },
     { id: "numbering" as AdminSection, emoji: "🔢", label: "Numérotation" },
     { id: "danger"    as AdminSection, emoji: "⚠️", label: "Danger"       },
@@ -63,7 +99,49 @@ export default function SettingsPage() {
 
   function save() { setSaved(true); setTimeout(() => setSaved(false), 2000); }
 
-  // Styles dynamiques selon thème
+  function handleAddEmployee() {
+    if (!newEmpName.trim()) { setEmpError("Le nom est requis"); return; }
+    if (!/^\d{4}$/.test(newEmpPin)) { setEmpError("PIN = 4 chiffres exactement (ex: 1234)"); return; }
+    addEmployee({
+      name: newEmpName.trim(),
+      role: newEmpRole,
+      pin: newEmpPin,
+      workMode: newEmpMode,
+      hourlyRate: newEmpRate,
+      color: "",
+      active: true,
+    });
+    setNewEmpName(""); setNewEmpPin(""); setNewEmpRole("employee");
+    setNewEmpMode("heure"); setNewEmpRate(25); setEmpError("");
+    setShowAddEmp(false);
+  }
+
+  function handleAddClient() {
+    if (!newCName.trim()) return;
+    addClient({
+      name: newCName.trim(), phone: newCPhone, email: newCEmail,
+      address: newCAddress, city: newCCity, province: newCProvince,
+      postalCode: newCPostal, notes: newCNotes,
+    });
+    setNewCName(""); setNewCPhone(""); setNewCEmail("");
+    setNewCAddress(""); setNewCCity(""); setNewCProvince("AB");
+    setNewCPostal(""); setNewCNotes("");
+    setShowAddClient(false);
+  }
+
+  function handleAddMaterial() {
+    if (!newMatName.trim()) return;
+    addMaterial({
+      name: newMatName.trim(), nameen: newMatName.trim(),
+      category: newMatCat as "toiture" | "siding" | "fixations" | "etancheite" | "structure" | "maindoeuvre",
+      unit: newMatUnit as "pi²" | "pi lin." | "boîte" | "rouleau" | "feuille" | "tube" | "unité" | "heure",
+      price: newMatPrice, priceMin: newMatPrice, priceMax: newMatPrice,
+      emoji: newMatEmoji || "📦", description: "", descriptionen: "",
+    });
+    setNewMatName(""); setNewMatPrice(0); setNewMatEmoji("📦"); setShowAddMat(false);
+  }
+
+  // ── Styles réutilisables ─────────────────────────────────────────────────────
   const cardStyle: React.CSSProperties = {
     background: "var(--card)",
     border: "1px solid var(--border)",
@@ -101,18 +179,42 @@ export default function SettingsPage() {
     marginTop: "10px",
   };
 
+  const btnSmallPrimary: React.CSSProperties = {
+    background: isXP
+      ? "linear-gradient(135deg, #7c3aed, #a855f7)"
+      : "linear-gradient(135deg, var(--primary), var(--secondary, #B8963E))",
+    color: isXP ? "#fff" : "#000",
+    border: "none", borderRadius: "8px",
+    padding: "8px 16px", cursor: "pointer",
+    fontSize: "13px", fontWeight: 700,
+    boxShadow: isXP ? "0 0 10px rgba(168,85,247,0.3)" : "none",
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", background: "var(--surface)", border: "1px solid var(--border)",
+    borderRadius: "8px", padding: "10px 12px", color: "var(--text)",
+    fontSize: "14px", boxSizing: "border-box", outline: "none",
+  };
+
+  const selectStyle: React.CSSProperties = {
+    width: "100%", background: "var(--surface)", border: "1px solid var(--border)",
+    borderRadius: "8px", padding: "10px 12px", color: "var(--text)",
+    fontSize: "14px", boxSizing: "border-box", outline: "none",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: "block", fontSize: "11px", color: "var(--text-muted)",
+    marginBottom: "4px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em",
+  };
+
   function TabButton({ id, emoji, label }: { id: AnySection; emoji: string; label: string }) {
     const isActive = activeSection === id;
     return (
       <button
         onClick={() => setActiveSection(id)}
         style={{
-          flexShrink: 0,
-          padding: "8px 14px",
-          borderRadius: "20px",
-          cursor: "pointer",
-          whiteSpace: "nowrap",
-          fontSize: "13px",
+          flexShrink: 0, padding: "8px 14px", borderRadius: "20px",
+          cursor: "pointer", whiteSpace: "nowrap", fontSize: "13px",
           fontWeight: isActive ? 700 : 400,
           border: isActive ? "none" : "1px solid var(--border)",
           background: isActive
@@ -214,6 +316,7 @@ export default function SettingsPage() {
 
       <div style={{ padding: "0 16px" }}>
 
+        {/* ── COMPANY ── */}
         {activeSection === "company" && (
           <div style={cardStyle}>
             <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>🏢 Informations Compagnie</h2>
@@ -224,6 +327,7 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* ── CONTACT ── */}
         {activeSection === "contact" && (
           <div style={cardStyle}>
             <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>📞 Coordonnées</h2>
@@ -238,6 +342,7 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* ── LEGAL ── */}
         {activeSection === "legal" && (
           <div style={cardStyle}>
             <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>📋 Légal & Taxes (Alberta)</h2>
@@ -251,6 +356,7 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* ── PAYMENT ── */}
         {activeSection === "payment" && (
           <div style={cardStyle}>
             <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>💳 Informations de Paiement</h2>
@@ -262,22 +368,104 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* ── BILLING ── */}
         {activeSection === "billing" && (
           <div style={cardStyle}>
             <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>🧾 Paramètres Facturation</h2>
             <Field label="Dépôt requis (%)" value={company.defaultDepositPercent} onChange={(v) => updateCompany({ defaultDepositPercent: Number(v) })} type="number"/>
             <Field label="Délai de paiement (jours)" value={company.defaultPaymentTermsDays} onChange={(v) => updateCompany({ defaultPaymentTermsDays: Number(v) })} type="number"/>
             <div style={{ marginBottom: "12px" }}>
-              <label style={{ display: "block", fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>Notes par défaut</label>
+              <label style={labelStyle}>Notes par défaut</label>
               <textarea value={company.defaultNotes} onChange={(e) => updateCompany({ defaultNotes: e.target.value })} rows={3} style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px 12px", color: "var(--text)", fontSize: "15px", boxSizing: "border-box", outline: "none", resize: "vertical" }}/>
             </div>
             <button style={btnPrimary} onClick={save}>{saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}</button>
           </div>
         )}
 
+        {/* ── EMPLOYEES ── */}
         {activeSection === "employees" && (
           <div style={cardStyle}>
-            <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>👷 Gestion des Employés</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text)" }}>
+                👷 Employés <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 400 }}>({employees.length})</span>
+              </h2>
+              <button onClick={() => { setShowAddEmp(!showAddEmp); setEmpError(""); }} style={btnSmallPrimary}>
+                {showAddEmp ? "✕ Fermer" : "+ Ajouter"}
+              </button>
+            </div>
+
+            {/* ── Formulaire ajout employé ── */}
+            {showAddEmp && (
+              <div style={{ background: "var(--surface)", border: `2px solid var(--primary)`, borderRadius: "12px", padding: "16px", marginBottom: "16px" }}>
+                <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)", marginTop: 0, marginBottom: "14px", letterSpacing: "1px", textTransform: "uppercase" }}>
+                  ➕ Nouvel Employé
+                </p>
+
+                {empError && (
+                  <div style={{ background: "#7f1d1d22", border: "1px solid #7f1d1d", borderRadius: "8px", padding: "10px", marginBottom: "12px", fontSize: "13px", color: "#fca5a5" }}>
+                    ⚠️ {empError}
+                  </div>
+                )}
+
+                <div style={{ marginBottom: "10px" }}>
+                  <label style={labelStyle}>Nom complet *</label>
+                  <input
+                    value={newEmpName}
+                    onChange={e => setNewEmpName(e.target.value)}
+                    placeholder="Ex: Jean Tremblay"
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
+                  <div>
+                    <label style={labelStyle}>PIN (4 chiffres) *</label>
+                    <input
+                      value={newEmpPin}
+                      onChange={e => setNewEmpPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      placeholder="1234"
+                      maxLength={4}
+                      type="password"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Rôle</label>
+                    <select value={newEmpRole} onChange={e => setNewEmpRole(e.target.value as "admin" | "employee")} style={selectStyle}>
+                      <option value="employee">👷 Employé</option>
+                      <option value="admin">👑 Admin</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
+                  <div>
+                    <label style={labelStyle}>Mode de travail</label>
+                    <select value={newEmpMode} onChange={e => setNewEmpMode(e.target.value as "heure" | "surface" | "forfait")} style={selectStyle}>
+                      <option value="heure">⏱ Par heure</option>
+                      <option value="surface">📐 Par surface</option>
+                      <option value="forfait">💼 Forfait</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Taux horaire ($)</label>
+                    <input
+                      type="number"
+                      value={newEmpRate}
+                      onChange={e => setNewEmpRate(Number(e.target.value))}
+                      min={0}
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+
+                <button onClick={handleAddEmployee} style={btnPrimary}>
+                  ✅ Créer l&apos;employé
+                </button>
+              </div>
+            )}
+
+            {/* ── Liste employés ── */}
             {employees.length === 0 ? (
               <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "20px 0" }}>Aucun employé enregistré</p>
             ) : (
@@ -305,8 +493,189 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* ── CLIENTS ── */}
+        {activeSection === "clients" && (
+          <div style={cardStyle}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text)" }}>
+                👥 Clients <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 400 }}>({clients.length})</span>
+              </h2>
+              <button onClick={() => setShowAddClient(!showAddClient)} style={btnSmallPrimary}>
+                {showAddClient ? "✕ Fermer" : "+ Ajouter"}
+              </button>
+            </div>
+
+            {/* ── Formulaire ajout client ── */}
+            {showAddClient && (
+              <div style={{ background: "var(--surface)", border: `2px solid var(--primary)`, borderRadius: "12px", padding: "16px", marginBottom: "16px" }}>
+                <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)", marginTop: 0, marginBottom: "14px", letterSpacing: "1px", textTransform: "uppercase" }}>
+                  ➕ Nouveau Client
+                </p>
+
+                <div style={{ marginBottom: "10px" }}>
+                  <label style={labelStyle}>Nom *</label>
+                  <input value={newCName} onChange={e => setNewCName(e.target.value)} placeholder="Nom du client ou de la compagnie" style={inputStyle}/>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
+                  <div>
+                    <label style={labelStyle}>Téléphone</label>
+                    <input value={newCPhone} onChange={e => setNewCPhone(e.target.value)} placeholder="780-555-1234" type="tel" style={inputStyle}/>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Courriel</label>
+                    <input value={newCEmail} onChange={e => setNewCEmail(e.target.value)} placeholder="client@email.com" type="email" style={inputStyle}/>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: "10px" }}>
+                  <label style={labelStyle}>Adresse</label>
+                  <input value={newCAddress} onChange={e => setNewCAddress(e.target.value)} placeholder="123 rue Exemple" style={inputStyle}/>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
+                  <div>
+                    <label style={labelStyle}>Ville</label>
+                    <input value={newCCity} onChange={e => setNewCCity(e.target.value)} placeholder="Calgary" style={inputStyle}/>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Code postal</label>
+                    <input value={newCPostal} onChange={e => setNewCPostal(e.target.value)} placeholder="T2X 0A1" style={inputStyle}/>
+                  </div>
+                </div>
+
+                <button onClick={handleAddClient} style={btnPrimary}>
+                  ✅ Ajouter le client
+                </button>
+              </div>
+            )}
+
+            {/* ── Liste clients ── */}
+            {clients.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "30px 0", color: "var(--text-muted)" }}>
+                <div style={{ fontSize: "32px", marginBottom: "8px" }}>👥</div>
+                <p style={{ fontSize: "14px" }}>Aucun client enregistré</p>
+                <p style={{ fontSize: "12px" }}>Cliquez &quot;+ Ajouter&quot; pour commencer</p>
+              </div>
+            ) : (
+              clients.map((client) => (
+                <div key={client.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px", background: "var(--surface)", borderRadius: "10px", marginBottom: "8px", border: "1px solid var(--border)" }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: "var(--text)", fontSize: "14px" }}>{client.name}</div>
+                    <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+                      {client.phone ? `📞 ${client.phone}` : ""}
+                      {client.phone && client.city ? " • " : ""}
+                      {client.city ? `📍 ${client.city}` : ""}
+                      {!client.phone && !client.city && client.email ? `✉️ ${client.email}` : ""}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { if (confirm(`Supprimer ${client.name}?`)) deleteClient(client.id); }}
+                    style={{ background: "#7f1d1d", color: "#fca5a5", border: "none", borderRadius: "8px", padding: "8px 14px", cursor: "pointer", fontSize: "12px", fontWeight: 700 }}
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* ── CATALOGUE ── */}
+        {activeSection === "catalogue" && (
+          <div style={cardStyle}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text)" }}>
+                📦 Catalogue <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 400 }}>({materials.length} articles)</span>
+              </h2>
+              <button onClick={() => setShowAddMat(!showAddMat)} style={btnSmallPrimary}>
+                {showAddMat ? "✕ Fermer" : "+ Ajouter"}
+              </button>
+            </div>
+
+            {/* ── Formulaire ajout rapide ── */}
+            {showAddMat && (
+              <div style={{ background: "var(--surface)", border: `2px solid var(--primary)`, borderRadius: "12px", padding: "16px", marginBottom: "16px" }}>
+                <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)", marginTop: 0, marginBottom: "14px", letterSpacing: "1px", textTransform: "uppercase" }}>
+                  ➕ Nouveau Matériau
+                </p>
+
+                <div style={{ marginBottom: "10px" }}>
+                  <label style={labelStyle}>Nom *</label>
+                  <input value={newMatName} onChange={e => setNewMatName(e.target.value)} placeholder="Ex: Bardeau premium" style={inputStyle}/>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "10px" }}>
+                  <div>
+                    <label style={labelStyle}>Prix ($)</label>
+                    <input type="number" value={newMatPrice} onChange={e => setNewMatPrice(parseFloat(e.target.value) || 0)} min={0} step={0.01} style={inputStyle}/>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Unité</label>
+                    <select value={newMatUnit} onChange={e => setNewMatUnit(e.target.value)} style={selectStyle}>
+                      {["pi²","pi lin.","boîte","rouleau","feuille","tube","unité","heure"].map(u => (
+                        <option key={u} value={u}>{u}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Emoji</label>
+                    <input value={newMatEmoji} onChange={e => setNewMatEmoji(e.target.value)} placeholder="📦" style={{ ...inputStyle, textAlign: "center" }}/>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: "16px" }}>
+                  <label style={labelStyle}>Catégorie</label>
+                  <select value={newMatCat} onChange={e => setNewMatCat(e.target.value)} style={selectStyle}>
+                    <option value="toiture">🏠 Toiture</option>
+                    <option value="siding">🏡 Siding</option>
+                    <option value="fixations">🔩 Fixations</option>
+                    <option value="etancheite">💧 Étanchéité</option>
+                    <option value="structure">🪵 Structure</option>
+                    <option value="maindoeuvre">👷 Main d&apos;oeuvre</option>
+                  </select>
+                </div>
+
+                <button onClick={handleAddMaterial} style={btnPrimary}>
+                  ✅ Ajouter au catalogue
+                </button>
+              </div>
+            )}
+
+            {/* ── Résumé par catégorie ── */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "14px" }}>
+              {[
+                { key: "toiture",     label: "Toiture",      emoji: "🏠", color: "#ea580c" },
+                { key: "siding",      label: "Siding",       emoji: "🏡", color: "#f59e0b" },
+                { key: "fixations",   label: "Fixations",    emoji: "🔩", color: "#06b6d4" },
+                { key: "etancheite",  label: "Étanchéité",   emoji: "💧", color: "#3b82f6" },
+                { key: "structure",   label: "Structure",    emoji: "🪵", color: "#22c55e" },
+                { key: "maindoeuvre", label: "Main-d&apos;oeuvre", emoji: "👷", color: "#a855f7" },
+              ].map(cat => {
+                const count = materials.filter(m => m.category === cat.key).length;
+                return (
+                  <div key={cat.key} style={{ background: `${cat.color}15`, border: `1px solid ${cat.color}44`, borderRadius: "8px", padding: "10px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "12px", color: cat.color, fontWeight: 700 }}>{cat.emoji} {cat.label}</span>
+                    <span style={{ fontSize: "16px", fontWeight: 800, color: cat.color }}>{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* ── Lien vers page catalogue complète ── */}
+            <button
+              onClick={() => router.push("/catalogue")}
+              style={{ width: "100%", padding: "14px", borderRadius: "10px", cursor: "pointer", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: "14px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+            >
+              📦 Gérer le catalogue complet →
+            </button>
+          </div>
+        )}
+
+        {/* ── THEME ── */}
         {activeSection === "theme" && <ThemeSection/>}
 
+        {/* ── NUMBERING ── */}
         {activeSection === "numbering" && (
           <div style={cardStyle}>
             <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>🔢 Numérotation des Documents</h2>
@@ -325,6 +694,7 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* ── DANGER ── */}
         {activeSection === "danger" && (
           <div style={{ ...cardStyle, borderColor: "#7f1d1d" }}>
             <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "8px", color: "#fca5a5" }}>⚠️ Zone Danger</h2>
