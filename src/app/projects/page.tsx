@@ -466,7 +466,7 @@ function NewProjectModal({ onClose }: { onClose: () => void }) {
               <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>{f.label}</label>
               <input
                 type={f.type}
-                value={(form as Record<string, string>)[f.key]}
+                value={(form as unknown as Record<string, string>)[f.key]}
                 onChange={e => set(f.key, e.target.value)}
                 placeholder={f.placeholder}
                 style={inputStyle}
