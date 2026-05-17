@@ -1,7 +1,7 @@
 'use client'
 // src/components/PunchButton.tsx
 // Bouton Punch In/Out — design unique par thème
-// Art Déco Prestige : médaillon doré avec rayons animés
+// Art Déco Prestige : médaillon doré avec rayons animés + bordure wrapper pulsante
 
 import { useThemeStore } from '@/store/useThemeStore'
 import { useLangStore } from '@/store/useLangStore'
@@ -29,18 +29,12 @@ const FingerprintSVG = ({ color = 'white', size = 64 }: { color?: string; size?:
   </svg>
 )
 
-// Diamant Art Déco — icône principale du thème deco
 const DecoDiamondSVG = ({ size = 44 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
-    {/* Diamant principal */}
-    <path d="M24 6L40 20L24 44L8 20L24 6Z"
-      stroke="#1A1200" strokeWidth="1.8" fill="none" opacity="0.7"/>
-    {/* Ligne horizontale */}
+    <path d="M24 6L40 20L24 44L8 20L24 6Z" stroke="#1A1200" strokeWidth="1.8" fill="none" opacity="0.7"/>
     <path d="M8 20H40" stroke="#1A1200" strokeWidth="1.5" opacity="0.5"/>
-    {/* Facettes */}
     <path d="M16 11L12 20M32 11L36 20" stroke="#1A1200" strokeWidth="1.5" opacity="0.4"/>
     <path d="M24 6L20 20L24 44L28 20L24 6Z" stroke="#1A1200" strokeWidth="1" opacity="0.3"/>
-    {/* Reflet */}
     <path d="M18 14L22 20" stroke="rgba(255,240,180,0.6)" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 )
@@ -177,10 +171,11 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
     },
 
     // ── Art Déco Prestige ───────────────────────────────────────────────────
+    // La bordure wrapper est animée via .deco-punch-wrapper dans themes.ts
+    // (animation: decoPunchWrapperGlow — pulse doré 3s infinite)
     deco: {
       wrapperClass: 'deco-punch-wrapper',
       wrapperStyle: {
-        // Style de base — les classes CSS gèrent le reste
         margin: '0 0 8px',
       },
       buttonClass: isRunning ? 'deco-punch-btn-out' : 'deco-punch-btn',
@@ -192,11 +187,8 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
       },
       decorLayers: (
         <>
-          {/* Rayons extérieurs — rotation lente */}
           <div className="deco-rays-outer" />
-          {/* Rayons intérieurs — rotation inverse */}
           <div className="deco-rays-inner" />
-          {/* Anneau doré décoratif */}
           <div style={{
             position: 'absolute', top: '50%', left: '50%',
             width: 218, height: 218, borderRadius: '50%',
@@ -211,7 +203,6 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
             transform: 'translate(-50%,-50%)',
             pointerEvents: 'none',
           }} />
-          {/* Coin supérieur gauche supplémentaire */}
           <div style={{
             position: 'absolute', top: 8, right: 8,
             width: 28, height: 28,
@@ -365,11 +356,14 @@ export default function PunchButton({ isRunning, isOnBreak, onPunch }: PunchButt
   const isDeco = themeId === 'deco'
 
   return (
+    // ⚡ Fix: toujours appliquer wrapperStyle (margin) même quand wrapperClass est défini
+    // Pour deco: className='deco-punch-wrapper' + style={{ margin: '0 0 8px' }}
+    // Pour autres: style contient tout (background, border, etc.)
     <div
-      className={cfg.wrapperClass}
-      style={cfg.wrapperClass ? undefined : { ...cfg.wrapperStyle, margin: '0 0 8px' }}
+      className={cfg.wrapperClass || undefined}
+      style={{ ...cfg.wrapperStyle, margin: '0 0 8px' }}
     >
-      {/* Couches décoratives (rayons, patterns, etc.) */}
+      {/* Couches décoratives */}
       {cfg.decorLayers}
 
       {/* Contenu centré */}
@@ -389,10 +383,8 @@ export default function PunchButton({ isRunning, isOnBreak, onPunch }: PunchButt
             opacity: isOnBreak ? 0.45 : 1,
           }}
         >
-          {/* Icône */}
           {cfg.icon}
 
-          {/* Label ligne 1 */}
           <span style={{
             fontSize: isDeco ? 14 : 13,
             fontWeight: 900,
@@ -406,14 +398,11 @@ export default function PunchButton({ isRunning, isOnBreak, onPunch }: PunchButt
             {cfg.labelLine1}
           </span>
 
-          {/* Label ligne 2 */}
           {cfg.labelLine2 && (
             <span style={{
               fontSize: isDeco ? 13 : 11,
               fontWeight: isDeco ? 900 : 600,
-              color: isDeco
-                ? 'rgba(10,10,6,0.65)'
-                : `${cfg.textColor}BB`,
+              color: isDeco ? 'rgba(10,10,6,0.65)' : `${cfg.textColor}BB`,
               letterSpacing: isDeco ? '0.18em' : '0.04em',
               textTransform: 'uppercase',
             }}>
