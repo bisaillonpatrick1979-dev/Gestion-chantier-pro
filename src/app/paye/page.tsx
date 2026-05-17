@@ -611,23 +611,38 @@ export default function PayePage() {
                   <p style={{ color: theme.colors.primary, fontSize: '11px', fontWeight: 800, letterSpacing: '1.5px', marginBottom: '12px' }}>
                     📊 {t('DÉDUCTIONS CALCULÉES', 'CALCULATED DEDUCTIONS')}
                   </p>
-                  {payStubRows.filter(r => r.label !== '─────').map((row, i) => (
-                    <div key={i} style={{
-                      display: 'flex', justifyContent: 'space-between', padding: '8px 0',
-                      borderBottom: i < payStubRows.filter(r => r.label !== '─────').length - 1 ? `1px solid ${theme.colors.border}` : 'none',
-                    }}>
-                      <p style={{
-                        color: row.type === 'net' ? '#22c55e' : row.type === 'total' ? theme.colors.primary : row.isEmployer ? '#f97316' : theme.colors.textMuted,
-                        fontSize: row.type === 'net' || row.type === 'total' ? '14px' : '13px',
-                        fontWeight: row.type === 'net' || row.type === 'total' ? 800 : 400,
-                      }}>{row.label}</p>
-                      <p style={{
-                        color: row.type === 'net' ? '#22c55e' : row.amount < 0 ? '#ef4444' : row.isEmployer ? '#f97316' : theme.colors.text,
-                        fontSize: row.type === 'net' || row.type === 'total' ? '16px' : '13px',
-                        fontWeight: row.type === 'net' || row.type === 'total' ? 800 : 600,
-                      }}>{formatCurrency(Math.abs(row.amount))}</p>
-                    </div>
-                  ))}
+                  {payStubRows.filter(r => r.label !== '─────').map((row, i) => {
+                    const pct = payStubResult && row.type === 'deduction' && row.amount !== 0
+                      ? (Math.abs(row.amount) / payStubResult.grossPay * 100).toFixed(1) + '%'
+                      : null
+                    const employerPct = payStubResult && row.isEmployer && row.amount !== 0
+                      ? (row.amount / payStubResult.grossPay * 100).toFixed(1) + '%'
+                      : null
+                    return (
+                      <div key={i} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0',
+                        borderBottom: i < payStubRows.filter(r => r.label !== '─────').length - 1 ? `1px solid ${theme.colors.border}` : 'none',
+                      }}>
+                        <p style={{
+                          color: row.type === 'net' ? '#22c55e' : row.type === 'total' ? theme.colors.primary : row.isEmployer ? '#f97316' : theme.colors.textMuted,
+                          fontSize: row.type === 'net' || row.type === 'total' ? '14px' : '13px',
+                          fontWeight: row.type === 'net' || row.type === 'total' ? 800 : 400,
+                        }}>{row.label}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {(pct || employerPct) && (
+                            <span style={{ fontSize: '10px', color: theme.colors.textMuted, background: theme.colors.surface, padding: '2px 6px', borderRadius: '20px', fontWeight: 600 }}>
+                              {pct || employerPct}
+                            </span>
+                          )}
+                          <p style={{
+                            color: row.type === 'net' ? '#22c55e' : row.amount < 0 ? '#ef4444' : row.isEmployer ? '#f97316' : theme.colors.text,
+                            fontSize: row.type === 'net' || row.type === 'total' ? '16px' : '13px',
+                            fontWeight: row.type === 'net' || row.type === 'total' ? 800 : 600,
+                          }}>{formatCurrency(Math.abs(row.amount))}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
 
                   {/* Vacances */}
                   {payStubResult && (
@@ -729,12 +744,20 @@ export default function PayePage() {
                       </p>
                       {payStubRows
                         .filter(r => r.type === 'deduction' && r.label !== '─────')
-                        .map((row, i) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #f3f4f6' }}>
-                            <p style={{ fontSize: '12px', color: '#6b7280' }}>{row.label}</p>
-                            <p style={{ fontSize: '12px', color: '#ef4444', fontWeight: 600 }}>-{formatCurrency(Math.abs(row.amount))}</p>
-                          </div>
-                        ))}
+                        .map((row, i) => {
+                          const pct = payStubResult
+                            ? (Math.abs(row.amount) / payStubResult.grossPay * 100).toFixed(1) + '%'
+                            : ''
+                          return (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #f3f4f6' }}>
+                              <p style={{ fontSize: '12px', color: '#6b7280' }}>{row.label}</p>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '10px', color: '#9ca3af', background: '#f3f4f6', padding: '1px 5px', borderRadius: '10px', fontWeight: 600 }}>{pct}</span>
+                                <p style={{ fontSize: '12px', color: '#ef4444', fontWeight: 600 }}>-{formatCurrency(Math.abs(row.amount))}</p>
+                              </div>
+                            </div>
+                          )
+                        })}
                       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
                         <p style={{ fontSize: '13px', fontWeight: 800, color: '#1a1a1a' }}>{t('TOTAL DÉDUCTIONS', 'TOTAL DEDUCTIONS')}</p>
                         <p style={{ fontSize: '13px', fontWeight: 800, color: '#ef4444' }}>-{formatCurrency(payStubResult.totalDeductions)}</p>
