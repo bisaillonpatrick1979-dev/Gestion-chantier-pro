@@ -1,5 +1,5 @@
 'use client'
-// src/app/documents/page.tsx — Historique complet + recherche + filtre statut
+// src/app/documents/page.tsx
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -14,12 +14,19 @@ import {
   DecoBackground, DecoDiamondRow, DecoFlower,
 } from '@/components/DecoElements'
 
+// ✅ Nouveaux statuts EN (draft/sent/paid/overdue)
 const STATUS_CONFIG: Record<DocumentStatus, { label: string; labelEn: string; color: string; emoji: string }> = {
-  brouillon: { label: 'Brouillon', labelEn: 'Draft',    color: '#64748b', emoji: '📝' },
-  envoye:    { label: 'Envoyé',    labelEn: 'Sent',     color: '#3b82f6', emoji: '📤' },
-  accepte:   { label: 'Accepté',   labelEn: 'Accepted', color: '#22c55e', emoji: '✅' },
-  refuse:    { label: 'Refusé',    labelEn: 'Refused',  color: '#ef4444', emoji: '❌' },
-  paye:      { label: 'Payé',      labelEn: 'Paid',     color: '#f59e0b', emoji: '💰' },
+  draft:   { label: 'Brouillon', labelEn: 'Draft',   color: '#64748b', emoji: '📝' },
+  sent:    { label: 'Envoyé',    labelEn: 'Sent',    color: '#3b82f6', emoji: '📤' },
+  paid:    { label: 'Payé',      labelEn: 'Paid',    color: '#f59e0b', emoji: '💰' },
+  overdue: { label: 'En retard', labelEn: 'Overdue', color: '#ef4444', emoji: '⚠️' },
+}
+
+// ✅ Nouveaux types EN (invoice/quote/contract)
+const TYPE_CONFIG: Record<DocumentType, { label: string; labelEn: string; emoji: string }> = {
+  invoice:  { label: 'Facture', labelEn: 'Invoice',  emoji: '📄' },
+  quote:    { label: 'Devis',   labelEn: 'Quote',    emoji: '📋' },
+  contract: { label: 'Contrat', labelEn: 'Contract', emoji: '📝' },
 }
 
 export default function DocumentsPage() {
@@ -28,32 +35,22 @@ export default function DocumentsPage() {
   const router = useRouter()
   const { lang } = useLangStore()
 
-  // ── Theme card class ────────────────────────────────────────────────────────
   const isDeco     = themeId === 'deco'
   const isQuantum  = themeId === 'quantum'
   const isAventure = themeId === 'aventure'
-  const cardClass  = isDeco    ? 'deco-card-sweep'    :
-                     isQuantum ? 'quantum-card-glow'  :
-                     isAventure ? 'aventure-card-glow' : ''
+  const cardClass  = isDeco ? 'deco-card-sweep' : isQuantum ? 'quantum-card-glow' : isAventure ? 'aventure-card-glow' : ''
 
-  // ── Filtres ──────────────────────────────────────────────────────────────────
   const [typeFilter,   setTypeFilter]   = useState<DocumentType | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<DocumentStatus | 'all'>('all')
   const [search,       setSearch]       = useState('')
 
-  const TYPE_LABELS = {
-    facture: { label: tr('invoices',  lang), emoji: '📄' },
-    devis:   { label: tr('quotes',    lang), emoji: '📋' },
-    contrat: { label: tr('contracts', lang), emoji: '📝' },
-  }
-
-  // ── Filtrage ──────────────────────────────────────────────────────────────────
+  // ✅ Filtrage avec nouveaux types/statuts + clientName
   const filtered = documents.filter(doc => {
     if (typeFilter !== 'all' && doc.type !== typeFilter) return false
     if (statusFilter !== 'all' && doc.status !== statusFilter) return false
     if (search.trim()) {
       const q = search.toLowerCase()
-      const matchClient = doc.client.name?.toLowerCase().includes(q)
+      const matchClient = doc.clientName?.toLowerCase().includes(q)
       const matchNum    = doc.number?.toLowerCase().includes(q)
       const matchAmount = formatCurrency(doc.total).toLowerCase().includes(q)
       if (!matchClient && !matchNum && !matchAmount) return false
@@ -61,10 +58,10 @@ export default function DocumentsPage() {
     return true
   }).slice().reverse()
 
-  // ── Stats ────────────────────────────────────────────────────────────────────
-  const totalEncaisse = documents.filter(d => d.status === 'paye').reduce((s, d) => s + d.total, 0)
-  const totalAttente  = documents.filter(d => d.status === 'envoye' || d.status === 'accepte').reduce((s, d) => s + d.balanceDue, 0)
-  const totalBrouillon = documents.filter(d => d.status === 'brouillon').length
+  // ✅ Stats avec nouveaux statuts
+  const totalEncaisse  = documents.filter(d => d.status === 'paid').reduce((s, d) => s + d.total, 0)
+  const totalAttente   = documents.filter(d => d.status === 'sent').reduce((s, d) => s + (d.balanceDue ?? d.total), 0)
+  const totalBrouillon = documents.filter(d => d.status === 'draft').length
 
   const card: React.CSSProperties = {
     background: 'var(--card)',
@@ -83,14 +80,13 @@ export default function DocumentsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-      {/* Titre */}
       <div style={{ paddingTop: '4px' }}>
         <DecoTitle>{tr('documentsTitle', lang)}</DecoTitle>
       </div>
 
       <DecoOrnament opacity={0.12}/>
 
-      {/* ── Stats rapides ────────────────────────────────────────────────────── */}
+      {/* ── Stats rapides ─────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
         {[
           { label: lang === 'fr' ? 'Encaissé' : 'Collected', value: formatCurrency(totalEncaisse), color: '#22c55e', emoji: '💰' },
@@ -108,23 +104,26 @@ export default function DocumentsPage() {
         ))}
       </div>
 
-      {/* ── Boutons nouveau document ─────────────────────────────────────────── */}
+      {/* ── Boutons nouveau document ─────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-        {(['facture', 'devis', 'contrat'] as DocumentType[]).map(type => (
-          <button key={type} onClick={() => handleNew(type)} style={{ padding: '16px 8px', borderRadius: '14px', cursor: 'pointer', border: '1px solid var(--border)', background: 'var(--card)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', position: 'relative', overflow: 'hidden', transition: 'all 0.2s' }}>
-            <DecoBackground/>
-            <DecoCorners opacity={0.25}/>
-            <span style={{ fontSize: '26px', position: 'relative', zIndex: 1 }}>{TYPE_LABELS[type].emoji}</span>
-            <span style={{ color: 'var(--primary)', fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px', position: 'relative', zIndex: 1 }}>
-              + {TYPE_LABELS[type].label}
-            </span>
-          </button>
-        ))}
+        {(['invoice', 'quote', 'contract'] as DocumentType[]).map(type => {
+          const cfg = TYPE_CONFIG[type]
+          return (
+            <button key={type} onClick={() => handleNew(type)} style={{ padding: '16px 8px', borderRadius: '14px', cursor: 'pointer', border: '1px solid var(--border)', background: 'var(--card)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', position: 'relative', overflow: 'hidden', transition: 'all 0.2s' }}>
+              <DecoBackground/>
+              <DecoCorners opacity={0.25}/>
+              <span style={{ fontSize: '26px', position: 'relative', zIndex: 1 }}>{cfg.emoji}</span>
+              <span style={{ color: 'var(--primary)', fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px', position: 'relative', zIndex: 1 }}>
+                + {lang === 'fr' ? cfg.label : cfg.labelEn}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       <DecoSeparator opacity={0.2}/>
 
-      {/* ── Recherche ────────────────────────────────────────────────────────── */}
+      {/* ── Recherche ─────────────────────────────────────────────────────── */}
       <input
         value={search}
         onChange={e => setSearch(e.target.value)}
@@ -132,11 +131,13 @@ export default function DocumentsPage() {
         style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '11px 14px', color: 'var(--text)', fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box' }}
       />
 
-      {/* ── Filtre type ───────────────────────────────────────────────────────── */}
+      {/* ── Filtre type ───────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-        {(['all', 'facture', 'devis', 'contrat'] as const).map(f => (
+        {(['all', 'invoice', 'quote', 'contract'] as const).map(f => (
           <button key={f} onClick={() => setTypeFilter(f)} style={{ padding: '7px 14px', borderRadius: '20px', cursor: 'pointer', flexShrink: 0, border: typeFilter === f ? '1px solid var(--primary)' : '1px solid var(--border)', background: typeFilter === f ? 'var(--primary)20' : 'transparent', color: typeFilter === f ? 'var(--primary)' : 'var(--text-muted)', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
-            {f === 'all' ? (lang === 'fr' ? 'Tous' : 'All') : f === 'facture' ? tr('invoices', lang) : f === 'devis' ? tr('quotes', lang) : tr('contracts', lang)}
+            {f === 'all'
+              ? (lang === 'fr' ? 'Tous' : 'All')
+              : lang === 'fr' ? TYPE_CONFIG[f].label : TYPE_CONFIG[f].labelEn}
             <span style={{ marginLeft: '5px', opacity: 0.7 }}>
               ({f === 'all' ? documents.length : documents.filter(d => d.type === f).length})
             </span>
@@ -144,7 +145,7 @@ export default function DocumentsPage() {
         ))}
       </div>
 
-      {/* ── Filtre statut ─────────────────────────────────────────────────────── */}
+      {/* ── Filtre statut ─────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: '5px', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '2px' }}>
         <button onClick={() => setStatusFilter('all')} style={{ padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', flexShrink: 0, border: statusFilter === 'all' ? '1px solid var(--border-strong)' : '1px solid var(--border)', background: statusFilter === 'all' ? 'var(--surface)' : 'transparent', color: statusFilter === 'all' ? 'var(--text)' : 'var(--text-muted)', fontSize: '11px', fontWeight: statusFilter === 'all' ? 700 : 400, whiteSpace: 'nowrap' }}>
           {lang === 'fr' ? 'Tous statuts' : 'All status'}
@@ -159,14 +160,13 @@ export default function DocumentsPage() {
         ))}
       </div>
 
-      {/* ── Résultat recherche ───────────────────────────────────────────────── */}
       {search && (
         <p style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
           {filtered.length} {lang === 'fr' ? 'résultat(s) pour' : 'result(s) for'} "{search}"
         </p>
       )}
 
-      {/* ── Liste vide ────────────────────────────────────────────────────────── */}
+      {/* ── Liste vide ────────────────────────────────────────────────────── */}
       {filtered.length === 0 ? (
         <div className={cardClass} style={{ ...card, textAlign: 'center' }}>
           <DecoBackground/>
@@ -194,19 +194,23 @@ export default function DocumentsPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {filtered.map(doc => {
-            const sc = STATUS_CONFIG[doc.status]
-            const tl = TYPE_LABELS[doc.type]
+            const sc  = STATUS_CONFIG[doc.status] ?? STATUS_CONFIG.draft
+            const tl  = TYPE_CONFIG[doc.type]     ?? TYPE_CONFIG.invoice
             return (
-              <div key={doc.id} className={cardClass} style={{ ...card, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              <div key={doc.id} className={cardClass}
+                style={{ ...card, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 onClick={() => router.push(`/documents/${doc.id}`)}>
                 <DecoBackground/>
                 <DecoCorners opacity={0.2}/>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative', zIndex: 1 }}>
                   <span style={{ fontSize: '24px' }}>{tl.emoji}</span>
                   <div>
-                    <p style={{ color: 'var(--text)', fontSize: '13px', fontWeight: 700 }}>{doc.number}</p>
+                    <p style={{ color: 'var(--text)', fontSize: '13px', fontWeight: 700 }}>
+                      {doc.number || doc.id.slice(0, 8)}
+                    </p>
+                    {/* ✅ FIX : doc.clientName (pas doc.client.name) */}
                     <p style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '2px' }}>
-                      {doc.client.name || (lang === 'fr' ? 'Client non défini' : 'Client not defined')}
+                      {doc.clientName || (lang === 'fr' ? 'Client non défini' : 'Client not defined')}
                     </p>
                     <p style={{ color: 'var(--text-weak)', fontSize: '10px', marginTop: '1px' }}>{doc.date}</p>
                   </div>
@@ -215,9 +219,9 @@ export default function DocumentsPage() {
                   <p style={{ color: 'var(--primary)', fontSize: '14px', fontWeight: 800 }}>
                     {formatCurrency(doc.total)}
                   </p>
-                  {doc.balanceDue > 0 && doc.balanceDue !== doc.total && (
+                  {(doc.balanceDue ?? 0) > 0 && doc.balanceDue !== doc.total && (
                     <p style={{ color: '#f59e0b', fontSize: '10px', marginTop: '1px' }}>
-                      {lang === 'fr' ? 'Solde:' : 'Due:'} {formatCurrency(doc.balanceDue)}
+                      {lang === 'fr' ? 'Solde:' : 'Due:'} {formatCurrency(doc.balanceDue!)}
                     </p>
                   )}
                   <span style={{ fontSize: '10px', fontWeight: 700, color: sc.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -230,7 +234,6 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {/* Ornement bas */}
       {filtered.length > 0 && (
         <div style={{ padding: '8px 0' }}>
           <DecoSeparator opacity={0.15}/>
@@ -244,4 +247,3 @@ export default function DocumentsPage() {
     </div>
   )
 }
-
