@@ -174,7 +174,7 @@ export default function CataloguePage() {
     const item = doc.lines[doc.lines.length - 1]
     updateLineItem(doc.id, item.id, {
       description: lang === 'fr' ? showAddToDoc.name : (showAddToDoc.nameen || showAddToDoc.name),
-      quantity: qty, unitPrice: price,
+      qty, unitPrice: price,
     })
     calculateTotals(doc.id)
     setShowAddToDoc(null)
