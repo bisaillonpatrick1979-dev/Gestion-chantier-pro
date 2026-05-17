@@ -356,11 +356,13 @@ export default function DocumentPage() {
               overflow:"hidden",
             }}
           >
-            {/* ══ FILIGRANE — centré, diagonale -22deg, logo sans fond blanc ══
-                top/left 50% + translate(-50%,-50%) = parfaitement centré
-                mixBlendMode multiply = fond blanc PNG disparaît
-                opacity 0.13 = visible sans écraser le contenu
-            ══════════════════════════════════════════════════════════════ */}
+            {/* ══ FILIGRANE ══
+                ✅ Logo seul — grand, centré, en diagonale
+                ✅ Pas de texte company.name (le logo contient déjà le nom)
+                ✅ opacity 0.20 = plus foncé, bien visible
+                ✅ mixBlendMode multiply = fond blanc PNG transparent
+                ✅ FACTURE / DEVIS / CONTRAT en petit sous le logo
+            ══════════════════════════════════════════════════════ */}
             <div style={{
               position:"absolute",
               top:"50%",
@@ -371,40 +373,30 @@ export default function DocumentPage() {
               display:"flex",
               flexDirection:"column",
               alignItems:"center",
-              gap:"10px",
-              opacity:0.13,
+              gap:"16px",
+              opacity:0.20,
               userSelect:"none",
               textAlign:"center",
-              width:"100%",
             }}>
               {company.logoUrl&&(
                 <img
                   src={company.logoUrl}
                   alt=""
                   style={{
-                    width:"180px",
-                    height:"180px",
+                    width:"280px",
+                    height:"280px",
                     objectFit:"contain",
                     mixBlendMode:"multiply",
                     display:"block",
                   }}
                 />
               )}
+              {/* Juste le type de document — pas le nom compagnie */}
               <div style={{
-                fontSize:"44px",
+                fontSize:"28px",
                 fontWeight:900,
                 color:"#000",
-                letterSpacing:"2px",
-                lineHeight:1.1,
-                whiteSpace:"nowrap",
-              }}>
-                {company.name||"HAILITE XTERIORS"}
-              </div>
-              <div style={{
-                fontSize:"26px",
-                fontWeight:800,
-                color:"#000",
-                letterSpacing:"10px",
+                letterSpacing:"14px",
                 textTransform:"uppercase",
                 whiteSpace:"nowrap",
               }}>
