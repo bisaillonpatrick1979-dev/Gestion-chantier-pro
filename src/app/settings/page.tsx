@@ -89,25 +89,25 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<AnySection>(isAdmin ? "company" : "theme");
 
   const adminSections = [
-    { id: "company"   as AdminSection, emoji: "🏢", label: "Compagnie"    },
-    { id: "contact"   as AdminSection, emoji: "📞", label: "Contact"      },
-    { id: "legal"     as AdminSection, emoji: "📋", label: "Légal"        },
-    { id: "payment"   as AdminSection, emoji: "💳", label: "Paiement"     },
-    { id: "billing"   as AdminSection, emoji: "🧾", label: "Facturation"  },
-    { id: "employees" as AdminSection, emoji: "👷", label: "Employés"     },
-    { id: "clients"   as AdminSection, emoji: "👥", label: "Clients"      },
-    { id: "catalogue" as AdminSection, emoji: "📦", label: "Catalogue"    },
-    { id: "theme"     as AdminSection, emoji: "🎨", label: "Thème"        },
-    { id: "rappels"   as AdminSection, emoji: "🔔", label: "Rappels"      },
-    { id: "numbering" as AdminSection, emoji: "🔢", label: "Numérotation" },
-    { id: "danger"    as AdminSection, emoji: "⚠️", label: "Danger"       },
+    { id: "company"   as AdminSection, emoji: "🏢", label: t("Compagnie",    "Company")    },
+    { id: "contact"   as AdminSection, emoji: "📞", label: t("Contact",      "Contact")    },
+    { id: "legal"     as AdminSection, emoji: "📋", label: t("Légal",        "Legal")      },
+    { id: "payment"   as AdminSection, emoji: "💳", label: t("Paiement",     "Payment")    },
+    { id: "billing"   as AdminSection, emoji: "🧾", label: t("Facturation",  "Billing")    },
+    { id: "employees" as AdminSection, emoji: "👷", label: t("Employés",     "Employees")  },
+    { id: "clients"   as AdminSection, emoji: "👥", label: t("Clients",      "Clients")    },
+    { id: "catalogue" as AdminSection, emoji: "📦", label: t("Catalogue",    "Catalogue")  },
+    { id: "theme"     as AdminSection, emoji: "🎨", label: t("Thème",        "Theme")      },
+    { id: "rappels"   as AdminSection, emoji: "🔔", label: t("Rappels",      "Reminders")  },
+    { id: "numbering" as AdminSection, emoji: "🔢", label: t("Numérotation", "Numbering")  },
+    { id: "danger"    as AdminSection, emoji: "⚠️", label: t("Danger",       "Danger")     },
   ];
 
   const empSections = [
-    { id: "theme"   as EmpSection, emoji: "🎨", label: "Thème"   },
-    { id: "rappels" as EmpSection, emoji: "🔔", label: "Rappels" },
-    { id: "pin"     as EmpSection, emoji: "🔒", label: "Mon PIN" },
-    { id: "paye"    as EmpSection, emoji: "💰", label: "Ma Paye" },
+    { id: "theme"   as EmpSection, emoji: "🎨", label: t("Thème",    "Theme")    },
+    { id: "rappels" as EmpSection, emoji: "🔔", label: t("Rappels",  "Reminders")},
+    { id: "pin"     as EmpSection, emoji: "🔒", label: t("Mon PIN",  "My PIN")   },
+    { id: "paye"    as EmpSection, emoji: "💰", label: t("Ma Paye",  "My Pay")   },
   ];
 
   function save() { setSaved(true); setTimeout(() => setSaved(false), 2000); }
