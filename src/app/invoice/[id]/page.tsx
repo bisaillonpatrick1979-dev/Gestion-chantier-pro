@@ -399,7 +399,7 @@ export default function InvoicePage() {
                     color: 'var(--text)', cursor: 'pointer', textAlign: 'left',
                   }}>
                     <span style={{ fontSize: '13px' }}>{mat.emoji} {mat.name}</span>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{fmt(mat.price)}/{mat.unit}</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{fmt(mat.price ?? 0)}/{mat.unit}</span>
                   </button>
                 ))}
               </div>
