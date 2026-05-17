@@ -87,8 +87,6 @@ const quantumGlass: Theme = {
       100% { background-position: 0% 50%; }
     }
 
-    /* ── REFLET QUI SE PROMÈNE SUR LES CARDS ─────── */
-    /* Appliqué via pseudo-element sur toutes les cards */
     [style*="var(--card)"],
     [style*="background:\"var(--card)\""],
     div[style*="borderRadius:\"12px\""],
@@ -96,7 +94,6 @@ const quantumGlass: Theme = {
       position: relative;
     }
 
-    /* Toutes les cards Quantum — bordure animée */
     .quantum-glass,
     [class*="card"] {
       background: rgba(10,22,48,0.82);
@@ -106,8 +103,6 @@ const quantumGlass: Theme = {
       animation: quantumPulse 4s ease-in-out infinite;
     }
 
-    /* ── REFLET LUMINEUX SUR BORDURES ────────────── */
-    /* Card avec effet de lumière qui fait le tour */
     .quantum-card-glow {
       position: relative;
       border-radius: 12px;
@@ -138,19 +133,16 @@ const quantumGlass: Theme = {
       pointer-events: none;
     }
 
-    /* ── TEXTE MÉTALLIQUE ────────────────────────── */
     .metal-text {
       color: #38D9FF;
       text-shadow: 0 0 20px rgba(56,217,255,0.5);
     }
 
-    /* ── ICÔNES NAV ACTIVES — GLOW ANIMÉ ─────────── */
     .quantum-nav-active {
       color: #2F80FF !important;
       animation: quantumNavGlow 2s ease-in-out infinite;
     }
 
-    /* ── GRAVURES / SÉPARATEURS LUMINEUX ─────────── */
     .quantum-engraving {
       background: linear-gradient(90deg,
         transparent 0%,
@@ -380,11 +372,6 @@ const artDecoPrestige: Theme = {
       0%,100% { opacity:1; transform:scale(1); }
       50%      { opacity:0.7; transform:scale(0.85); }
     }
-
-    /* ══ REFLET DORÉ QUI FAIT LE TOUR DES CARDS ══
-       Un trait lumineux qui se déplace en continu
-       sur la bordure de chaque card.
-    ══════════════════════════════════════════════ */
     @keyframes decoBorderSweep {
       0%   { background-position: 0%   0%;   }
       25%  { background-position: 100% 0%;   }
@@ -585,7 +572,7 @@ const artDecoPrestige: Theme = {
     .deco-card::before { top:-1px; left:-1px; border-width:1.5px 0 0 1.5px; }
     .deco-card::after  { bottom:-1px; right:-1px; border-width:0 1.5px 1.5px 0; }
 
-    /* ── WRAPPER DU BOUTON PUNCH ─────────────────── */
+    /* ── WRAPPER DU BOUTON PUNCH — bordure animée ── */
     .deco-punch-wrapper {
       position: relative;
       background: #0A0B0B;
@@ -593,7 +580,17 @@ const artDecoPrestige: Theme = {
       border-radius: 12px;
       padding: 40px 16px;
       overflow: hidden;
-      animation: decoFadeUp 0.5s ease;
+      animation: decoFadeUp 0.5s ease, decoPunchWrapperGlow 3s ease-in-out 0.6s infinite;
+    }
+    @keyframes decoPunchWrapperGlow {
+      0%,100% {
+        border-color: rgba(214,178,94,0.35);
+        box-shadow: 0 0 0px transparent, inset 0 0 0px transparent;
+      }
+      50% {
+        border-color: rgba(242,210,122,0.90);
+        box-shadow: 0 0 22px rgba(214,178,94,0.40), 0 0 50px rgba(214,178,94,0.18), inset 0 0 18px rgba(214,178,94,0.06);
+      }
     }
     .deco-punch-wrapper::before,
     .deco-punch-wrapper::after {
@@ -779,6 +776,52 @@ const artDecoPrestige: Theme = {
       font-weight: 800 !important;
       box-shadow: 0 0 10px rgba(214,178,94,0.40);
     }
+
+    /* ══════════════════════════════════════════════
+       SÉPARATEURS / FLEURS / ORNEMENTS / ÉTOILES
+       Animations automatiques via className dans
+       DecoElements.tsx — s'appliquent partout
+    ══════════════════════════════════════════════ */
+
+    /* Séparateur SVG (DecoSeparator) */
+    .deco-separator-svg {
+      animation: decoSepGlow 3s ease-in-out infinite;
+    }
+    @keyframes decoSepGlow {
+      0%,100% { filter: brightness(0.50); opacity: 0.25; }
+      50%      { filter: brightness(2.00) drop-shadow(0 0 10px rgba(214,178,94,0.90)); opacity: 0.70; }
+    }
+
+    /* Fleur géométrique (DecoFlower) */
+    .deco-flower-svg {
+      animation: decoFlowerGlow 4s ease-in-out infinite;
+    }
+    @keyframes decoFlowerGlow {
+      0%,100% { filter: brightness(0.45) drop-shadow(0 0 0px transparent); }
+      50%      { filter: brightness(1.80) drop-shadow(0 0 10px rgba(214,178,94,0.70)); }
+    }
+
+    /* Ornement central (DecoOrnament) */
+    .deco-ornament-svg {
+      animation: decoOrnamentGlow 6s ease-in-out infinite;
+    }
+    @keyframes decoOrnamentGlow {
+      0%,100% { filter: brightness(0.40); opacity: 0.10; }
+      50%      { filter: brightness(1.70) drop-shadow(0 0 14px rgba(214,178,94,0.60)); opacity: 0.26; }
+    }
+
+    /* Étoiles / losanges (DecoStarRow, DecoTitle, DecoDiamondRow) */
+    .deco-star-item {
+      animation: decoStarTwinkle 2.5s ease-in-out infinite;
+    }
+    .deco-star-item:nth-child(2) { animation-delay: 0.4s; }
+    .deco-star-item:nth-child(3) { animation-delay: 0.8s; }
+    .deco-star-item:nth-child(4) { animation-delay: 1.2s; }
+    .deco-star-item:nth-child(5) { animation-delay: 1.6s; }
+    @keyframes decoStarTwinkle {
+      0%,100% { filter: brightness(0.45); opacity: 0.30; }
+      50%      { filter: brightness(2.00) drop-shadow(0 0 6px rgba(214,178,94,0.80)); opacity: 0.90; }
+    }
   `,
 }
 
@@ -868,12 +911,12 @@ const ludiquePremium: Theme = {
 
 // ─── Registry ─────────────────────────────────────────────────────────────────
 const THEMES: Record<string, Theme> = {
-  quantum: quantumGlass,
-  xp:      gamificationXP,
+  quantum:  quantumGlass,
+  xp:       gamificationXP,
   aventure: aventureChantiers,
-  deco:    artDecoPrestige,
-  zen:     zenOrganique,
-  ludique: ludiquePremium,
+  deco:     artDecoPrestige,
+  zen:      zenOrganique,
+  ludique:  ludiquePremium,
 }
 
 export function getTheme(id: string): Theme {
