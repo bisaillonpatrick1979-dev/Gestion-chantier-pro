@@ -1,33 +1,58 @@
 'use client'
+// src/app/comptabilite/page.tsx
+
 import { useThemeStore } from '@/store/useThemeStore'
 import { useLangStore } from '@/store/useLangStore'
 import { useDocumentStore } from '@/store/useDocumentStore'
 import { useEmployeeStore } from '@/store/useEmployeeStore'
+import { useEmployeeInvoiceStore } from '@/store/useEmployeeInvoiceStore'
+import type { EmployeeInvoiceStatus } from '@/store/useEmployeeInvoiceStore'
 import { formatCurrency } from '@/lib/formatters'
 
+const EMP_INV_STATUS: Record<EmployeeInvoiceStatus, { label: string; labelEn: string; color: string; emoji: string }> = {
+  brouillon: { label: 'Brouillon', labelEn: 'Draft',  color: '#64748b', emoji: '📝' },
+  envoyee:   { label: 'Envoyée',   labelEn: 'Sent',   color: '#3b82f6', emoji: '📤' },
+  payee:     { label: 'Payée',     labelEn: 'Paid',   color: '#22c55e', emoji: '✅' },
+}
+
 export default function ComptabilitePage() {
-  const { theme } = useThemeStore()
+  const { theme, themeId } = useThemeStore()
   const { lang } = useLangStore()
   const { documents } = useDocumentStore()
   const { employees, dayDetails } = useEmployeeStore()
+  const { invoices: empInvoices, updateStatus } = useEmployeeInvoiceStore()
 
-  const now = new Date()
+  // ── Theme card class ────────────────────────────────────────────────────────
+  const isDeco     = themeId === 'deco'
+  const isQuantum  = themeId === 'quantum'
+  const isAventure = themeId === 'aventure'
+  const cardClass  = isDeco    ? 'deco-card-sweep'    :
+                     isQuantum ? 'quantum-card-glow'  :
+                     isAventure ? 'aventure-card-glow' : ''
+
+  const now          = new Date()
   const currentMonth = now.toISOString().slice(0, 7)
-  const currentYear = now.getFullYear().toString()
+  const currentYear  = now.getFullYear().toString()
 
-  // MONTHLY STATS
-  const monthDocs = documents.filter(d => d.createdAt?.startsWith(currentMonth))
-  const monthRevenue = monthDocs.filter(d => d.status === 'paye').reduce((sum, d) => sum + d.total, 0)
-  const monthPending = monthDocs.filter(d => d.status === 'envoye' || d.status === 'accepte').reduce((sum, d) => sum + d.balanceDue, 0)
+  // ── Stats documents clients ──────────────────────────────────────────────────
+  const monthDocs    = documents.filter(d => d.createdAt?.startsWith(currentMonth))
+  const monthRevenue = monthDocs.filter(d => d.status === 'paye').reduce((s, d) => s + d.total, 0)
+  const monthPending = monthDocs.filter(d => d.status === 'envoye' || d.status === 'accepte').reduce((s, d) => s + d.balanceDue, 0)
   const monthInvoices = monthDocs.filter(d => d.type === 'facture').length
-  const monthQuotes = monthDocs.filter(d => d.type === 'devis').length
+  const monthQuotes   = monthDocs.filter(d => d.type === 'devis').length
+  const yearDocs      = documents.filter(d => d.createdAt?.startsWith(currentYear))
+  const yearRevenue   = yearDocs.filter(d => d.status === 'paye').reduce((s, d) => s + d.total, 0)
+  const yearPending   = yearDocs.filter(d => d.status === 'envoye' || d.status === 'accepte').reduce((s, d) => s + d.balanceDue, 0)
 
-  // YEARLY STATS
-  const yearDocs = documents.filter(d => d.createdAt?.startsWith(currentYear))
-  const yearRevenue = yearDocs.filter(d => d.status === 'paye').reduce((sum, d) => sum + d.total, 0)
-  const yearPending = yearDocs.filter(d => d.status === 'envoye' || d.status === 'accepte').reduce((sum, d) => sum + d.balanceDue, 0)
+  // ── Stats invoices employés ──────────────────────────────────────────────────
+  const empInvBrouillon = empInvoices.filter(i => i.status === 'brouillon')
+  const empInvEnvoyees  = empInvoices.filter(i => i.status === 'envoyee')
+  const empInvPayees    = empInvoices.filter(i => i.status === 'payee')
+  const totalSalaireDu  = empInvEnvoyees.reduce((s, i) => s + i.total, 0)
+  const totalSalairePaye = empInvPayees.reduce((s, i) => s + i.total, 0)
+  const totalSalaireTotal = [...empInvEnvoyees, ...empInvPayees].reduce((s, i) => s + i.total, 0)
 
-  // BY STATUS
+  // ── Stats par statut docs ──────────────────────────────────────────────────
   const byStatus = {
     brouillon: documents.filter(d => d.status === 'brouillon'),
     envoye:    documents.filter(d => d.status === 'envoye'),
@@ -36,41 +61,31 @@ export default function ComptabilitePage() {
     refuse:    documents.filter(d => d.status === 'refuse'),
   }
 
-  // BY EMPLOYEE
+  // ── Stats par employé (punch) ──────────────────────────────────────────────
   const employeeStats = employees.map(emp => {
-    const empDetails = Object.entries(dayDetails)
-      .filter(([key]) => key.startsWith(emp.id))
-      .map(([, detail]) => detail)
-    const totalRevenue = empDetails.reduce((sum, d) => sum + d.totalRevenue, 0)
-    const totalHours = empDetails.reduce((sum, d) => sum + d.totalHours, 0)
-    const totalDays = empDetails.length
-    return { emp, totalRevenue, totalHours, totalDays }
+    const empDetails   = Object.entries(dayDetails).filter(([key]) => key.startsWith(emp.id)).map(([, d]) => d)
+    const totalRevenue = empDetails.reduce((s, d) => s + d.totalRevenue, 0)
+    const totalHours   = empDetails.reduce((s, d) => s + d.totalHours, 0)
+    const totalDays    = empDetails.length
+    const empInvs      = empInvoices.filter(i => i.employeeId === emp.id)
+    const totalFacture = empInvs.reduce((s, i) => s + i.total, 0)
+    return { emp, totalRevenue, totalHours, totalDays, totalFacture, invCount: empInvs.length }
   }).filter(s => s.totalRevenue > 0 || s.totalHours > 0)
 
-  // MONTHLY BREAKDOWN (last 6 months)
+  // ── Graphique 6 mois ───────────────────────────────────────────────────────
   const last6Months = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const key = d.toISOString().slice(0, 7)
-    const label = d.toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { month: 'short', year: '2-digit' })
-    const revenue = documents
-      .filter(doc => doc.createdAt?.startsWith(key) && doc.status === 'paye')
-      .reduce((sum, doc) => sum + doc.total, 0)
-    const pending = documents
-      .filter(doc => doc.createdAt?.startsWith(key) && (doc.status === 'envoye' || doc.status === 'accepte'))
-      .reduce((sum, doc) => sum + doc.balanceDue, 0)
-    return { key, label, revenue, pending }
+    const d       = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const key     = d.toISOString().slice(0, 7)
+    const label   = d.toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { month: 'short', year: '2-digit' })
+    const revenue = documents.filter(doc => doc.createdAt?.startsWith(key) && doc.status === 'paye').reduce((s, doc) => s + doc.total, 0)
+    const pending = documents.filter(doc => doc.createdAt?.startsWith(key) && (doc.status === 'envoye' || doc.status === 'accepte')).reduce((s, doc) => s + doc.balanceDue, 0)
+    const salaires = empInvoices.filter(inv => inv.createdAt?.startsWith(key) && inv.status === 'payee').reduce((s, inv) => s + inv.total, 0)
+    return { key, label, revenue, pending, salaires }
   }).reverse()
 
   const maxRevenue = Math.max(...last6Months.map(m => m.revenue + m.pending), 1)
 
-  const card = {
-    background: theme.colors.card,
-    border: `1px solid ${theme.colors.border}`,
-    borderRadius: '12px',
-    padding: '16px',
-  }
-
-  const STATUS_CONFIG = {
+  const STATUS_CONFIG_DOC = {
     brouillon: { label: lang === 'fr' ? 'Brouillon' : 'Draft',    color: '#64748b', emoji: '📝' },
     envoye:    { label: lang === 'fr' ? 'Envoyé' : 'Sent',        color: '#3b82f6', emoji: '📤' },
     accepte:   { label: lang === 'fr' ? 'Accepté' : 'Accepted',   color: '#22c55e', emoji: '✅' },
@@ -78,236 +93,256 @@ export default function ComptabilitePage() {
     refuse:    { label: lang === 'fr' ? 'Refusé' : 'Refused',     color: '#ef4444', emoji: '❌' },
   }
 
+  const card: React.CSSProperties = {
+    background: theme.colors.card,
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: '12px',
+    padding: '16px',
+    position: 'relative',
+    overflow: 'hidden',
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-      {/* TITLE */}
-      <h1 style={{
-        color: theme.colors.primary, fontSize: '14px',
-        letterSpacing: '3px', fontWeight: '700'
-      }}>
+      <h1 style={{ color: theme.colors.primary, fontSize: '14px', letterSpacing: '3px', fontWeight: 700 }}>
         📊 {lang === 'fr' ? 'COMPTABILITÉ' : 'ACCOUNTING'}
       </h1>
 
-      {/* MONTHLY SUMMARY */}
-      <div style={card}>
-        <p style={{
-          color: theme.colors.primary, fontSize: '11px',
-          letterSpacing: '2px', fontWeight: '700', marginBottom: '12px'
-        }}>
-          📅 {lang === 'fr' ? 'CE MOIS-CI' : 'THIS MONTH'}
+      {/* ── REVENUS CLIENT CE MOIS ──────────────────────────────────────────── */}
+      <div className={cardClass} style={card}>
+        <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700, marginBottom: '12px' }}>
+          📅 {lang === 'fr' ? 'REVENUS CLIENTS — CE MOIS' : 'CLIENT REVENUE — THIS MONTH'}
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           {[
-            { label: lang === 'fr' ? 'Revenus encaissés' : 'Revenue collected', value: formatCurrency(monthRevenue), color: '#22c55e', icon: '💰' },
-            { label: lang === 'fr' ? 'En attente' : 'Pending', value: formatCurrency(monthPending), color: '#f59e0b', icon: '⏳' },
-            { label: lang === 'fr' ? 'Factures créées' : 'Invoices created', value: `${monthInvoices}`, color: theme.colors.primary, icon: '📄' },
-            { label: lang === 'fr' ? 'Devis envoyés' : 'Quotes sent', value: `${monthQuotes}`, color: theme.colors.primaryLight, icon: '📋' },
+            { label: lang === 'fr' ? 'Encaissé' : 'Collected',         value: formatCurrency(monthRevenue), color: '#22c55e', icon: '💰' },
+            { label: lang === 'fr' ? 'En attente' : 'Pending',          value: formatCurrency(monthPending), color: '#f59e0b', icon: '⏳' },
+            { label: lang === 'fr' ? 'Factures créées' : 'Invoices',    value: `${monthInvoices}`,           color: theme.colors.primary, icon: '📄' },
+            { label: lang === 'fr' ? 'Devis envoyés' : 'Quotes sent',   value: `${monthQuotes}`,             color: theme.colors.primaryLight, icon: '📋' },
           ].map(item => (
-            <div key={item.label} style={{
-              background: theme.colors.surface,
-              borderRadius: '10px', padding: '12px',
-            }}>
+            <div key={item.label} style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px' }}>
               <p style={{ fontSize: '20px', marginBottom: '4px' }}>{item.icon}</p>
-              <p style={{ color: item.color, fontSize: '18px', fontWeight: '800' }}>{item.value}</p>
+              <p style={{ color: item.color, fontSize: '18px', fontWeight: 800 }}>{item.value}</p>
               <p style={{ color: theme.colors.textMuted, fontSize: '10px', marginTop: '2px' }}>{item.label}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* YEARLY SUMMARY */}
-      <div style={card}>
-        <p style={{
-          color: theme.colors.primary, fontSize: '11px',
-          letterSpacing: '2px', fontWeight: '700', marginBottom: '12px'
-        }}>
+      {/* ── SALAIRES EMPLOYÉS ────────────────────────────────────────────────── */}
+      <div className={cardClass} style={{ ...card, border: `1px solid ${theme.colors.primary}44` }}>
+        <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700, marginBottom: '12px' }}>
+          👷 {lang === 'fr' ? 'SALAIRES EMPLOYÉS — AUTONOMES' : 'EMPLOYEE WAGES — CONTRACTORS'}
+        </p>
+
+        {/* Stats salaires */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+          {[
+            { label: lang === 'fr' ? 'Dû' : 'Owed',         value: formatCurrency(totalSalaireDu),   color: '#f59e0b', count: empInvEnvoyees.length  },
+            { label: lang === 'fr' ? 'Payé' : 'Paid',        value: formatCurrency(totalSalairePaye), color: '#22c55e', count: empInvPayees.length    },
+            { label: lang === 'fr' ? 'Total' : 'Total',      value: formatCurrency(totalSalaireTotal),color: theme.colors.primary, count: empInvoices.length },
+          ].map(s => (
+            <div key={s.label} style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+              <p style={{ color: s.color, fontSize: '16px', fontWeight: 900, lineHeight: 1 }}>{s.value}</p>
+              <p style={{ color: theme.colors.textMuted, fontSize: '10px', marginTop: '4px' }}>{s.label}</p>
+              <p style={{ color: theme.colors.textWeak, fontSize: '10px' }}>{s.count} invoice{s.count !== 1 ? 's' : ''}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Liste invoices employés récentes */}
+        {empInvoices.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '16px 0', color: theme.colors.textMuted, fontSize: '13px' }}>
+            {lang === 'fr' ? '📄 Aucune invoice employé générée' : '📄 No employee invoice generated'}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {[...empInvoices].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 10).map(inv => {
+              const sc = EMP_INV_STATUS[inv.status]
+              return (
+                <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: theme.colors.surface, borderRadius: '10px', padding: '12px', borderLeft: `3px solid ${sc.color}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: inv.employeeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '13px', flexShrink: 0 }}>
+                      {inv.employeeInitials}
+                    </div>
+                    <div>
+                      <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: 700 }}>{inv.number}</p>
+                      <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
+                        {inv.employeeName} · {inv.periodStart} → {inv.periodEnd}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ color: theme.colors.primary, fontSize: '14px', fontWeight: 800 }}>{formatCurrency(inv.total)}</p>
+                    {/* Boutons changement statut rapide */}
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '4px', justifyContent: 'flex-end' }}>
+                      {inv.status !== 'payee' && (
+                        <button
+                          onClick={() => updateStatus(inv.id, inv.status === 'brouillon' ? 'envoyee' : 'payee')}
+                          style={{ padding: '3px 8px', borderRadius: '12px', cursor: 'pointer', border: `1px solid ${sc.color}`, background: `${sc.color}15`, color: sc.color, fontSize: '10px', fontWeight: 700 }}
+                        >
+                          {inv.status === 'brouillon' ? `→ ${lang === 'fr' ? 'Envoyée' : 'Sent'}` : `→ ${lang === 'fr' ? 'Payée' : 'Paid'}`}
+                        </button>
+                      )}
+                      <span style={{ fontSize: '10px', fontWeight: 700, color: sc.color }}>{sc.emoji} {lang === 'fr' ? sc.label : sc.labelEn}</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+            {empInvoices.length > 10 && (
+              <p style={{ color: theme.colors.textMuted, fontSize: '11px', textAlign: 'center' }}>
+                +{empInvoices.length - 10} {lang === 'fr' ? 'autres invoices' : 'more invoices'}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── ANNÉE EN COURS ───────────────────────────────────────────────────── */}
+      <div className={cardClass} style={card}>
+        <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700, marginBottom: '12px' }}>
           📆 {lang === 'fr' ? `ANNÉE ${currentYear}` : `YEAR ${currentYear}`}
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px' }}>
             <p style={{ fontSize: '20px', marginBottom: '4px' }}>💰</p>
-            <p style={{ color: '#22c55e', fontSize: '18px', fontWeight: '800' }}>{formatCurrency(yearRevenue)}</p>
-            <p style={{ color: theme.colors.textMuted, fontSize: '10px' }}>{lang === 'fr' ? 'Total encaissé' : 'Total collected'}</p>
+            <p style={{ color: '#22c55e', fontSize: '18px', fontWeight: 800 }}>{formatCurrency(yearRevenue)}</p>
+            <p style={{ color: theme.colors.textMuted, fontSize: '10px' }}>{lang === 'fr' ? 'Total encaissé (clients)' : 'Total collected (clients)'}</p>
           </div>
           <div style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px' }}>
             <p style={{ fontSize: '20px', marginBottom: '4px' }}>⏳</p>
-            <p style={{ color: '#f59e0b', fontSize: '18px', fontWeight: '800' }}>{formatCurrency(yearPending)}</p>
-            <p style={{ color: theme.colors.textMuted, fontSize: '10px' }}>{lang === 'fr' ? 'Total en attente' : 'Total pending'}</p>
+            <p style={{ color: '#f59e0b', fontSize: '18px', fontWeight: 800 }}>{formatCurrency(yearPending)}</p>
+            <p style={{ color: theme.colors.textMuted, fontSize: '10px' }}>{lang === 'fr' ? 'En attente (clients)' : 'Pending (clients)'}</p>
+          </div>
+          <div style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px' }}>
+            <p style={{ fontSize: '20px', marginBottom: '4px' }}>👷</p>
+            <p style={{ color: '#ef4444', fontSize: '18px', fontWeight: 800 }}>-{formatCurrency(totalSalaireTotal)}</p>
+            <p style={{ color: theme.colors.textMuted, fontSize: '10px' }}>{lang === 'fr' ? 'Salaires (autonomes)' : 'Wages (contractors)'}</p>
+          </div>
+          <div style={{ background: `${theme.colors.primary}18`, border: `1px solid ${theme.colors.primary}44`, borderRadius: '10px', padding: '12px' }}>
+            <p style={{ fontSize: '20px', marginBottom: '4px' }}>📊</p>
+            <p style={{ color: theme.colors.primary, fontSize: '18px', fontWeight: 800 }}>{formatCurrency(Math.max(0, yearRevenue - totalSalaireTotal))}</p>
+            <p style={{ color: theme.colors.textMuted, fontSize: '10px' }}>{lang === 'fr' ? 'Marge brute' : 'Gross margin'}</p>
           </div>
         </div>
       </div>
 
-      {/* 6 MONTH CHART */}
-      <div style={card}>
-        <p style={{
-          color: theme.colors.primary, fontSize: '11px',
-          letterSpacing: '2px', fontWeight: '700', marginBottom: '16px'
-        }}>
+      {/* ── GRAPHIQUE 6 MOIS ─────────────────────────────────────────────────── */}
+      <div className={cardClass} style={card}>
+        <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700, marginBottom: '16px' }}>
           📈 {lang === 'fr' ? '6 DERNIERS MOIS' : 'LAST 6 MONTHS'}
         </p>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', height: '120px' }}>
           {last6Months.map(m => (
             <div key={m.key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', height: '100%', justifyContent: 'flex-end' }}>
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '2px', justifyContent: 'flex-end' }}>
-                {m.pending > 0 && (
-                  <div style={{
-                    width: '100%',
-                    height: `${(m.pending / maxRevenue) * 80}px`,
-                    background: '#f59e0b',
-                    borderRadius: '4px 4px 0 0',
-                    minHeight: '4px',
-                  }} title={formatCurrency(m.pending)} />
-                )}
-                {m.revenue > 0 && (
-                  <div style={{
-                    width: '100%',
-                    height: `${(m.revenue / maxRevenue) * 80}px`,
-                    background: '#22c55e',
-                    borderRadius: m.pending > 0 ? '0' : '4px 4px 0 0',
-                    minHeight: '4px',
-                  }} title={formatCurrency(m.revenue)} />
-                )}
-                {m.revenue === 0 && m.pending === 0 && (
-                  <div style={{ width: '100%', height: '4px', background: theme.colors.border, borderRadius: '4px' }} />
-                )}
+                {m.pending > 0 && <div style={{ width: '100%', height: `${(m.pending / maxRevenue) * 80}px`, background: '#f59e0b', borderRadius: '4px 4px 0 0', minHeight: '4px' }} />}
+                {m.revenue > 0 && <div style={{ width: '100%', height: `${(m.revenue / maxRevenue) * 80}px`, background: '#22c55e', borderRadius: m.pending > 0 ? '0' : '4px 4px 0 0', minHeight: '4px' }} />}
+                {m.salaires > 0 && <div style={{ width: '100%', height: `${(m.salaires / maxRevenue) * 30}px`, background: '#ef444455', borderRadius: '0', minHeight: '2px' }} />}
+                {m.revenue === 0 && m.pending === 0 && m.salaires === 0 && <div style={{ width: '100%', height: '4px', background: theme.colors.border, borderRadius: '4px' }} />}
               </div>
-              <span style={{ color: theme.colors.textMuted, fontSize: '9px', textAlign: 'center' as const }}>
-                {m.label}
-              </span>
+              <span style={{ color: theme.colors.textMuted, fontSize: '9px', textAlign: 'center' }}>{m.label}</span>
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: '16px', marginTop: '12px', justifyContent: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#22c55e' }} />
-            <span style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{lang === 'fr' ? 'Encaissé' : 'Collected'}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#f59e0b' }} />
-            <span style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{lang === 'fr' ? 'En attente' : 'Pending'}</span>
-          </div>
+        <div style={{ display: 'flex', gap: '12px', marginTop: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {[
+            { color: '#22c55e', label: lang === 'fr' ? 'Encaissé' : 'Collected' },
+            { color: '#f59e0b', label: lang === 'fr' ? 'En attente' : 'Pending'  },
+            { color: '#ef444455', label: lang === 'fr' ? 'Salaires' : 'Wages'   },
+          ].map(l => (
+            <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: l.color }} />
+              <span style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{l.label}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* BY STATUS */}
-      <div style={card}>
-        <p style={{
-          color: theme.colors.primary, fontSize: '11px',
-          letterSpacing: '2px', fontWeight: '700', marginBottom: '12px'
-        }}>
-          📋 {lang === 'fr' ? 'PAR STATUT' : 'BY STATUS'}
+      {/* ── PAR STATUT DOCUMENTS ────────────────────────────────────────────── */}
+      <div className={cardClass} style={card}>
+        <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700, marginBottom: '12px' }}>
+          📋 {lang === 'fr' ? 'DOCUMENTS PAR STATUT' : 'DOCUMENTS BY STATUS'}
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {(Object.entries(byStatus) as [keyof typeof byStatus, typeof documents][]).map(([status, docs]) => {
-            const config = STATUS_CONFIG[status]
-            const total = docs.reduce((sum, d) => sum + d.total, 0)
+            const config = STATUS_CONFIG_DOC[status]
+            const total  = docs.reduce((s, d) => s + d.total, 0)
             return (
-              <div key={status} style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                background: theme.colors.surface, borderRadius: '10px', padding: '12px',
-                borderLeft: `3px solid ${config.color}`,
-              }}>
+              <div key={status} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: theme.colors.surface, borderRadius: '10px', padding: '12px', borderLeft: `3px solid ${config.color}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span style={{ fontSize: '18px' }}>{config.emoji}</span>
                   <div>
-                    <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: '700' }}>
-                      {config.label}
-                    </p>
-                    <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
-                      {docs.length} {lang === 'fr' ? 'document(s)' : 'document(s)'}
-                    </p>
+                    <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: 700 }}>{config.label}</p>
+                    <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{docs.length} {lang === 'fr' ? 'document(s)' : 'document(s)'}</p>
                   </div>
                 </div>
-                <p style={{ color: config.color, fontSize: '14px', fontWeight: '800' }}>
-                  {formatCurrency(total)}
-                </p>
+                <p style={{ color: config.color, fontSize: '14px', fontWeight: 800 }}>{formatCurrency(total)}</p>
               </div>
             )
           })}
         </div>
       </div>
 
-      {/* BY EMPLOYEE */}
+      {/* ── PAR EMPLOYÉ (punch + invoices) ──────────────────────────────────── */}
       {employeeStats.length > 0 && (
-        <div style={card}>
-          <p style={{
-            color: theme.colors.primary, fontSize: '11px',
-            letterSpacing: '2px', fontWeight: '700', marginBottom: '12px'
-          }}>
+        <div className={cardClass} style={card}>
+          <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700, marginBottom: '12px' }}>
             👥 {lang === 'fr' ? 'PAR EMPLOYÉ' : 'BY EMPLOYEE'}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {employeeStats.map(({ emp, totalRevenue, totalHours, totalDays }) => (
-              <div key={emp.id} style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                background: theme.colors.surface, borderRadius: '10px', padding: '12px',
-                borderLeft: `3px solid ${emp.color}`,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{
-                    width: '36px', height: '36px', borderRadius: '50%',
-                    background: emp.color, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', color: 'white', fontWeight: '800', fontSize: '14px',
-                  }}>
-                    {emp.name[0]}
+            {employeeStats.map(({ emp, totalRevenue, totalHours, totalDays, totalFacture, invCount }) => (
+              <div key={emp.id} style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px', borderLeft: `3px solid ${emp.color}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: emp.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '14px' }}>
+                      {emp.name[0]}
+                    </div>
+                    <div>
+                      <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: 700 }}>{emp.name}</p>
+                      <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{totalHours.toFixed(1)}h · {totalDays} {lang === 'fr' ? 'jour(s)' : 'day(s)'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: '700' }}>
-                      {emp.name}
-                    </p>
-                    <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
-                      {totalHours.toFixed(1)}h · {totalDays} {lang === 'fr' ? 'jour(s)' : 'day(s)'}
-                    </p>
-                  </div>
+                  <p style={{ color: emp.color, fontSize: '14px', fontWeight: 800 }}>{formatCurrency(totalRevenue)}</p>
                 </div>
-                <p style={{ color: emp.color, fontSize: '14px', fontWeight: '800' }}>
-                  {formatCurrency(totalRevenue)}
-                </p>
+                {invCount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 10px', background: `${emp.color}10`, borderRadius: '8px', border: `1px solid ${emp.color}30` }}>
+                    <p style={{ fontSize: '11px', color: theme.colors.textMuted }}>🧾 {invCount} invoice{invCount !== 1 ? 's' : ''} autonome</p>
+                    <p style={{ fontSize: '12px', fontWeight: 700, color: '#ef4444' }}>-{formatCurrency(totalFacture)}</p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* ALL DOCUMENTS */}
-      <div style={card}>
-        <p style={{
-          color: theme.colors.primary, fontSize: '11px',
-          letterSpacing: '2px', fontWeight: '700', marginBottom: '12px'
-        }}>
+      {/* ── TOUS LES DOCUMENTS ──────────────────────────────────────────────── */}
+      <div className={cardClass} style={card}>
+        <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700, marginBottom: '12px' }}>
           🗂️ {lang === 'fr' ? 'TOUS LES DOCUMENTS' : 'ALL DOCUMENTS'}
         </p>
         {documents.length === 0 ? (
-          <p style={{ color: theme.colors.textMuted, textAlign: 'center' as const, fontSize: '14px', padding: '20px' }}>
+          <p style={{ color: theme.colors.textMuted, textAlign: 'center', fontSize: '14px', padding: '20px' }}>
             {lang === 'fr' ? 'Aucun document' : 'No documents'}
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {[...documents].reverse().map(doc => {
-              const config = STATUS_CONFIG[doc.status as keyof typeof STATUS_CONFIG]
+              const config = STATUS_CONFIG_DOC[doc.status as keyof typeof STATUS_CONFIG_DOC]
               return (
-                <div key={doc.id} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  borderBottom: `1px solid ${theme.colors.border}`, paddingBottom: '8px',
-                }}>
+                <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${theme.colors.border}`, paddingBottom: '8px' }}>
                   <div>
-                    <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: '700' }}>
-                      {doc.number}
-                    </p>
+                    <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: 700 }}>{doc.number}</p>
                     <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
                       {doc.client.name || (lang === 'fr' ? 'Client non défini' : 'Client not defined')} · {doc.date}
                     </p>
                   </div>
-                  <div style={{ textAlign: 'right' as const }}>
-                    <p style={{ color: theme.colors.secondary, fontSize: '13px', fontWeight: '700' }}>
-                      {formatCurrency(doc.total)}
-                    </p>
-                    <span style={{
-                      color: config?.color || theme.colors.textMuted,
-                      fontSize: '10px', fontWeight: '700',
-                      textTransform: 'uppercase' as const,
-                    }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ color: theme.colors.secondary, fontSize: '13px', fontWeight: 700 }}>{formatCurrency(doc.total)}</p>
+                    <span style={{ color: config?.color || theme.colors.textMuted, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>
                       {config?.label || doc.status}
                     </span>
                   </div>
@@ -321,4 +356,3 @@ export default function ComptabilitePage() {
     </div>
   )
 }
-
