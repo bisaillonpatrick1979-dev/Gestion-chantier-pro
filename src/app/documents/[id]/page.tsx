@@ -54,7 +54,7 @@ export default function DocumentDetailPage() {
   const { clients }                                  = useClientStore()
   const { company }                                  = useCompanyStore()
 
-  // ── Trouver ou créer le doc ───────────────────────────────────────────
+  // ── Trouver le doc existant ───────────────────────────────────────────
   const existing = documents.find(d => d.id === docId)
 
   // ── État local ───────────────────────────────────────────────────────
@@ -76,15 +76,15 @@ export default function DocumentDetailPage() {
   const [clientPhone, setClientPhone]   = useState(existing?.clientPhone ?? '')
 
   // Infos compagnie — auto depuis useCompanyStore
-  const [compName, setCompName]         = useState(company.name)
+  const [compName, setCompName]         = useState(existing?.companyName     ?? company.name)
   const [compAddress, setCompAddress]   = useState(company.address)
   const [compCity, setCompCity]         = useState(company.city)
   const [compProvince, setCompProvince] = useState(company.province)
   const [compPostal, setCompPostal]     = useState(company.postalCode)
-  const [compPhone, setCompPhone]       = useState(company.phone)
-  const [compEmail, setCompEmail]       = useState(company.email)
-  const [compGST, setCompGST]           = useState(company.gstNumber)
-  const [compWCB, setCompWCB]           = useState(company.wcbNumber)
+  const [compPhone, setCompPhone]       = useState(existing?.companyPhone     ?? company.phone)
+  const [compEmail, setCompEmail]       = useState(existing?.companyEmail     ?? company.email)
+  const [compGST, setCompGST]           = useState(existing?.companyGST       ?? company.gstNumber)
+  const [compWCB, setCompWCB]           = useState(existing?.companyWCB       ?? company.wcbNumber)
 
   // Lignes
   const [lines, setLines] = useState<LineItem[]>(
@@ -92,12 +92,12 @@ export default function DocumentDetailPage() {
   )
 
   // Taxes / remise / dépôt
-  const [taxRate, setTaxRate]           = useState(existing?.taxRate ?? 5)   // AB = GST 5%
+  const [taxRate, setTaxRate]           = useState(existing?.taxRate ?? 5)
   const [discountPct, setDiscountPct]   = useState(existing?.discountPct ?? 0)
   const [depositAmount, setDepositAmount] = useState(existing?.depositAmount ?? 0)
 
   // Notes
-  const [notes, setNotes] = useState(existing?.notes ?? company.defaultNotes ?? '')
+  const [notes, setNotes] = useState(existing?.notes ?? '')
 
   // Signature
   const [signature, setSignature] = useState(existing?.signature ?? '')
@@ -119,7 +119,6 @@ export default function DocumentDetailPage() {
       setCompEmail(company.email)
       setCompGST(company.gstNumber)
       setCompWCB(company.wcbNumber)
-      setNotes(company.defaultNotes)
     }
   }, [company])
 
@@ -136,12 +135,12 @@ export default function DocumentDetailPage() {
   }
 
   // ── Calculs ───────────────────────────────────────────────────────
-  const subtotal   = lines.reduce((s, l) => s + l.qty * l.unitPrice, 0)
+  const subtotal    = lines.reduce((s, l) => s + l.qty * l.unitPrice, 0)
   const discountAmt = subtotal * (discountPct / 100)
-  const taxable    = subtotal - discountAmt
-  const taxAmt     = taxable * (taxRate / 100)
-  const total      = taxable + taxAmt
-  const balanceDue = total - depositAmount
+  const taxable     = subtotal - discountAmt
+  const taxAmt      = taxable * (taxRate / 100)
+  const total       = taxable + taxAmt
+  const balanceDue  = total - depositAmount
 
   // ── Gestion lignes ────────────────────────────────────────────────
   const addLine = () =>
@@ -173,7 +172,7 @@ export default function DocumentDetailPage() {
       companyEmail: compEmail,
       companyGST: compGST,
       companyWCB: compWCB,
-      companyLogo: company.logoUrl,
+      companyLogo: company.logo,
       lines,
       subtotal,
       discountPct,
@@ -288,7 +287,6 @@ export default function DocumentDetailPage() {
             : 'bg-white/5 border border-white/10'}`}>
           {isDeco && <DecoCorners />}
 
-          {/* Type document */}
           <div className="flex gap-2 mb-4">
             {DOC_TYPES.map(dt => (
               <button key={dt.id} onClick={() => setDocType(dt.id as any)}
@@ -303,7 +301,6 @@ export default function DocumentDetailPage() {
             ))}
           </div>
 
-          {/* N° + Date + Statut */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>{t('N° Document', 'Doc Number')}</label>
@@ -351,15 +348,15 @@ export default function DocumentDetailPage() {
         {/* ─── TAB INFO ─── */}
         {tab === 'info' && (
           <div className="space-y-4">
-            {/* Infos compagnie (auto-remplies) */}
+            {/* Infos compagnie */}
             <div className={`rounded-2xl p-5 space-y-3 ${cardClass}
               ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
                 : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
                 : 'bg-white/5 border border-white/10'}`}>
               {isDeco && <DecoCorners />}
               <div className="flex items-center gap-2 mb-3">
-                {company.logoUrl && (
-                  <img src={company.logoUrl} alt="Logo" className="w-10 h-10 object-contain rounded-lg" />
+                {company.logo && (
+                  <img src={company.logo} alt="Logo" className="w-10 h-10 object-contain rounded-lg" />
                 )}
                 <div className={`text-sm font-bold ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>
                   🏢 {t('Votre compagnie', 'Your Company')}
@@ -428,7 +425,6 @@ export default function DocumentDetailPage() {
                 👥 {t('Client', 'Client')}
               </div>
 
-              {/* Sélecteur client */}
               {clients.length > 0 && (
                 <div>
                   <label className={labelClass}>👥 {t('Choisir un client existant', 'Select Existing Client')}</label>
