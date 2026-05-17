@@ -1,639 +1,684 @@
-"use client";
+'use client'
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { useCompanyStore } from "@/store/useCompanyStore";
-import { useEmployeeStore } from "@/store/useEmployeeStore";
-import { useClientStore } from "@/store/useClientStore";
-import { useCatalogueStore } from "@/store/useCatalogueStore";
-import { useThemeStore } from "@/store/useThemeStore";
-import { useLangStore } from "@/store/useLangStore";
-import { useVoiceReminderStore } from "@/store/useVoiceReminderStore";
-import { getAllThemes } from "@/lib/themes";
+import { useState, useRef } from 'react'
+import { useEmployeeStore } from '@/store/useEmployeeStore'
+import { useThemeStore } from '@/store/useThemeStore'
+import { useLangStore } from '@/store/useLangStore'
+import { useCompanyStore } from '@/store/useCompanyStore'
+import { useVoiceReminderStore } from '@/store/useVoiceReminderStore'
+import {
+  DecoSeparator, DecoCorners, DecoTitle, DecoOrnament,
+  DecoBackground, DecoDiamondRow, DecoFlower, DecoStarRow,
+} from '@/components/DecoElements'
 
-function Field({
-  label, value, onChange, type = "text", placeholder = "",
-}: {
-  label: string; value: string | number;
-  onChange: (v: string) => void; type?: string; placeholder?: string;
-}) {
-  return (
-    <div style={{ marginBottom: "12px" }}>
-      <label style={{ display: "block", fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>
-        {label}
-      </label>
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} style={{
-        width: "100%", background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: "8px", padding: "10px 12px", color: "var(--text)",
-        fontSize: "15px", boxSizing: "border-box", outline: "none",
-      }}/>
-    </div>
-  );
-}
+const THEMES = [
+  { id: 'quantum',  label: '⚡ Quantum',  colors: 'from-violet-600 to-cyan-500' },
+  { id: 'xp',       label: '🟣 XP',       colors: 'from-purple-600 to-cyan-400' },
+  { id: 'aventure', label: '🌿 Aventure', colors: 'from-emerald-600 to-lime-400' },
+  { id: 'deco',     label: '✨ Deco',     colors: 'from-yellow-600 to-amber-400' },
+  { id: 'zen',      label: '🌸 Zen',      colors: 'from-pink-400 to-rose-300' },
+  { id: 'ludique',  label: '🎮 Ludique',  colors: 'from-orange-500 to-pink-500' },
+]
+
+const TABS_FR = ['🏢 Compagnie', '👤 Employés', '🎨 Thème', '🌐 Langue', '💳 Paiement', '🔔 Rappels', '📋 Conditions', '⚙️ Avancé']
+const TABS_EN = ['🏢 Company',   '👤 Employees', '🎨 Theme', '🌐 Language', '💳 Payment', '🔔 Reminders', '📋 Terms',  '⚙️ Advanced']
 
 export default function SettingsPage() {
-  const router = useRouter();
-  const { company, updateCompany, resetNumbering } = useCompanyStore();
-  const { employees, addEmployee, deleteEmployee, currentEmployeeId } = useEmployeeStore();
-  const { clients, addClient, deleteClient } = useClientStore();
-  const { materials, addMaterial } = useCatalogueStore();
-  const { themeId, setTheme } = useThemeStore();
-  const { lang } = useLangStore();
-  const { enabled: vrEnabled, volume: vrVolume, setEnabled: vrSetEnabled, setVolume: vrSetVolume } = useVoiceReminderStore();
-  const allThemes = getAllThemes();
-  const logoInputRef = useRef<HTMLInputElement>(null);
+  const { lang, setLang } = useLangStore()
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
-  const t = (fr: string, en: string) => lang === "fr" ? fr : en;
+  const { themeId, setTheme } = useThemeStore()
+  const isXP       = themeId === 'xp'
+  const isDeco     = themeId === 'deco'
+  const isQuantum  = themeId === 'quantum'
+  const isAventure = themeId === 'aventure'
+  const isZen      = themeId === 'zen'
+  const isLudique  = themeId === 'ludique'
 
-  const currentEmployee = employees.find((e) => e.id === currentEmployeeId) ?? null;
-  const isAdmin = currentEmployee?.role === "admin";
-  const isXP = themeId === "xp";
+  const cardClass = isDeco
+    ? 'deco-card-sweep'
+    : isQuantum
+    ? 'quantum-card-glow'
+    : isAventure
+    ? 'aventure-card-glow'
+    : ''
 
-  const isDeco     = themeId === "deco";
-  const isQuantum  = themeId === "quantum";
-  const isAventure = themeId === "aventure";
-  const cardClass  = isDeco    ? "deco-card-sweep"    :
-                     isQuantum ? "quantum-card-glow"  :
-                     isAventure ? "aventure-card-glow" : "";
+  const { employees, addEmployee, updateEmployee, removeEmployee, resetAdminPin } = useEmployeeStore()
+  const { company, setCompany } = useCompanyStore()
+  const { enabled: voiceEnabled, volume: voiceVolume, setEnabled: setVoiceEnabled, setVolume: setVoiceVolume } = useVoiceReminderStore()
 
-  const [saved, setSaved] = useState(false);
-  const [showAddEmp, setShowAddEmp] = useState(false);
-  const [newEmpName, setNewEmpName] = useState("");
-  const [newEmpPin, setNewEmpPin] = useState("");
-  const [newEmpRole, setNewEmpRole] = useState<"admin" | "employee">("employee");
-  const [newEmpMode, setNewEmpMode] = useState<"heure" | "surface" | "forfait">("heure");
-  const [newEmpRate, setNewEmpRate] = useState<number>(25);
-  const [empError, setEmpError] = useState("");
+  const TABS = lang === 'fr' ? TABS_FR : TABS_EN
+  const [activeTab, setActiveTab] = useState(0)
 
-  const [showAddClient, setShowAddClient] = useState(false);
-  const [newCName, setNewCName] = useState("");
-  const [newCPhone, setNewCPhone] = useState("");
-  const [newCEmail, setNewCEmail] = useState("");
-  const [newCAddress, setNewCAddress] = useState("");
-  const [newCCity, setNewCCity] = useState("");
-  const [newCProvince, setNewCProvince] = useState("AB");
-  const [newCPostal, setNewCPostal] = useState("");
-  const [newCNotes, setNewCNotes] = useState("");
+  // Employee form
+  const [newName, setNewName] = useState('')
+  const [newPin, setNewPin] = useState('')
+  const [newRole, setNewRole] = useState<'admin' | 'employee'>('employee')
+  const [newRate, setNewRate] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editRate, setEditRate] = useState('')
+  const [editName, setEditName] = useState('')
+  const [showResetPin, setShowResetPin] = useState(false)
+  const [resetPinVal, setResetPinVal] = useState('')
 
-  const [showAddMat, setShowAddMat] = useState(false);
-  const [newMatName, setNewMatName] = useState("");
-  const [newMatPrice, setNewMatPrice] = useState<number>(0);
-  const [newMatCat, setNewMatCat] = useState("toiture");
-  const [newMatUnit, setNewMatUnit] = useState("pi²");
-  const [newMatEmoji, setNewMatEmoji] = useState("📦");
+  // Logo upload
+  const logoRef = useRef<HTMLInputElement>(null)
 
-  type AdminSection = "company"|"contact"|"legal"|"payment"|"billing"|"employees"|"clients"|"catalogue"|"theme"|"rappels"|"numbering"|"danger";
-  type EmpSection   = "theme"|"rappels"|"pin"|"paye";
-  type AnySection   = AdminSection | EmpSection;
-
-  const [activeSection, setActiveSection] = useState<AnySection>(isAdmin ? "company" : "theme");
-
-  const adminSections = [
-    { id: "company"   as AdminSection, emoji: "🏢", label: t("Compagnie",    "Company")    },
-    { id: "contact"   as AdminSection, emoji: "📞", label: t("Contact",      "Contact")    },
-    { id: "legal"     as AdminSection, emoji: "📋", label: t("Légal",        "Legal")      },
-    { id: "payment"   as AdminSection, emoji: "💳", label: t("Paiement",     "Payment")    },
-    { id: "billing"   as AdminSection, emoji: "🧾", label: t("Facturation",  "Billing")    },
-    { id: "employees" as AdminSection, emoji: "👷", label: t("Employés",     "Employees")  },
-    { id: "clients"   as AdminSection, emoji: "👥", label: t("Clients",      "Clients")    },
-    { id: "catalogue" as AdminSection, emoji: "📦", label: t("Catalogue",    "Catalogue")  },
-    { id: "theme"     as AdminSection, emoji: "🎨", label: t("Thème",        "Theme")      },
-    { id: "rappels"   as AdminSection, emoji: "🔔", label: t("Rappels",      "Reminders")  },
-    { id: "numbering" as AdminSection, emoji: "🔢", label: t("Numérotation", "Numbering")  },
-    { id: "danger"    as AdminSection, emoji: "⚠️", label: t("Danger",       "Danger")     },
-  ];
-
-  const empSections = [
-    { id: "theme"   as EmpSection, emoji: "🎨", label: t("Thème",    "Theme")    },
-    { id: "rappels" as EmpSection, emoji: "🔔", label: t("Rappels",  "Reminders")},
-    { id: "pin"     as EmpSection, emoji: "🔒", label: t("Mon PIN",  "My PIN")   },
-    { id: "paye"    as EmpSection, emoji: "💰", label: t("Ma Paye",  "My Pay")   },
-  ];
-
-  function save() { setSaved(true); setTimeout(() => setSaved(false), 2000); }
-
-  function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => { updateCompany({ logoUrl: ev.target?.result as string }); };
-    reader.readAsDataURL(file);
+  const handleAddEmployee = () => {
+    if (!newName.trim() || newPin.length < 4) return
+    addEmployee({
+      name: newName.trim(),
+      pin: newPin,
+      role: newRole,
+      hourlyRate: parseFloat(newRate) || 0,
+      workMode: 'hourly',
+      color: '#a855f7',
+      active: true,
+      invoiceSequence: 1,
+    })
+    setNewName(''); setNewPin(''); setNewRate(''); setNewRole('employee')
   }
 
-  function handleAddEmployee() {
-    if (!newEmpName.trim()) { setEmpError("Le nom est requis"); return; }
-    if (!/^\d{4}$/.test(newEmpPin)) { setEmpError("PIN = 4 chiffres exactement (ex: 1234)"); return; }
-    addEmployee({ name: newEmpName.trim(), role: newEmpRole, pin: newEmpPin, workMode: newEmpMode, hourlyRate: newEmpRate, color: "", active: true });
-    setNewEmpName(""); setNewEmpPin(""); setNewEmpRole("employee");
-    setNewEmpMode("heure"); setNewEmpRate(25); setEmpError(""); setShowAddEmp(false);
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setCompany({ logoUrl: ev.target?.result as string })
+    }
+    reader.readAsDataURL(file)
   }
 
-  function handleAddClient() {
-    if (!newCName.trim()) return;
-    addClient({ name: newCName.trim(), phone: newCPhone, email: newCEmail, address: newCAddress, city: newCCity, province: newCProvince, postalCode: newCPostal, notes: newCNotes });
-    setNewCName(""); setNewCPhone(""); setNewCEmail("");
-    setNewCAddress(""); setNewCCity(""); setNewCProvince("AB");
-    setNewCPostal(""); setNewCNotes(""); setShowAddClient(false);
-  }
+  const inputClass = `w-full rounded-xl px-4 py-3 text-sm font-medium outline-none border transition-all
+    ${isDeco
+      ? 'bg-[#1a1500]/80 border-[#D6B25E]/30 text-[#D6B25E] placeholder-[#D6B25E]/40 focus:border-[#D6B25E]'
+      : isQuantum
+      ? 'bg-[#0a0015]/80 border-violet-500/30 text-violet-100 placeholder-violet-400/40 focus:border-violet-400'
+      : 'bg-white/10 border-white/20 text-white placeholder-white/40 focus:border-white/60'
+    }`
 
-  function handleAddMaterial() {
-    if (!newMatName.trim()) return;
-    addMaterial({ name: newMatName.trim(), nameen: newMatName.trim(), category: newMatCat as "toiture"|"siding"|"fixations"|"etancheite"|"structure"|"maindoeuvre", unit: newMatUnit as "pi²"|"pi lin."|"boîte"|"rouleau"|"feuille"|"tube"|"unité"|"heure", price: newMatPrice, priceMin: newMatPrice, priceMax: newMatPrice, emoji: newMatEmoji || "📦", description: "", descriptionen: "" });
-    setNewMatName(""); setNewMatPrice(0); setNewMatEmoji("📦"); setShowAddMat(false);
-  }
+  const labelClass = `text-xs font-semibold uppercase tracking-widest mb-1 block
+    ${isDeco ? 'text-[#D6B25E]/70' : isQuantum ? 'text-violet-400/70' : 'text-white/60'}`
 
-  function testVoice() {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const msg = lang === "fr"
-      ? "Test du rappel vocal ! Si tu m'entends, ça fonctionne parfaitement mon ami !"
-      : "Voice reminder test! If you can hear this, it's working perfectly my friend!";
-    const utt = new SpeechSynthesisUtterance(msg);
-    utt.volume = vrVolume;
-    utt.rate   = 0.9;
-    utt.lang   = lang === "fr" ? "fr-CA" : "en-US";
-    window.speechSynthesis.speak(utt);
-  }
-
-  // ── Styles ──────────────────────────────────────────────────────────────────
-  const cardStyle: React.CSSProperties = {
-    background: "var(--card)", border: "1px solid var(--border)",
-    borderRadius: "12px", padding: "20px", marginBottom: "16px",
-  };
-  const btnPrimary: React.CSSProperties = {
-    background: isXP ? "linear-gradient(135deg, #7c3aed, #a855f7)" : "linear-gradient(135deg, var(--primary), var(--secondary, #B8963E))",
-    color: isXP ? "#fff" : "#000", border: "none", borderRadius: "10px",
-    padding: "13px 24px", fontWeight: 800, fontSize: "14px", cursor: "pointer",
-    width: "100%", letterSpacing: "0.5px",
-    boxShadow: isXP ? "0 0 16px rgba(168,85,247,0.3)" : "none",
-  };
-  const btnDanger: React.CSSProperties = {
-    background: "#7f1d1d", color: "#fca5a5", border: "1px solid #991b1b",
-    borderRadius: "10px", padding: "13px 24px", fontWeight: 700, fontSize: "14px",
-    cursor: "pointer", width: "100%", marginTop: "10px",
-  };
-  const btnSmallPrimary: React.CSSProperties = {
-    background: isXP ? "linear-gradient(135deg, #7c3aed, #a855f7)" : "linear-gradient(135deg, var(--primary), var(--secondary, #B8963E))",
-    color: isXP ? "#fff" : "#000", border: "none", borderRadius: "8px",
-    padding: "8px 16px", cursor: "pointer", fontSize: "13px", fontWeight: 700,
-    boxShadow: isXP ? "0 0 10px rgba(168,85,247,0.3)" : "none",
-  };
-  const inputStyle: React.CSSProperties = {
-    width: "100%", background: "var(--surface)", border: "1px solid var(--border)",
-    borderRadius: "8px", padding: "10px 12px", color: "var(--text)",
-    fontSize: "14px", boxSizing: "border-box", outline: "none",
-  };
-  const selectStyle: React.CSSProperties = {
-    width: "100%", background: "var(--surface)", border: "1px solid var(--border)",
-    borderRadius: "8px", padding: "10px 12px", color: "var(--text)",
-    fontSize: "14px", boxSizing: "border-box", outline: "none",
-  };
-  const labelStyle: React.CSSProperties = {
-    display: "block", fontSize: "11px", color: "var(--text-muted)",
-    marginBottom: "4px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em",
-  };
-
-  function TabButton({ id, emoji, label }: { id: AnySection; emoji: string; label: string }) {
-    const isActive = activeSection === id;
-    return (
-      <button onClick={() => setActiveSection(id)} style={{
-        flexShrink: 0, padding: "8px 14px", borderRadius: "20px",
-        cursor: "pointer", whiteSpace: "nowrap", fontSize: "13px",
-        fontWeight: isActive ? 700 : 400,
-        border: isActive ? "none" : "1px solid var(--border)",
-        background: isActive ? (isXP ? "linear-gradient(135deg, #7c3aed, #a855f7)" : "linear-gradient(135deg, var(--primary), var(--secondary, #B8963E))") : "transparent",
-        color: isActive ? (isXP ? "#fff" : "#000") : "var(--text-muted)",
-        boxShadow: isActive && isXP ? "0 0 12px rgba(168,85,247,0.4)" : "none",
-      }}>
-        {emoji} {label}
-      </button>
-    );
-  }
-
-  const ThemeSection = () => (
-    <div className={cardClass} style={cardStyle}>
-      <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "6px", color: "var(--text)" }}>🎨 Thème de l&apos;application</h2>
-      <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>Le thème change toute l&apos;application instantanément.</p>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-        {allThemes.map((theme) => {
-          const isActive = themeId === theme.id;
-          return (
-            <button key={theme.id} onClick={() => setTheme(theme.id)} style={{ background: theme.colors.background, border: isActive ? `2px solid ${theme.colors.primary}` : "2px solid transparent", borderRadius: "12px", padding: "14px 12px", cursor: "pointer", textAlign: "left", position: "relative", overflow: "hidden", transition: "all 0.2s" }}>
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: theme.colors.primary }}/>
-              <div style={{ fontSize: "20px", marginBottom: "6px" }}>{theme.emoji}</div>
-              <div style={{ fontSize: "12px", fontWeight: 700, color: theme.colors.text, lineHeight: 1.3 }}>{theme.nameFr}</div>
-              {isActive && <div style={{ marginTop: "6px", fontSize: "10px", color: theme.colors.primary, fontWeight: 800, letterSpacing: "1px" }}>✓ ACTIF</div>}
-            </button>
-          );
-        })}
-      </div>
+  const sectionTitle = (title: string) => (
+    <div className="flex items-center gap-3 mb-4">
+      {isDeco && <DecoOrnament />}
+      <h3 className={`text-base font-bold uppercase tracking-wider
+        ${isDeco ? 'text-[#D6B25E]' : isQuantum ? 'text-violet-300' : 'text-white'}`}>
+        {title}
+      </h3>
+      {isDeco && <DecoOrnament />}
     </div>
-  );
+  )
 
-  // ── Section Rappels Vocaux ─────────────────────────────────────────────────
-  const RappelsSection = () => (
-    <div className={cardClass} style={cardStyle}>
-      <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "6px", color: "var(--text)" }}>
-        🔔 {t("Rappels Vocaux Punch Out", "Voice Punch Out Reminders")}
-      </h2>
-      <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "20px", lineHeight: 1.5 }}>
-        {t(
-          "Rappels automatiques si tu oublies de pointer ta sortie. Messages humoristiques progressifs.",
-          "Automatic reminders if you forget to punch out. Progressive humorous messages."
-        )}
-      </p>
-
-      {/* Toggle ON/OFF */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", background: "var(--surface)", borderRadius: "12px", marginBottom: "12px", border: `1px solid ${vrEnabled ? "var(--success, #22c55e)44" : "var(--border)"}` }}>
-        <div>
-          <p style={{ fontWeight: 800, color: "var(--text)", fontSize: "15px", margin: "0 0 3px" }}>
-            {vrEnabled ? "🔊 " + t("Rappels activés", "Reminders on") : "🔇 " + t("Rappels désactivés", "Reminders off")}
-          </p>
-          <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: 0 }}>
-            {t("4h → 8h → 9h+ → toutes les 15 min", "4h → 8h → 9h+ → every 15 min")}
-          </p>
-        </div>
-        {/* Toggle switch */}
-        <div
-          onClick={() => vrSetEnabled(!vrEnabled)}
-          style={{
-            width: "54px", height: "30px", borderRadius: "15px", cursor: "pointer",
-            background: vrEnabled ? "var(--success, #22c55e)" : "var(--border)",
-            position: "relative", transition: "background 0.25s", flexShrink: 0,
-            boxShadow: vrEnabled ? "0 0 12px rgba(34,197,94,0.4)" : "none",
-          }}
-        >
-          <div style={{
-            width: "24px", height: "24px", borderRadius: "50%", background: "white",
-            position: "absolute", top: "3px", left: vrEnabled ? "27px" : "3px",
-            transition: "left 0.25s", boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
-          }}/>
-        </div>
-      </div>
-
-      {/* Volume slider */}
-      {vrEnabled && (
-        <div style={{ padding: "16px", background: "var(--surface)", borderRadius: "12px", marginBottom: "12px", border: "1px solid var(--border)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-            <label style={{ fontWeight: 700, color: "var(--text)", fontSize: "14px" }}>
-              {t("🔊 Volume", "🔊 Volume")}
-            </label>
-            <span style={{
-              color: isXP ? "#a855f7" : "var(--primary)",
-              fontWeight: 900, fontSize: "18px",
-              background: isXP ? "rgba(168,85,247,0.15)" : "var(--card)",
-              padding: "2px 10px", borderRadius: "8px",
-            }}>
-              {Math.round(vrVolume * 100)}%
-            </span>
-          </div>
-          <input
-            type="range" min={0} max={1} step={0.05}
-            value={vrVolume}
-            onChange={e => vrSetVolume(parseFloat(e.target.value))}
-            style={{ width: "100%", accentColor: isXP ? "#a855f7" : "var(--primary)", cursor: "pointer" }}
-          />
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--text-muted)", marginTop: "6px" }}>
-            <span>🔇 {t("Muet", "Mute")}</span>
-            <span>🔊 {t("Maximum", "Maximum")}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Calendrier des rappels */}
-      <div style={{ background: "var(--surface)", borderRadius: "12px", padding: "16px", border: "1px solid var(--border)", marginBottom: "12px" }}>
-        <p style={{ fontSize: "12px", fontWeight: 800, color: isXP ? "#a855f7" : "var(--primary)", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "1px" }}>
-          📅 {t("Calendrier des rappels", "Reminder schedule")}
-        </p>
-        {[
-          { time: "4h",   emoji: "😊", fr: "Premier rappel léger",        en: "First gentle reminder",    color: "#22c55e"  },
-          { time: "8h",   emoji: "😅", fr: "Rappel journée complète",     en: "Full day reminder",         color: "#f59e0b"  },
-          { time: "9h+",  emoji: "😬", fr: "Rappel urgent — chaque heure",en: "Urgent — every hour",       color: "#f97316"  },
-          { time: "10h+", emoji: "🚨", fr: "Toutes les 15 minutes !",     en: "Every 15 minutes!",         color: "#ef4444"  },
-        ].map((r, i) => (
-          <div key={r.time} style={{ display: "flex", alignItems: "center", gap: "12px", paddingBottom: i < 3 ? "12px" : 0, marginBottom: i < 3 ? "12px" : 0, borderBottom: i < 3 ? "1px solid var(--border)" : "none" }}>
-            <span style={{ fontSize: "22px", flexShrink: 0 }}>{r.emoji}</span>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontWeight: 800, color: r.color, fontSize: "13px", margin: "0 0 2px" }}>{r.time}</p>
-              <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: 0 }}>{t(r.fr, r.en)}</p>
-            </div>
-            <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: r.color, flexShrink: 0, boxShadow: `0 0 6px ${r.color}` }}/>
-          </div>
-        ))}
-      </div>
-
-      {/* Exemples de messages */}
-      <div style={{ background: isXP ? "rgba(168,85,247,0.08)" : "var(--surface)", borderRadius: "12px", padding: "14px", border: `1px solid ${isXP ? "rgba(168,85,247,0.2)" : "var(--border)"}`, marginBottom: "16px" }}>
-        <p style={{ fontSize: "11px", fontWeight: 800, color: isXP ? "#a855f7" : "var(--text-muted)", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>
-          💬 {t("Exemples de messages", "Message examples")}
-        </p>
-        {(lang === "fr" ? [
-          `"Psst ! 4 heures de chantier… T'as pas pensé à souffler, champion ?"`,
-          `"8 HEURES ! Sérieusement mon chum, c'est une pleine journée !"`,
-          `"${">"}10h de boulot… T'as oublié de pointer ou t'es un vrai robot ?"`,
-        ] : [
-          `"Hey! 4 hours on the job… Have you thought about a breather, champ?"`,
-          `"8 HOURS! Seriously buddy, that's a full day!"`,
-          `">10h of work… Did you forget to punch out or are you a robot?"`,
-        ]).map((msg, i) => (
-          <p key={i} style={{ fontSize: "12px", color: "var(--text)", fontStyle: "italic", marginBottom: i < 2 ? "6px" : 0, lineHeight: 1.5 }}>
-            {msg}
-          </p>
-        ))}
-      </div>
-
-      {/* Bouton test */}
-      {vrEnabled && (
-        <button onClick={testVoice} style={btnPrimary}>
-          🔊 {t("Tester le rappel vocal maintenant", "Test voice reminder now")}
-        </button>
-      )}
-      {!vrEnabled && (
-        <div style={{ textAlign: "center", padding: "12px", color: "var(--text-muted)", fontSize: "13px" }}>
-          {t("Activez les rappels pour tester la voix.", "Enable reminders to test the voice.")}
-        </div>
-      )}
-    </div>
-  );
-
-  // ── VUE EMPLOYÉ ─────────────────────────────────────────────────────────────
-  if (!isAdmin) {
-    const emp = currentEmployee;
-    return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", paddingBottom: "80px" }}>
-        <div style={{ padding: "20px 16px 12px", borderBottom: "1px solid var(--border)", marginBottom: "16px" }}>
-          <h1 style={{ fontSize: "20px", fontWeight: 800, margin: 0, color: "var(--primary)" }}>⚙️ Réglages</h1>
-          {emp && <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>{emp.name} — Employé</p>}
-        </div>
-        <div style={{ display: "flex", gap: "8px", padding: "0 16px 12px", overflowX: "auto", scrollbarWidth: "none" }}>
-          {empSections.map(s => <TabButton key={s.id} id={s.id} emoji={s.emoji} label={s.label}/>)}
-        </div>
-        <div style={{ padding: "0 16px" }}>
-          {activeSection === "theme"   && <ThemeSection/>}
-          {activeSection === "rappels" && <RappelsSection/>}
-          {activeSection === "pin" && (
-            <div className={cardClass} style={cardStyle}>
-              <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>🔒 Changer mon PIN</h2>
-              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", padding: "16px", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>
-                👑 Seul l&apos;admin peut modifier les PINs
-              </div>
-            </div>
-          )}
-          {activeSection === "paye" && (
-            <div className={cardClass} style={cardStyle}>
-              <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>💰 Ma Paye</h2>
-              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px" }}>
-                <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "1px" }}>Taux horaire</div>
-                <div style={{ fontSize: "32px", fontWeight: 900, color: "var(--primary)" }}>${emp?.hourlyRate ?? 0}/h</div>
-                <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "8px" }}>Mode: {emp?.workMode ?? "—"}</div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ── VUE ADMIN ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", paddingBottom: "80px" }}>
-      <div style={{ padding: "20px 16px 12px", borderBottom: "1px solid var(--border)", marginBottom: "12px" }}>
-        <h1 style={{ fontSize: "20px", fontWeight: 800, margin: 0, color: "var(--primary)" }}>
-          {isXP ? "⚙️ CONFIG" : "⚙️ Réglages Admin"}
-        </h1>
-      </div>
+    <div className="min-h-screen pb-24 pt-4 px-4 relative" style={{ fontFamily: 'system-ui, sans-serif' }}>
+      {isDeco && <DecoBackground />}
 
-      <div style={{ display: "flex", overflowX: "auto", gap: "8px", padding: "0 16px 12px", scrollbarWidth: "none" }}>
-        {adminSections.map(s => <TabButton key={s.id} id={s.id} emoji={s.emoji} label={s.label}/>)}
-      </div>
+      <div className="max-w-lg mx-auto">
+        {/* Header */}
+        <div className="text-center mb-6">
+          {isDeco ? (
+            <DecoTitle>{t('Réglages', 'Settings')}</DecoTitle>
+          ) : (
+            <h1 className={`text-2xl font-black tracking-tight
+              ${isXP ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400'
+                : isQuantum ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400'
+                : isAventure ? 'text-emerald-300'
+                : isZen ? 'text-pink-300'
+                : isLudique ? 'text-orange-300'
+                : 'text-white'}`}>
+              ⚙️ {t('Réglages', 'Settings')}
+            </h1>
+          )}
+          <p className="text-white/50 text-sm mt-1">Hailite Xteriors</p>
+        </div>
 
-      <div style={{ padding: "0 16px" }}>
+        {/* Tabs */}
+        <div className="flex gap-1 overflow-x-auto pb-2 mb-6 scrollbar-hide">
+          {TABS.map((tab, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveTab(i)}
+              className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap
+                ${activeTab === i
+                  ? isDeco
+                    ? 'bg-[#D6B25E] text-[#0d0a00] shadow-lg shadow-[#D6B25E]/30'
+                    : isQuantum
+                    ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/30'
+                    : 'bg-white/20 text-white shadow-lg'
+                  : 'bg-white/5 text-white/50 hover:bg-white/10'
+                }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
 
-        {/* ── COMPANY ── */}
-        {activeSection === "company" && (
-          <div className={cardClass} style={cardStyle}>
-            <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>🏢 Informations Compagnie</h2>
-            <Field label="Nom de la compagnie" value={company.name} onChange={(v) => updateCompany({ name: v })}/>
-            <Field label="Slogan" value={company.tagline} onChange={(v) => updateCompany({ tagline: v })}/>
-            <Field label="Nom du propriétaire" value={company.ownerName} onChange={(v) => updateCompany({ ownerName: v })}/>
-            <div style={{ marginBottom: "16px", marginTop: "4px" }}>
-              <label style={labelStyle}>Logo de la compagnie</label>
-              <p style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "10px", marginTop: "2px" }}>Apparaît en filigrane sur toutes les factures, devis, contrats et commandes.</p>
-              {company.logoUrl ? (
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px", padding: "12px", background: "var(--surface)", borderRadius: "10px", border: "1px solid var(--border)" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={company.logoUrl} alt="Logo" style={{ width: "56px", height: "56px", objectFit: "contain", borderRadius: "8px", background: "#fff" }}/>
-                  <div style={{ flex: 1 }}><p style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)", margin: 0 }}>Logo actuel</p><p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0" }}>Visible en filigrane sur les documents</p></div>
-                  <button onClick={() => updateCompany({ logoUrl: "" })} style={{ background: "#7f1d1d22", border: "1px solid #7f1d1d55", color: "#fca5a5", borderRadius: "8px", padding: "6px 12px", cursor: "pointer", fontSize: "12px", fontWeight: 700 }}>✕ Retirer</button>
+        {/* ─── TAB 0 : COMPAGNIE ─── */}
+        {activeTab === 0 && (
+          <div className={`rounded-2xl p-5 space-y-4 ${cardClass}
+            ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+              : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+              : 'bg-white/5 border border-white/10'}`}>
+
+            {isDeco && <DecoCorners />}
+            {sectionTitle(t('Informations compagnie', 'Company Information'))}
+
+            {/* Logo */}
+            <div>
+              <label className={labelClass}>{t('Logo compagnie', 'Company Logo')}</label>
+              <div className="flex items-center gap-4">
+                {company.logoUrl ? (
+                  <img src={company.logoUrl} alt="Logo" className="w-16 h-16 object-contain rounded-xl border border-white/20" />
+                ) : (
+                  <div className={`w-16 h-16 rounded-xl border-2 border-dashed flex items-center justify-center text-2xl
+                    ${isDeco ? 'border-[#D6B25E]/30' : 'border-white/20'}`}>
+                    🏗️
+                  </div>
+                )}
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => logoRef.current?.click()}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all
+                      ${isDeco ? 'bg-[#D6B25E]/20 text-[#D6B25E] hover:bg-[#D6B25E]/30'
+                        : 'bg-white/10 text-white hover:bg-white/20'}`}>
+                    {t('📁 Choisir image', '📁 Choose image')}
+                  </button>
+                  {company.logoUrl && (
+                    <button
+                      onClick={() => setCompany({ logoUrl: '' })}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-red-500/20 text-red-400 hover:bg-red-500/30">
+                      {t('🗑️ Supprimer', '🗑️ Remove')}
+                    </button>
+                  )}
+                </div>
+                <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className={labelClass}>{t('Nom compagnie', 'Company Name')}</label>
+                <input className={inputClass} value={company.name}
+                  onChange={e => setCompany({ name: e.target.value })}
+                  placeholder="Hailite Xteriors" />
+              </div>
+              <div className="col-span-2">
+                <label className={labelClass}>{t('Nom propriétaire', "Owner's Name")}</label>
+                <input className={inputClass} value={company.ownerName}
+                  onChange={e => setCompany({ ownerName: e.target.value })}
+                  placeholder="Patrick Bisaillon" />
+              </div>
+              <div className="col-span-2">
+                <label className={labelClass}>{t('Adresse', 'Address')}</label>
+                <input className={inputClass} value={company.address}
+                  onChange={e => setCompany({ address: e.target.value })}
+                  placeholder="123 Main St" />
+              </div>
+              <div>
+                <label className={labelClass}>{t('Ville', 'City')}</label>
+                <input className={inputClass} value={company.city}
+                  onChange={e => setCompany({ city: e.target.value })}
+                  placeholder="Calgary" />
+              </div>
+              <div>
+                <label className={labelClass}>{t('Province', 'Province')}</label>
+                <input className={inputClass} value={company.province}
+                  onChange={e => setCompany({ province: e.target.value })}
+                  placeholder="AB" />
+              </div>
+              <div>
+                <label className={labelClass}>{t('Code postal', 'Postal Code')}</label>
+                <input className={inputClass} value={company.postalCode}
+                  onChange={e => setCompany({ postalCode: e.target.value })}
+                  placeholder="T2X 1A1" />
+              </div>
+              <div>
+                <label className={labelClass}>{t('Pays', 'Country')}</label>
+                <select className={inputClass} value={company.country}
+                  onChange={e => setCompany({ country: e.target.value })}>
+                  <option value="CA">🇨🇦 Canada</option>
+                  <option value="US">🇺🇸 États-Unis / USA</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>{t('Téléphone', 'Phone')}</label>
+                <input className={inputClass} value={company.phone}
+                  onChange={e => setCompany({ phone: e.target.value })}
+                  placeholder="403-555-1234" />
+              </div>
+              <div>
+                <label className={labelClass}>{t('Courriel', 'Email')}</label>
+                <input className={inputClass} value={company.email}
+                  onChange={e => setCompany({ email: e.target.value })}
+                  placeholder="info@hailite.ca" />
+              </div>
+              <div className="col-span-2">
+                <label className={labelClass}>{t('Site web', 'Website')}</label>
+                <input className={inputClass} value={company.website}
+                  onChange={e => setCompany({ website: e.target.value })}
+                  placeholder="www.hailite.ca" />
+              </div>
+              <div>
+                <label className={labelClass}>{t('N° TPS/GST', 'GST Number')}</label>
+                <input className={inputClass} value={company.gstNumber}
+                  onChange={e => setCompany({ gstNumber: e.target.value })}
+                  placeholder="123456789 RT0001" />
+              </div>
+              <div>
+                <label className={labelClass}>{t('N° WCB', 'WCB Number')}</label>
+                <input className={inputClass} value={company.wcbNumber}
+                  onChange={e => setCompany({ wcbNumber: e.target.value })}
+                  placeholder="WCB-XXXXXX" />
+              </div>
+            </div>
+
+            {isDeco && <DecoDiamondRow />}
+          </div>
+        )}
+
+        {/* ─── TAB 1 : EMPLOYÉS ─── */}
+        {activeTab === 1 && (
+          <div className="space-y-4">
+            {/* Liste employés */}
+            {employees.map(emp => (
+              <div key={emp.id} className={`rounded-2xl p-4 ${cardClass}
+                ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+                  : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+                  : 'bg-white/5 border border-white/10'}`}>
+                {isDeco && <DecoCorners />}
+                {editingId === emp.id ? (
+                  <div className="space-y-3">
+                    <input className={inputClass} value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      placeholder={t('Nom', 'Name')} />
+                    <input className={inputClass} value={editRate}
+                      onChange={e => setEditRate(e.target.value)}
+                      type="number" placeholder={t('Taux horaire', 'Hourly Rate')} />
+                    <div className="flex gap-2">
+                      <button onClick={() => {
+                        updateEmployee(emp.id, { name: editName, hourlyRate: parseFloat(editRate) || 0 })
+                        setEditingId(null)
+                      }} className={`flex-1 py-2 rounded-xl text-xs font-bold
+                        ${isDeco ? 'bg-[#D6B25E] text-[#0d0a00]' : 'bg-emerald-500 text-white'}`}>
+                        ✅ {t('Sauvegarder', 'Save')}
+                      </button>
+                      <button onClick={() => setEditingId(null)}
+                        className="flex-1 py-2 rounded-xl text-xs font-bold bg-white/10 text-white">
+                        ✕ {t('Annuler', 'Cancel')}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className={`font-bold ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>
+                        {emp.name}
+                        <span className={`ml-2 text-xs px-2 py-0.5 rounded-full
+                          ${emp.role === 'admin'
+                            ? isDeco ? 'bg-[#D6B25E]/20 text-[#D6B25E]' : 'bg-yellow-500/20 text-yellow-300'
+                            : 'bg-white/10 text-white/60'}`}>
+                          {emp.role === 'admin' ? '👑 Admin' : '👷 Employé'}
+                        </span>
+                      </div>
+                      <div className="text-white/50 text-xs mt-0.5">
+                        {emp.hourlyRate ? `$${emp.hourlyRate}/h` : t('Taux non défini', 'Rate not set')}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => {
+                        setEditingId(emp.id)
+                        setEditName(emp.name)
+                        setEditRate(String(emp.hourlyRate || ''))
+                      }} className="w-8 h-8 rounded-xl bg-white/10 text-white text-sm flex items-center justify-center">
+                        ✏️
+                      </button>
+                      {emp.role !== 'admin' && (
+                        <button onClick={() => removeEmployee(emp.id)}
+                          className="w-8 h-8 rounded-xl bg-red-500/20 text-red-400 text-sm flex items-center justify-center">
+                          🗑️
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Ajouter employé */}
+            <div className={`rounded-2xl p-5 space-y-3 ${cardClass}
+              ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+                : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+                : 'bg-white/5 border border-white/10'}`}>
+              {isDeco && <DecoCorners />}
+              {sectionTitle(t('➕ Ajouter employé', '➕ Add Employee'))}
+              <input className={inputClass} value={newName} onChange={e => setNewName(e.target.value)}
+                placeholder={t('Prénom Nom', 'First Last')} />
+              <input className={inputClass} value={newPin} onChange={e => setNewPin(e.target.value)}
+                type="password" placeholder={t('PIN (4+ chiffres)', 'PIN (4+ digits)')} />
+              <input className={inputClass} value={newRate} onChange={e => setNewRate(e.target.value)}
+                type="number" placeholder={t('Taux horaire $/h', 'Hourly Rate $/h')} />
+              <select className={inputClass} value={newRole}
+                onChange={e => setNewRole(e.target.value as 'admin' | 'employee')}>
+                <option value="employee">👷 {t('Employé', 'Employee')}</option>
+                <option value="admin">👑 Admin</option>
+              </select>
+              <button onClick={handleAddEmployee}
+                className={`w-full py-3 rounded-xl font-bold text-sm transition-all
+                  ${isDeco ? 'bg-gradient-to-r from-[#D6B25E] to-[#c9a84c] text-[#0d0a00] shadow-lg shadow-[#D6B25E]/20'
+                    : isQuantum ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg shadow-violet-500/20'
+                    : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg'}`}>
+                {t('✅ Ajouter', '✅ Add')}
+              </button>
+            </div>
+
+            {/* Reset PIN admin */}
+            <div className={`rounded-2xl p-5 space-y-3 ${cardClass}
+              ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+                : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+                : 'bg-white/5 border border-white/10'}`}>
+              {isDeco && <DecoCorners />}
+              {sectionTitle(t('🔐 Reset PIN Admin', '🔐 Reset Admin PIN'))}
+              {showResetPin ? (
+                <div className="space-y-3">
+                  <input className={inputClass} value={resetPinVal}
+                    onChange={e => setResetPinVal(e.target.value)}
+                    type="password" placeholder={t('Nouveau PIN admin', 'New admin PIN')} />
+                  <div className="flex gap-2">
+                    <button onClick={() => {
+                      const admin = employees.find(e => e.role === 'admin')
+                      if (admin && resetPinVal.length >= 4) {
+                        resetAdminPin(resetPinVal)
+                        setShowResetPin(false); setResetPinVal('')
+                      }
+                    }} className={`flex-1 py-2 rounded-xl text-xs font-bold
+                      ${isDeco ? 'bg-[#D6B25E] text-[#0d0a00]' : 'bg-emerald-500 text-white'}`}>
+                      ✅ {t('Confirmer', 'Confirm')}
+                    </button>
+                    <button onClick={() => setShowResetPin(false)}
+                      className="flex-1 py-2 rounded-xl text-xs font-bold bg-white/10 text-white">
+                      ✕ {t('Annuler', 'Cancel')}
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div style={{ padding: "20px", background: "var(--surface)", borderRadius: "10px", border: "2px dashed var(--border)", textAlign: "center", marginBottom: "10px" }}>
-                  <div style={{ fontSize: "32px", marginBottom: "6px" }}>🖼️</div>
-                  <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: 0 }}>Aucun logo — cliquez pour en ajouter un</p>
-                </div>
+                <button onClick={() => setShowResetPin(true)}
+                  className="w-full py-3 rounded-xl font-bold text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all">
+                  🔐 {t('Réinitialiser PIN', 'Reset PIN')}
+                </button>
               )}
-              <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={handleLogoUpload} style={{ display: "none" }}/>
-              <button onClick={() => logoInputRef.current?.click()} style={{ width: "100%", padding: "12px", borderRadius: "10px", cursor: "pointer", border: "1px solid var(--primary)", background: "var(--primary)12", color: "var(--primary)", fontSize: "14px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                📁 {company.logoUrl ? "Changer le logo" : "Choisir un logo"}
+            </div>
+          </div>
+        )}
+
+        {/* ─── TAB 2 : THÈME ─── */}
+        {activeTab === 2 && (
+          <div className={`rounded-2xl p-5 ${cardClass}
+            ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+              : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+              : 'bg-white/5 border border-white/10'}`}>
+            {isDeco && <DecoCorners />}
+            {sectionTitle(t('🎨 Choisir un thème', '🎨 Choose a Theme'))}
+            <div className="grid grid-cols-2 gap-3">
+              {THEMES.map(th => (
+                <button key={th.id} onClick={() => setTheme(th.id as any)}
+                  className={`p-4 rounded-2xl flex flex-col items-center gap-2 font-bold text-sm transition-all
+                    ${themeId === th.id
+                      ? 'ring-2 ring-white/60 scale-105 shadow-xl'
+                      : 'hover:scale-102 opacity-80'
+                    } bg-gradient-to-br ${th.colors} text-white`}>
+                  <span className="text-2xl">{th.label.split(' ')[0]}</span>
+                  <span>{th.label.split(' ').slice(1).join(' ')}</span>
+                  {themeId === th.id && <span className="text-xs">✅ {t('Actif', 'Active')}</span>}
+                </button>
+              ))}
+            </div>
+            {isDeco && <DecoDiamondRow />}
+          </div>
+        )}
+
+        {/* ─── TAB 3 : LANGUE ─── */}
+        {activeTab === 3 && (
+          <div className={`rounded-2xl p-5 ${cardClass}
+            ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+              : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+              : 'bg-white/5 border border-white/10'}`}>
+            {isDeco && <DecoCorners />}
+            {sectionTitle(t('🌐 Langue / Language', '🌐 Language / Langue'))}
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { code: 'fr', flag: '🇫🇷', label: 'Français' },
+                { code: 'en', flag: '🇺🇸', label: 'English' },
+              ].map(l => (
+                <button key={l.code} onClick={() => setLang(l.code as 'fr' | 'en')}
+                  className={`p-5 rounded-2xl flex flex-col items-center gap-2 font-bold text-lg transition-all
+                    ${lang === l.code
+                      ? isDeco ? 'bg-[#D6B25E] text-[#0d0a00] ring-2 ring-[#D6B25E]/50 scale-105'
+                        : isQuantum ? 'bg-violet-600 text-white ring-2 ring-violet-400/50 scale-105'
+                        : 'bg-white/20 text-white ring-2 ring-white/30 scale-105'
+                      : 'bg-white/5 text-white/60 hover:bg-white/10'
+                    }`}>
+                  <span className="text-4xl">{l.flag}</span>
+                  <span className="text-sm">{l.label}</span>
+                  {lang === l.code && <span className="text-xs">✅ {t('Actif', 'Active')}</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ─── TAB 4 : PAIEMENT ─── */}
+        {activeTab === 4 && (
+          <div className={`rounded-2xl p-5 space-y-4 ${cardClass}
+            ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+              : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+              : 'bg-white/5 border border-white/10'}`}>
+            {isDeco && <DecoCorners />}
+            {sectionTitle(t('💳 Informations de paiement', '💳 Payment Information'))}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className={labelClass}>{t('Courriel Virement (e-Transfer)', 'E-Transfer Email')}</label>
+                <input className={inputClass} value={company.etransferEmail}
+                  onChange={e => setCompany({ etransferEmail: e.target.value })}
+                  placeholder="paiement@hailite.ca" />
+              </div>
+              <div className="col-span-2">
+                <label className={labelClass}>{t('Nom de la banque', 'Bank Name')}</label>
+                <input className={inputClass} value={company.bankName}
+                  onChange={e => setCompany({ bankName: e.target.value })}
+                  placeholder="TD Bank" />
+              </div>
+              <div>
+                <label className={labelClass}>{t('Transit', 'Transit')}</label>
+                <input className={inputClass} value={company.bankTransit}
+                  onChange={e => setCompany({ bankTransit: e.target.value })}
+                  placeholder="00000" />
+              </div>
+              <div>
+                <label className={labelClass}>{t('Institution', 'Institution')}</label>
+                <input className={inputClass} value={company.bankInstitution}
+                  onChange={e => setCompany({ bankInstitution: e.target.value })}
+                  placeholder="004" />
+              </div>
+              <div className="col-span-2">
+                <label className={labelClass}>{t('N° de compte', 'Account Number')}</label>
+                <input className={inputClass} value={company.bankAccount}
+                  onChange={e => setCompany({ bankAccount: e.target.value })}
+                  placeholder="1234567" />
+              </div>
+            </div>
+            {isDeco && <DecoDiamondRow />}
+          </div>
+        )}
+
+        {/* ─── TAB 5 : RAPPELS VOCAUX ─── */}
+        {activeTab === 5 && (
+          <div className={`rounded-2xl p-5 space-y-5 ${cardClass}
+            ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+              : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+              : 'bg-white/5 border border-white/10'}`}>
+            {isDeco && <DecoCorners />}
+            {sectionTitle(t('🔔 Rappels vocaux Punch Out', '🔔 Voice Punch Out Reminders'))}
+
+            {/* Toggle ON/OFF */}
+            <div className="flex items-center justify-between">
+              <div>
+                <div className={`font-semibold ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>
+                  {t('Rappels activés', 'Reminders Enabled')}
+                </div>
+                <div className="text-white/40 text-xs mt-0.5">
+                  {t('Rappels vocaux progressifs', 'Progressive voice reminders')}
+                </div>
+              </div>
+              <button
+                onClick={() => setVoiceEnabled(!voiceEnabled)}
+                className={`relative w-14 h-7 rounded-full transition-all duration-300
+                  ${voiceEnabled
+                    ? isDeco ? 'bg-[#D6B25E]' : isQuantum ? 'bg-violet-500' : 'bg-emerald-500'
+                    : 'bg-white/20'}`}>
+                <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all duration-300
+                  ${voiceEnabled ? 'left-8' : 'left-1'}`} />
               </button>
-              <p style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "6px", textAlign: "center" }}>PNG, JPG, SVG ou WEBP recommandé · Fond transparent idéal</p>
             </div>
-            <button style={btnPrimary} onClick={save}>{saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}</button>
-          </div>
-        )}
 
-        {/* ── CONTACT ── */}
-        {activeSection === "contact" && (
-          <div className={cardClass} style={cardStyle}>
-            <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>📞 Coordonnées</h2>
-            <Field label="Adresse" value={company.address} onChange={(v) => updateCompany({ address: v })}/>
-            <Field label="Ville" value={company.city} onChange={(v) => updateCompany({ city: v })}/>
-            <Field label="Province" value={company.province} onChange={(v) => updateCompany({ province: v })}/>
-            <Field label="Code postal" value={company.postalCode} onChange={(v) => updateCompany({ postalCode: v })}/>
-            <Field label="Téléphone" value={company.phone} onChange={(v) => updateCompany({ phone: v })} type="tel"/>
-            <Field label="Courriel" value={company.email} onChange={(v) => updateCompany({ email: v })} type="email"/>
-            <Field label="Site web" value={company.website} onChange={(v) => updateCompany({ website: v })}/>
-            <button style={btnPrimary} onClick={save}>{saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}</button>
-          </div>
-        )}
-
-        {/* ── LEGAL ── */}
-        {activeSection === "legal" && (
-          <div className={cardClass} style={cardStyle}>
-            <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>📋 Légal & Taxes (Alberta)</h2>
-            <div style={{ background: "var(--success)18", border: "1px solid var(--success)44", borderRadius: "8px", padding: "12px", marginBottom: "16px", fontSize: "13px", color: "var(--success)" }}>
-              Alberta = GST 5% seulement (pas de PST/HST). WCB pour assurance employés.
-            </div>
-            <Field label="Numéro GST/HST (5% Alberta)" value={company.gstNumber} onChange={(v) => updateCompany({ gstNumber: v })} placeholder="123456789 RT 0001"/>
-            <Field label="Numéro WCB" value={company.wcbNumber} onChange={(v) => updateCompany({ wcbNumber: v })}/>
-            <Field label="Numéro d'entreprise (CRA)" value={company.businessNumber} onChange={(v) => updateCompany({ businessNumber: v })}/>
-            <button style={btnPrimary} onClick={save}>{saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}</button>
-          </div>
-        )}
-
-        {/* ── PAYMENT ── */}
-        {activeSection === "payment" && (
-          <div className={cardClass} style={cardStyle}>
-            <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>💳 Informations de Paiement</h2>
-            <Field label="Courriel Interac e-Transfer" value={company.etransferEmail} onChange={(v) => updateCompany({ etransferEmail: v })} type="email"/>
-            <Field label="Nom de la banque" value={company.bankName} onChange={(v) => updateCompany({ bankName: v })}/>
-            <Field label="Numéro de transit" value={company.bankTransit} onChange={(v) => updateCompany({ bankTransit: v })}/>
-            <Field label="Numéro de compte" value={company.bankAccount} onChange={(v) => updateCompany({ bankAccount: v })}/>
-            <button style={btnPrimary} onClick={save}>{saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}</button>
-          </div>
-        )}
-
-        {/* ── BILLING ── */}
-        {activeSection === "billing" && (
-          <div className={cardClass} style={cardStyle}>
-            <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>🧾 Paramètres Facturation</h2>
-            <Field label="Dépôt requis (%)" value={company.defaultDepositPercent} onChange={(v) => updateCompany({ defaultDepositPercent: Number(v) })} type="number"/>
-            <Field label="Délai de paiement (jours)" value={company.defaultPaymentTermsDays} onChange={(v) => updateCompany({ defaultPaymentTermsDays: Number(v) })} type="number"/>
-            <div style={{ marginBottom: "12px" }}>
-              <label style={labelStyle}>Notes par défaut</label>
-              <textarea value={company.defaultNotes} onChange={(e) => updateCompany({ defaultNotes: e.target.value })} rows={3} style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px 12px", color: "var(--text)", fontSize: "15px", boxSizing: "border-box", outline: "none", resize: "vertical" }}/>
-            </div>
-            <button style={btnPrimary} onClick={save}>{saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}</button>
-          </div>
-        )}
-
-        {/* ── EMPLOYEES ── */}
-        {activeSection === "employees" && (
-          <div className={cardClass} style={cardStyle}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text)" }}>👷 Employés <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 400 }}>({employees.length})</span></h2>
-              <button onClick={() => { setShowAddEmp(!showAddEmp); setEmpError(""); }} style={btnSmallPrimary}>{showAddEmp ? "✕ Fermer" : "+ Ajouter"}</button>
-            </div>
-            {showAddEmp && (
-              <div style={{ background: "var(--surface)", border: "2px solid var(--primary)", borderRadius: "12px", padding: "16px", marginBottom: "16px" }}>
-                <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)", marginTop: 0, marginBottom: "14px", letterSpacing: "1px", textTransform: "uppercase" }}>➕ Nouvel Employé</p>
-                {empError && (<div style={{ background: "#7f1d1d22", border: "1px solid #7f1d1d", borderRadius: "8px", padding: "10px", marginBottom: "12px", fontSize: "13px", color: "#fca5a5" }}>⚠️ {empError}</div>)}
-                <div style={{ marginBottom: "10px" }}><label style={labelStyle}>Nom complet *</label><input value={newEmpName} onChange={e => setNewEmpName(e.target.value)} placeholder="Ex: Jean Tremblay" style={inputStyle}/></div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
-                  <div><label style={labelStyle}>PIN (4 chiffres) *</label><input value={newEmpPin} onChange={e => setNewEmpPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="1234" maxLength={4} type="password" style={inputStyle}/></div>
-                  <div><label style={labelStyle}>Rôle</label><select value={newEmpRole} onChange={e => setNewEmpRole(e.target.value as "admin"|"employee")} style={selectStyle}><option value="employee">👷 Employé</option><option value="admin">👑 Admin</option></select></div>
+            {/* Volume */}
+            {voiceEnabled && (
+              <div className="space-y-2">
+                <label className={labelClass}>
+                  {t('Volume', 'Volume')} : {Math.round(voiceVolume * 100)}%
+                </label>
+                <input
+                  type="range" min="0" max="1" step="0.05"
+                  value={voiceVolume}
+                  onChange={e => setVoiceVolume(parseFloat(e.target.value))}
+                  className="w-full accent-violet-500"
+                />
+                <div className="text-white/40 text-xs">
+                  {t('Rappels à 4h, 8h, 9h, puis toutes les 15 min à 10h+',
+                     'Reminders at 4h, 8h, 9h, then every 15 min at 10h+')}
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
-                  <div><label style={labelStyle}>Mode de travail</label><select value={newEmpMode} onChange={e => setNewEmpMode(e.target.value as "heure"|"surface"|"forfait")} style={selectStyle}><option value="heure">⏱ Par heure</option><option value="surface">📐 Par surface</option><option value="forfait">💼 Forfait</option></select></div>
-                  <div><label style={labelStyle}>Taux horaire ($)</label><input type="number" value={newEmpRate} onChange={e => setNewEmpRate(Number(e.target.value))} min={0} style={inputStyle}/></div>
-                </div>
-                <button onClick={handleAddEmployee} style={btnPrimary}>✅ Créer l&apos;employé</button>
               </div>
             )}
-            {employees.length === 0 ? (<p style={{ color: "var(--text-muted)", textAlign: "center", padding: "20px 0" }}>Aucun employé enregistré</p>) : (
-              employees.map((emp) => (
-                <div key={emp.id} className={cardClass} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px", background: "var(--surface)", borderRadius: "10px", marginBottom: "8px", border: "1px solid var(--border)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ width: "36px", height: "36px", borderRadius: isXP ? "8px" : "50%", background: emp.color || "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 800, color: "white", boxShadow: `0 0 10px ${emp.color}55` }}>{emp.name[0].toUpperCase()}</div>
-                    <div><div style={{ fontWeight: 700, color: "var(--text)" }}>{emp.name}</div><div style={{ fontSize: "12px", color: "var(--text-muted)" }}>{emp.role === "admin" ? "👑 Admin" : "👷 Employé"}{emp.hourlyRate ? ` • $${emp.hourlyRate}/h` : ""}</div></div>
-                  </div>
-                  {emp.role !== "admin" && (<button onClick={() => { if (confirm(`Supprimer ${emp.name}?`)) deleteEmployee(emp.id); }} style={{ background: "#7f1d1d", color: "#fca5a5", border: "none", borderRadius: "8px", padding: "8px 14px", cursor: "pointer", fontSize: "12px", fontWeight: 700 }}>Supprimer</button>)}
-                </div>
-              ))
+
+            {/* Test */}
+            {voiceEnabled && (
+              <button
+                onClick={() => {
+                  const utterance = new SpeechSynthesisUtterance(
+                    lang === 'fr'
+                      ? 'Test de rappel vocal — Pense à pointer ta sortie!'
+                      : 'Voice reminder test — Don\'t forget to punch out!'
+                  )
+                  utterance.volume = voiceVolume
+                  utterance.lang = lang === 'fr' ? 'fr-CA' : 'en-CA'
+                  speechSynthesis.speak(utterance)
+                }}
+                className={`w-full py-3 rounded-xl font-bold text-sm transition-all
+                  ${isDeco ? 'bg-[#D6B25E]/20 text-[#D6B25E] hover:bg-[#D6B25E]/30'
+                    : isQuantum ? 'bg-violet-500/20 text-violet-300 hover:bg-violet-500/30'
+                    : 'bg-white/10 text-white hover:bg-white/20'}`}>
+                🔊 {t('Tester le rappel vocal', 'Test Voice Reminder')}
+              </button>
             )}
+
+            {isDeco && <DecoDiamondRow />}
           </div>
         )}
 
-        {/* ── CLIENTS ── */}
-        {activeSection === "clients" && (
-          <div className={cardClass} style={cardStyle}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text)" }}>👥 Clients <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 400 }}>({clients.length})</span></h2>
-              <button onClick={() => setShowAddClient(!showAddClient)} style={btnSmallPrimary}>{showAddClient ? "✕ Fermer" : "+ Ajouter"}</button>
+        {/* ─── TAB 6 : CONDITIONS ─── */}
+        {activeTab === 6 && (
+          <div className={`rounded-2xl p-5 space-y-4 ${cardClass}
+            ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+              : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+              : 'bg-white/5 border border-white/10'}`}>
+            {isDeco && <DecoCorners />}
+            {sectionTitle(t('📋 Conditions par défaut', '📋 Default Terms'))}
+
+            <div>
+              <label className={labelClass}>{t('Délai de paiement', 'Payment Terms')}</label>
+              <select className={inputClass} value={company.defaultPaymentTerms}
+                onChange={e => setCompany({ defaultPaymentTerms: e.target.value })}>
+                <option value="Due on receipt">{t('Dû à réception', 'Due on Receipt')}</option>
+                <option value="Net 15">Net 15</option>
+                <option value="Net 30">Net 30</option>
+                <option value="Net 45">Net 45</option>
+                <option value="Net 60">Net 60</option>
+              </select>
             </div>
-            {showAddClient && (
-              <div style={{ background: "var(--surface)", border: "2px solid var(--primary)", borderRadius: "12px", padding: "16px", marginBottom: "16px" }}>
-                <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)", marginTop: 0, marginBottom: "14px", letterSpacing: "1px", textTransform: "uppercase" }}>➕ Nouveau Client</p>
-                <div style={{ marginBottom: "10px" }}><label style={labelStyle}>Nom *</label><input value={newCName} onChange={e => setNewCName(e.target.value)} placeholder="Nom du client ou compagnie" style={inputStyle}/></div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
-                  <div><label style={labelStyle}>Téléphone</label><input value={newCPhone} onChange={e => setNewCPhone(e.target.value)} placeholder="780-555-1234" type="tel" style={inputStyle}/></div>
-                  <div><label style={labelStyle}>Courriel</label><input value={newCEmail} onChange={e => setNewCEmail(e.target.value)} placeholder="client@email.com" type="email" style={inputStyle}/></div>
-                </div>
-                <div style={{ marginBottom: "10px" }}><label style={labelStyle}>Adresse</label><input value={newCAddress} onChange={e => setNewCAddress(e.target.value)} placeholder="123 rue Exemple" style={inputStyle}/></div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
-                  <div><label style={labelStyle}>Ville</label><input value={newCCity} onChange={e => setNewCCity(e.target.value)} placeholder="Calgary" style={inputStyle}/></div>
-                  <div><label style={labelStyle}>Code postal</label><input value={newCPostal} onChange={e => setNewCPostal(e.target.value)} placeholder="T2X 0A1" style={inputStyle}/></div>
-                </div>
-                <button onClick={handleAddClient} style={btnPrimary}>✅ Ajouter le client</button>
+
+            <div>
+              <label className={labelClass}>{t('Notes par défaut sur documents', 'Default Notes on Documents')}</label>
+              <textarea
+                className={`${inputClass} min-h-[100px] resize-none`}
+                value={company.defaultNotes}
+                onChange={e => setCompany({ defaultNotes: e.target.value })}
+                placeholder={t(
+                  'Merci pour votre confiance. Intérêts de 2% par mois sur les comptes en souffrance.',
+                  'Thank you for your business. 2% monthly interest on overdue accounts.'
+                )}
+              />
+            </div>
+
+            {isDeco && <DecoDiamondRow />}
+          </div>
+        )}
+
+        {/* ─── TAB 7 : AVANCÉ ─── */}
+        {activeTab === 7 && (
+          <div className={`rounded-2xl p-5 space-y-4 ${cardClass}
+            ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+              : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+              : 'bg-white/5 border border-white/10'}`}>
+            {isDeco && <DecoCorners />}
+            {sectionTitle(t('⚙️ Options avancées', '⚙️ Advanced Options'))}
+
+            <div className={`p-4 rounded-xl ${isDeco ? 'bg-[#D6B25E]/10 border border-[#D6B25E]/20'
+              : 'bg-white/5 border border-white/10'}`}>
+              <div className={`font-semibold mb-1 ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>
+                {t('🗑️ Vider le cache local', '🗑️ Clear Local Cache')}
               </div>
-            )}
-            {clients.length === 0 ? (<div style={{ textAlign: "center", padding: "30px 0", color: "var(--text-muted)" }}><div style={{ fontSize: "32px", marginBottom: "8px" }}>👥</div><p style={{ fontSize: "14px" }}>Aucun client enregistré</p><p style={{ fontSize: "12px" }}>Cliquez &quot;+ Ajouter&quot; pour commencer</p></div>) : (
-              clients.map((client) => (
-                <div key={client.id} className={cardClass} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px", background: "var(--surface)", borderRadius: "10px", marginBottom: "8px", border: "1px solid var(--border)" }}>
-                  <div><div style={{ fontWeight: 700, color: "var(--text)", fontSize: "14px" }}>{client.name}</div><div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>{client.phone ? `📞 ${client.phone}` : ""}{client.phone && client.city ? " • " : ""}{client.city ? `📍 ${client.city}` : ""}{!client.phone && !client.city && client.email ? `✉️ ${client.email}` : ""}</div></div>
-                  <button onClick={() => { if (confirm(`Supprimer ${client.name}?`)) deleteClient(client.id); }} style={{ background: "#7f1d1d", color: "#fca5a5", border: "none", borderRadius: "8px", padding: "8px 14px", cursor: "pointer", fontSize: "12px", fontWeight: 700 }}>Supprimer</button>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* ── CATALOGUE ── */}
-        {activeSection === "catalogue" && (
-          <div className={cardClass} style={cardStyle}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text)" }}>📦 Catalogue <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 400 }}>({materials.length} articles)</span></h2>
-              <button onClick={() => setShowAddMat(!showAddMat)} style={btnSmallPrimary}>{showAddMat ? "✕ Fermer" : "+ Ajouter"}</button>
-            </div>
-            {showAddMat && (
-              <div style={{ background: "var(--surface)", border: "2px solid var(--primary)", borderRadius: "12px", padding: "16px", marginBottom: "16px" }}>
-                <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)", marginTop: 0, marginBottom: "14px", letterSpacing: "1px", textTransform: "uppercase" }}>➕ Nouveau Matériau</p>
-                <div style={{ marginBottom: "10px" }}><label style={labelStyle}>Nom *</label><input value={newMatName} onChange={e => setNewMatName(e.target.value)} placeholder="Ex: Bardeau premium" style={inputStyle}/></div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "10px" }}>
-                  <div><label style={labelStyle}>Prix ($)</label><input type="number" value={newMatPrice} onChange={e => setNewMatPrice(parseFloat(e.target.value) || 0)} min={0} step={0.01} style={inputStyle}/></div>
-                  <div><label style={labelStyle}>Unité</label><select value={newMatUnit} onChange={e => setNewMatUnit(e.target.value)} style={selectStyle}>{["pi²","pi lin.","boîte","rouleau","feuille","tube","unité","heure"].map(u => <option key={u} value={u}>{u}</option>)}</select></div>
-                  <div><label style={labelStyle}>Emoji</label><input value={newMatEmoji} onChange={e => setNewMatEmoji(e.target.value)} placeholder="📦" style={{ ...inputStyle, textAlign: "center" }}/></div>
-                </div>
-                <div style={{ marginBottom: "16px" }}><label style={labelStyle}>Catégorie</label><select value={newMatCat} onChange={e => setNewMatCat(e.target.value)} style={selectStyle}><option value="toiture">🏠 Toiture</option><option value="siding">🏡 Siding</option><option value="fixations">🔩 Fixations</option><option value="etancheite">💧 Étanchéité</option><option value="structure">🪵 Structure</option><option value="maindoeuvre">👷 Main d&apos;oeuvre</option></select></div>
-                <button onClick={handleAddMaterial} style={btnPrimary}>✅ Ajouter au catalogue</button>
+              <div className="text-white/50 text-xs mb-3">
+                {t('Efface toutes les données enregistrées localement. Action irréversible.',
+                   'Clears all locally stored data. This action cannot be undone.')}
               </div>
-            )}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "14px" }}>
-              {[{ key: "toiture", label: "Toiture", emoji: "🏠", color: "#ea580c" }, { key: "siding", label: "Siding", emoji: "🏡", color: "#f59e0b" }, { key: "fixations", label: "Fixations", emoji: "🔩", color: "#06b6d4" }, { key: "etancheite", label: "Étanchéité", emoji: "💧", color: "#3b82f6" }, { key: "structure", label: "Structure", emoji: "🪵", color: "#22c55e" }, { key: "maindoeuvre", label: "Main-d'oeuvre", emoji: "👷", color: "#a855f7" }].map(cat => {
-                const count = materials.filter(m => m.category === cat.key).length;
-                return (<div key={cat.key} style={{ background: `${cat.color}15`, border: `1px solid ${cat.color}44`, borderRadius: "8px", padding: "10px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: "12px", color: cat.color, fontWeight: 700 }}>{cat.emoji} {cat.label}</span><span style={{ fontSize: "16px", fontWeight: 800, color: cat.color }}>{count}</span></div>);
-              })}
+              <button
+                onClick={() => {
+                  if (confirm(t('Êtes-vous certain? Toutes les données seront perdues.',
+                    'Are you sure? All data will be lost.'))) {
+                    localStorage.clear()
+                    window.location.reload()
+                  }
+                }}
+                className="w-full py-2 rounded-xl text-xs font-bold bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all">
+                🗑️ {t('Vider le cache', 'Clear Cache')}
+              </button>
             </div>
-            <button onClick={() => router.push("/catalogue")} style={{ width: "100%", padding: "14px", borderRadius: "10px", cursor: "pointer", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: "14px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>📦 Gérer le catalogue complet →</button>
-          </div>
-        )}
 
-        {/* ── THEME ── */}
-        {activeSection === "theme" && <ThemeSection/>}
-
-        {/* ── RAPPELS ── */}
-        {activeSection === "rappels" && <RappelsSection/>}
-
-        {/* ── NUMBERING ── */}
-        {activeSection === "numbering" && (
-          <div className={cardClass} style={cardStyle}>
-            <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>🔢 Numérotation des Documents</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
-              <Field label="Préfixe Facture"      value={company.invoicePrefix}      onChange={(v) => updateCompany({ invoicePrefix: v })}      placeholder="FAC"/>
-              <Field label="Prochain # Facture"   value={company.nextInvoiceNumber}  onChange={(v) => updateCompany({ nextInvoiceNumber: Number(v) })}  type="number"/>
-              <Field label="Préfixe Devis"        value={company.quotePrefix}        onChange={(v) => updateCompany({ quotePrefix: v })}        placeholder="DEV"/>
-              <Field label="Prochain # Devis"     value={company.nextQuoteNumber}    onChange={(v) => updateCompany({ nextQuoteNumber: Number(v) })}    type="number"/>
-              <Field label="Préfixe Contrat"      value={company.contractPrefix}     onChange={(v) => updateCompany({ contractPrefix: v })}     placeholder="CTR"/>
-              <Field label="Prochain # Contrat"   value={company.nextContractNumber} onChange={(v) => updateCompany({ nextContractNumber: Number(v) })} type="number"/>
+            <div className={`p-4 rounded-xl ${isDeco ? 'bg-[#D6B25E]/10 border border-[#D6B25E]/20'
+              : 'bg-white/5 border border-white/10'}`}>
+              <div className={`font-semibold mb-1 ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>
+                📱 PWA
+              </div>
+              <div className="text-white/50 text-xs">
+                {t('Pour installer l\'app sur votre téléphone : Navigateur → Partager → Ajouter à l\'écran d\'accueil',
+                   'To install the app on your phone: Browser → Share → Add to Home Screen')}
+              </div>
             </div>
-            <div style={{ background: "var(--surface)", borderRadius: "8px", padding: "12px", marginBottom: "12px", fontSize: "13px", color: "var(--text-muted)" }}>
-              Exemple: <strong style={{ color: "var(--primary)" }}>{company.invoicePrefix}-{String(company.nextInvoiceNumber).padStart(3, "0")}</strong>
-            </div>
-            <button style={btnPrimary} onClick={save}>{saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}</button>
-          </div>
-        )}
 
-        {/* ── DANGER ── */}
-        {activeSection === "danger" && (
-          <div className={cardClass} style={{ ...cardStyle, borderColor: "#7f1d1d" }}>
-            <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "8px", color: "#fca5a5" }}>⚠️ Zone Danger</h2>
-            <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "16px" }}>Ces actions sont irréversibles.</p>
-            <button style={btnDanger} onClick={() => { if (confirm("Réinitialiser la numérotation? Repart à 001.")) { resetNumbering(); alert("Numérotation réinitialisée."); } }}>🔢 Réinitialiser numérotation (001)</button>
-            <button style={{ ...btnDanger, marginTop: "12px" }} onClick={() => { if (confirm("ATTENTION: Effacer TOUTES les données de la compagnie?")) { updateCompany({ name: "Hailite Xteriors", tagline: "", address: "", city: "", phone: "", email: "", gstNumber: "", wcbNumber: "", businessNumber: "", etransferEmail: "" }); alert("Données réinitialisées."); } }}>🗑️ Réinitialiser infos compagnie</button>
+            <div className={`p-4 rounded-xl text-center ${isDeco ? 'bg-[#D6B25E]/5 border border-[#D6B25E]/10'
+              : 'bg-white/5 border border-white/10'}`}>
+              <div className="text-white/30 text-xs">
+                Gestion Chantier Pro — Hailite Xteriors<br />
+                v2.0 • Alberta GST 5% • Made with ❤️
+              </div>
+            </div>
+
+            {isDeco && <DecoDiamondRow />}
           </div>
         )}
 
       </div>
     </div>
-  );
+  )
 }
