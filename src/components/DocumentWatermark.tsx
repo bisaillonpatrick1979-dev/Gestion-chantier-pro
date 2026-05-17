@@ -2,10 +2,11 @@
 import React from 'react'
 
 export interface DocumentWatermarkProps {
+  // ✅ COMMANDE ajouté — fix erreur TypeScript commandes/page.tsx
   type: 'FACTURE' | 'DEVIS' | 'CONTRAT' | 'BON DE COMMANDE' | 'COMMANDE'
   logoUrl?: string
   companyName?: string
-  employeeName?: string   // Si défini → filigrane employé (nom + FACTURE)
+  employeeName?: string   // Si défini → filigrane employé (nom + type)
   opacity?: number
   fullPage?: boolean      // true = position fixed (pleine page), false = position absolute (dans une carte)
 }
@@ -32,7 +33,6 @@ const DocumentWatermark: React.FC<DocumentWatermarkProps> = ({
         pointerEvents: 'none',
         zIndex: 0,
         overflow: 'hidden',
-        // Assure que le conteneur lui-même est transparent
         background: 'transparent',
       }}
     >
@@ -46,7 +46,6 @@ const DocumentWatermark: React.FC<DocumentWatermarkProps> = ({
           transform: 'rotate(-22deg)',
           userSelect: 'none',
           textAlign: 'center',
-          // Pas de background ici non plus
           background: 'transparent',
         }}
       >
@@ -60,12 +59,11 @@ const DocumentWatermark: React.FC<DocumentWatermarkProps> = ({
               width: fullPage ? '200px' : '110px',
               height: fullPage ? '200px' : '110px',
               objectFit: 'contain',
-              // Supprime tout fond/bordure autour du logo
               background: 'transparent',
               border: 'none',
               boxShadow: 'none',
               borderRadius: 0,
-              // mix-blend-mode pour que le blanc du logo devienne transparent
+              // Fond blanc PNG → transparent
               mixBlendMode: 'multiply',
             }}
           />
