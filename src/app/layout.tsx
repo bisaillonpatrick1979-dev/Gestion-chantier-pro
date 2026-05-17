@@ -4,6 +4,7 @@ import Navbar from '@/components/layout/Navbar'
 import BottomNav from '@/components/layout/BottomNav'
 import OnboardingGuard from '@/components/OnboardingGuard'
 import PWARegister from '@/components/PWARegister'
+import ThemeInjector from '@/components/ThemeInjector'
 
 export const metadata: Metadata = {
   title: 'Gestion Chantier Pro',
@@ -40,19 +41,18 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <head>
-        {/* PWA iOS */}
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Chantier Pro" />
-        {/* Manifest */}
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className="bg-[#08001a] min-h-screen overflow-x-hidden">
+      <body className="min-h-screen overflow-x-hidden">
+        <ThemeInjector />
         <OnboardingGuard />
         <PWARegister />
         <Navbar />
-        <main className="pt-16">
+        <main className="pt-16" style={{ paddingBottom: 80 }}>
           {children}
         </main>
         <BottomNav />
