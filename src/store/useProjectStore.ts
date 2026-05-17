@@ -16,13 +16,16 @@ export interface MaterialEntry {
 export interface EmployeeWorkLog {
   employeeId: string;
   employeeName: string;
-  hourlyRate: number;         // taux propre à cet employé
-  punchIn: string;            // ISO string
-  punchOut?: string;          // ISO string — undefined si encore punché in
-  hoursWorked?: number;       // calculé au punch out
-  materials?: MaterialEntry[]; // si mode pi²
-  jobPay?: number;            // si mode à la job — montant fixe pour cette session
-  date: string;               // YYYY-MM-DD
+  hourlyRate: number;
+  punchIn: string;
+  punchOut?: string;
+  hoursWorked?: number;
+  materials?: MaterialEntry[];
+  jobPay?: number;
+  date: string;
+  // ✅ Nouveaux champs pour punch sans projet assigné
+  chantier?: string;          // adresse/nom du chantier entré par l'employé
+  payMode?: PayMode;          // mode choisi au punch in
 }
 
 export interface ProjectExpense {
@@ -34,31 +37,26 @@ export interface ProjectExpense {
 
 export interface Project {
   id: string;
-  name: string;               // ex: "Epic Extérieur — toiture"
+  name: string;
   clientId: string;
   clientName: string;
   address: string;
   city: string;
-  // Mode de paiement des EMPLOYÉS sur ce projet
   payMode: PayMode;
-  hourlyRate?: number;        // taux horaire si mode hourly (taux par défaut, chaque employé peut avoir le sien)
-  jobAmount?: number;         // montant total à la job (ce que l'employé reçoit)
-  sqftRate?: number;          // taux pi² par défaut
-  // Montant que le CLIENT paie (admin seulement — invisible aux employés)
+  hourlyRate?: number;
+  jobAmount?: number;
+  sqftRate?: number;
   clientAmount?: number;
-  // Employés assignés
   assignedEmployeeIds: string[];
-  // Work logs — toutes les sessions de tous les employés
   workLogs: EmployeeWorkLog[];
-  // Dépenses
   expenses: ProjectExpense[];
-  // Statut
   status: 'open' | 'closed' | 'invoiced';
   createdAt: string;
   closedAt?: string;
-  // Lien vers la facture générée
   invoiceId?: string;
   notes?: string;
+  // ✅ Projet virtuel = créé automatiquement au punch in sans projet assigné
+  isVirtual?: boolean;
 }
 
 // ─── Calculs ──────────────────────────────────────────────────────────────────
@@ -66,7 +64,6 @@ export interface Project {
 export function calcProjectStats(project: Project) {
   const completedLogs = project.workLogs.filter((l) => l.punchOut);
 
-  // Total heures par employé
   const byEmployee: Record<string, {
     employeeId: string;
     employeeName: string;
@@ -94,23 +91,23 @@ export function calcProjectStats(project: Project) {
     const emp = byEmployee[log.employeeId];
     emp.sessions++;
 
-    if (project.payMode === 'hourly') {
+    const effectivePayMode = log.payMode ?? project.payMode;
+
+    if (effectivePayMode === 'hourly') {
       const hours = log.hoursWorked ?? 0;
       emp.totalHours += hours;
       emp.totalPay += hours * log.hourlyRate;
       totalLaborCost += hours * log.hourlyRate;
-    } else if (project.payMode === 'job') {
+    } else if (effectivePayMode === 'job') {
       emp.totalPay += log.jobPay ?? 0;
       totalLaborCost += log.jobPay ?? 0;
-    } else if (project.payMode === 'sqft') {
+    } else if (effectivePayMode === 'sqft') {
       const hours = log.hoursWorked ?? 0;
       emp.totalHours += hours;
-      // Pour pi², on calcule la revenue des matériaux
       for (const mat of log.materials ?? []) {
         totalSqft += mat.sqft;
         totalSqftRevenue += mat.sqft * mat.ratePerSqft;
       }
-      // Salaire employé au pi² = heures × son taux horaire
       emp.totalPay += hours * log.hourlyRate;
       totalLaborCost += hours * log.hourlyRate;
     }
@@ -125,22 +122,12 @@ export function calcProjectStats(project: Project) {
   const effectiveRate = totalHours > 0 ? (clientRevenue - totalExpenses) / totalHours : 0;
   const margin = clientRevenue - totalLaborCost - totalExpenses;
   const marginPercent = clientRevenue > 0 ? (margin / clientRevenue) * 100 : 0;
-
-  // Employé actif (pas encore punché out)
   const activeLog = project.workLogs.find((l) => !l.punchOut);
 
   return {
-    byEmployee,
-    totalLaborCost,
-    totalExpenses,
-    totalHours,
-    totalSqft,
-    totalSqftRevenue,
-    clientRevenue,
-    effectiveRate,
-    margin,
-    marginPercent,
-    activeLog,
+    byEmployee, totalLaborCost, totalExpenses, totalHours,
+    totalSqft, totalSqftRevenue, clientRevenue, effectiveRate,
+    margin, marginPercent, activeLog,
   };
 }
 
@@ -148,24 +135,22 @@ export function calcProjectStats(project: Project) {
 
 interface ProjectStore {
   projects: Project[];
-  // CRUD projets
   addProject: (p: Omit<Project, 'id' | 'createdAt' | 'workLogs' | 'expenses' | 'status'>) => string;
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
   closeProject: (id: string) => void;
-  // Work logs
   punchIn: (projectId: string, log: Omit<EmployeeWorkLog, 'punchOut' | 'hoursWorked'>) => void;
   punchOut: (projectId: string, employeeId: string, data: {
     materials?: MaterialEntry[];
     jobPay?: number;
   }) => void;
-  // Dépenses
   addExpense: (projectId: string, expense: Omit<ProjectExpense, 'id'>) => void;
   removeExpense: (projectId: string, expenseId: string) => void;
-  // Helpers
   getOpenProjects: () => Project[];
   getProjectsForEmployee: (employeeId: string) => Project[];
   getActiveLogForEmployee: (employeeId: string) => { project: Project; log: EmployeeWorkLog } | null;
+  // ✅ Nouveau — punch in sans projet assigné (crée un projet virtuel)
+  punchInVirtual: (log: Omit<EmployeeWorkLog, 'punchOut' | 'hoursWorked'>) => string;
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -180,14 +165,7 @@ export const useProjectStore = create<ProjectStore>()(
         set((state) => ({
           projects: [
             ...state.projects,
-            {
-              ...p,
-              id,
-              createdAt: new Date().toISOString(),
-              workLogs: [],
-              expenses: [],
-              status: 'open',
-            },
+            { ...p, id, createdAt: new Date().toISOString(), workLogs: [], expenses: [], status: 'open' },
           ],
         }));
         return id;
@@ -195,9 +173,7 @@ export const useProjectStore = create<ProjectStore>()(
 
       updateProject: (id, updates) =>
         set((state) => ({
-          projects: state.projects.map((p) =>
-            p.id === id ? { ...p, ...updates } : p
-          ),
+          projects: state.projects.map((p) => p.id === id ? { ...p, ...updates } : p),
         })),
 
       deleteProject: (id) =>
@@ -208,20 +184,43 @@ export const useProjectStore = create<ProjectStore>()(
       closeProject: (id) =>
         set((state) => ({
           projects: state.projects.map((p) =>
-            p.id === id
-              ? { ...p, status: 'closed', closedAt: new Date().toISOString() }
-              : p
+            p.id === id ? { ...p, status: 'closed', closedAt: new Date().toISOString() } : p
           ),
         })),
 
       punchIn: (projectId, log) =>
         set((state) => ({
           projects: state.projects.map((p) =>
-            p.id === projectId
-              ? { ...p, workLogs: [...p.workLogs, log] }
-              : p
+            p.id === projectId ? { ...p, workLogs: [...p.workLogs, log] } : p
           ),
         })),
+
+      // ✅ Crée un projet virtuel automatiquement et punch in dedans
+      punchInVirtual: (log) => {
+        const projectId = `virtual-${log.employeeId}-${Date.now()}`
+        const chantierName = log.chantier || 'Chantier sans nom'
+        set((state) => ({
+          projects: [
+            ...state.projects,
+            {
+              id: projectId,
+              name: chantierName,
+              clientId: '',
+              clientName: '',
+              address: chantierName,
+              city: '',
+              payMode: log.payMode ?? 'hourly',
+              assignedEmployeeIds: [log.employeeId],
+              workLogs: [log],
+              expenses: [],
+              status: 'open',
+              createdAt: new Date().toISOString(),
+              isVirtual: true,
+            },
+          ],
+        }))
+        return projectId
+      },
 
       punchOut: (projectId, employeeId, data) =>
         set((state) => ({
@@ -232,10 +231,8 @@ export const useProjectStore = create<ProjectStore>()(
               ...p,
               workLogs: p.workLogs.map((log) => {
                 if (log.employeeId !== employeeId || log.punchOut) return log;
-                const punchInDate = new Date(log.punchIn);
-                const punchOutDate = new Date(punchOutTime);
                 const hoursWorked =
-                  (punchOutDate.getTime() - punchInDate.getTime()) / (1000 * 60 * 60);
+                  (new Date(punchOutTime).getTime() - new Date(log.punchIn).getTime()) / (1000 * 60 * 60);
                 return {
                   ...log,
                   punchOut: punchOutTime,
@@ -251,10 +248,7 @@ export const useProjectStore = create<ProjectStore>()(
         set((state) => ({
           projects: state.projects.map((p) =>
             p.id === projectId
-              ? {
-                  ...p,
-                  expenses: [...p.expenses, { ...expense, id: uid() }],
-                }
+              ? { ...p, expenses: [...p.expenses, { ...expense, id: uid() }] }
               : p
           ),
         })),
