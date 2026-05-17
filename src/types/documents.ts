@@ -1,77 +1,58 @@
 // src/types/documents.ts
 
-export type DocumentType      = 'facture' | 'devis' | 'contrat'
-export type DocumentStatus    = 'brouillon' | 'envoye' | 'accepte' | 'refuse' | 'paye'
-export type DocumentDiscount  = 'none' | 'percent' | 'fixed'
-
 export interface LineItem {
   id: string
   description: string
-  quantity: number
+  qty: number
+  unit: string
   unitPrice: number
-  total: number
 }
 
-export interface DocumentTax {
+export interface GCPDocument {
   id: string
-  name: string
-  rate: number
-  enabled: boolean
-}
-
-// Alias pour compatibilité avec useDocumentStore
-export type TaxLine = DocumentTax
-
-export interface DocumentClient {
-  name: string
-  email: string
-  phone: string
-  address: string
-  city: string
-  province: string
-  postalCode: string
-}
-
-export interface DocumentCompany {
-  name?: string
-  address?: string
-  city?: string
-  phone?: string
-  email?: string
-  license?: string
-  gst?: string
-  wcb?: string
-  logo?: string
-  [key: string]: string | undefined
-}
-
-export interface Document {
-  id: string
-  type: DocumentType
+  type: 'invoice' | 'quote' | 'contract'
   number: string
   date: string
-  dueDate: string
-  createdAt?: string
-  status: DocumentStatus
-  client: DocumentClient
-  company?: DocumentCompany
-  items: LineItem[]
+  dueDate?: string
+  status: 'draft' | 'sent' | 'paid' | 'overdue'
+
+  // Client
+  clientId?: string
+  clientName: string
+  clientAddress?: string
+  clientEmail?: string
+  clientPhone?: string
+
+  // Compagnie (auto depuis useCompanyStore)
+  companyName?: string
+  companyAddress?: string
+  companyPhone?: string
+  companyEmail?: string
+  companyGST?: string
+  companyWCB?: string
+  companyLogo?: string
+
+  // Lignes
+  lines: LineItem[]
+
+  // Calculs
   subtotal: number
-  discountType: DocumentDiscount
-  discountValue: number
-  discountAmount: number
-  taxes: DocumentTax[]
+  discountPct?: number
+  discountAmount?: number
+  taxRate: number
+  taxAmount: number
   total: number
-  totalTax?: number
-  deposit: number
-  balanceDue: number
-  notes: string
-  terms: string
-  clientSignature?: string
-  clientSignatureDate?: string
-  contractorSignature?: string
-  contractorSignatureDate?: string
-  [key: string]: unknown
+  depositAmount?: number
+  balanceDue?: number
+
+  // Notes / signature
+  notes?: string
+  signature?: string
+
+  // Timestamps
+  createdAt: string
+  updatedAt: string
 }
 
-export default Document
+// Alias de compatibilité — au cas où d'autres fichiers utilisent encore 'Document'
+export type Document = GCPDocument
