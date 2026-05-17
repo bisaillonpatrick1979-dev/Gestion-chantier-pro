@@ -168,8 +168,8 @@ export default function PunchInModal({
     if (!activeSession) return
     const elapsed = activeSession.elapsed
     const hours = elapsed / 3600
-    const rate = (activeEntry?.log as { hourlyRate?: number })?.log?.hourlyRate
-      ?? parseFloat(customRate) || employeeHourlyRate
+    const rate = ((activeEntry?.log as { hourlyRate?: number })?.log?.hourlyRate
+      ?? parseFloat(customRate)) || employeeHourlyRate
     const chantierName = (activeEntry?.log as { chantier?: string })?.chantier
       || activeEntry?.project?.address || 'Chantier'
     const activePay: PayMode = (activeEntry?.log as { payMode?: PayMode })?.payMode ?? payMode
@@ -485,8 +485,8 @@ export default function PunchInModal({
   // ─────────────────────────────────────────────────────────────────────────
   const elapsed = activeSession?.elapsed ?? 0
   const hours = elapsed / 3600
-  const rate = (activeEntry?.log as { hourlyRate?: number })?.hourlyRate
-    ?? parseFloat(customRate) || employeeHourlyRate
+  const rate = ((activeEntry?.log as { hourlyRate?: number })?.hourlyRate
+    ?? parseFloat(customRate)) || employeeHourlyRate
   const chantierName = (activeEntry?.log as { chantier?: string })?.chantier
     || activeEntry?.project?.address || 'Chantier'
   const activePay: PayMode = (activeEntry?.log as { payMode?: PayMode })?.payMode ?? payMode
