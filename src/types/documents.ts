@@ -1,5 +1,8 @@
 // src/types/documents.ts
 
+export type DocumentType = 'invoice' | 'quote' | 'contract'
+export type DocumentStatus = 'draft' | 'sent' | 'paid' | 'overdue'
+
 export interface LineItem {
   id: string
   description: string
@@ -10,11 +13,11 @@ export interface LineItem {
 
 export interface GCPDocument {
   id: string
-  type: 'invoice' | 'quote' | 'contract'
+  type: DocumentType
   number: string
   date: string
   dueDate?: string
-  status: 'draft' | 'sent' | 'paid' | 'overdue'
+  status: DocumentStatus
 
   // Client
   clientId?: string
