@@ -97,42 +97,36 @@ export default function ClientsPage() {
     }
   }
 
+  // ✅ FIX : clientName, clientPhone, etc. (pas client:{})
   const handleCreateInvoice = (client: Client) => {
-    const doc = addDocument('facture')
+    const doc = addDocument('invoice')
     updateDocument(doc.id, {
-      client: {
-        name: client.name,
-        phone: client.phone,
-        email: client.email,
-        address: client.address,
-        city: client.city,
-        province: client.province,
-        postalCode: client.postalCode,
-      }
+      clientId: client.id,
+      clientName: client.name,
+      clientPhone: client.phone,
+      clientEmail: client.email,
+      clientAddress: `${client.address}, ${client.city} ${client.province} ${client.postalCode}`.trim(),
     })
     router.push(`/documents/${doc.id}`)
   }
 
   const handleCreateQuote = (client: Client) => {
-    const doc = addDocument('devis')
+    const doc = addDocument('quote')
     updateDocument(doc.id, {
-      client: {
-        name: client.name,
-        phone: client.phone,
-        email: client.email,
-        address: client.address,
-        city: client.city,
-        province: client.province,
-        postalCode: client.postalCode,
-      }
+      clientId: client.id,
+      clientName: client.name,
+      clientPhone: client.phone,
+      clientEmail: client.email,
+      clientAddress: `${client.address}, ${client.city} ${client.province} ${client.postalCode}`.trim(),
     })
     router.push(`/documents/${doc.id}`)
   }
 
-  // Get client documents history
+  // ✅ FIX : d.clientName (pas d.client.name)
   const getClientDocs = (client: Client) =>
     documents.filter(d =>
-      d.client.name.toLowerCase() === client.name.toLowerCase()
+      d.clientId === client.id ||
+      d.clientName?.toLowerCase() === client.name.toLowerCase()
     )
 
   const formCard = (
@@ -143,12 +137,12 @@ export default function ClientsPage() {
 
       {[
         { label: t('Nom complet *', 'Full name *'), field: 'name', placeholder: 'Jean Tremblay' },
-        { label: t('Téléphone', 'Phone'), field: 'phone', placeholder: '514-555-0000' },
+        { label: t('Téléphone', 'Phone'), field: 'phone', placeholder: '403-555-0000' },
         { label: 'Email', field: 'email', placeholder: 'client@email.com' },
-        { label: t('Adresse', 'Address'), field: 'address', placeholder: '123 Rue Principale' },
-        { label: t('Ville', 'City'), field: 'city', placeholder: 'Montréal' },
-        { label: t('Province', 'Province'), field: 'province', placeholder: 'QC' },
-        { label: t('Code postal', 'Postal code'), field: 'postalCode', placeholder: 'H1A 1A1' },
+        { label: t('Adresse', 'Address'), field: 'address', placeholder: '123 Main St' },
+        { label: t('Ville', 'City'), field: 'city', placeholder: 'Calgary' },
+        { label: t('Province', 'Province'), field: 'province', placeholder: 'AB' },
+        { label: t('Code postal', 'Postal code'), field: 'postalCode', placeholder: 'T2X 1A1' },
       ].map(({ label, field, placeholder }) => (
         <div key={field}>
           <label style={labelStyle}>{label}</label>
@@ -200,16 +194,15 @@ export default function ClientsPage() {
   if (selectedClient) {
     const clientDocs = getClientDocs(selectedClient)
     const totalRevenue = clientDocs
-      .filter(d => d.status === 'paye')
+      .filter(d => d.status === 'paid')
       .reduce((s, d) => s + d.total, 0)
     const pendingRevenue = clientDocs
-      .filter(d => d.status === 'envoye' || d.status === 'accepte')
-      .reduce((s, d) => s + d.balanceDue, 0)
+      .filter(d => d.status === 'sent')
+      .reduce((s, d) => s + (d.balanceDue ?? d.total), 0)
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-        {/* HEADER */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button onClick={() => setSelectedClient(null)} style={{
             color: theme.colors.textMuted, background: 'none',
@@ -233,7 +226,6 @@ export default function ClientsPage() {
 
         {editingId === selectedClient.id && formCard}
 
-        {/* CLIENT INFO */}
         {editingId !== selectedClient.id && (
           <div style={card}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -273,9 +265,7 @@ export default function ClientsPage() {
             ))}
 
             {selectedClient.notes && (
-              <div style={{
-                background: theme.colors.surface, borderRadius: '8px', padding: '10px 12px',
-              }}>
+              <div style={{ background: theme.colors.surface, borderRadius: '8px', padding: '10px 12px' }}>
                 <p style={{ color: theme.colors.textMuted, fontSize: '10px', marginBottom: '4px' }}>
                   {t('Notes', 'Notes')}
                 </p>
@@ -285,35 +275,24 @@ export default function ClientsPage() {
           </div>
         )}
 
-        {/* REVENUE SUMMARY */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div style={card}>
-            <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
-              {t('Total encaissé', 'Total collected')}
-            </p>
-            <p style={{ color: '#22c55e', fontSize: '20px', fontWeight: '800' }}>
-              {formatCurrency(totalRevenue)}
-            </p>
+            <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{t('Total encaissé', 'Total collected')}</p>
+            <p style={{ color: '#22c55e', fontSize: '20px', fontWeight: '800' }}>{formatCurrency(totalRevenue)}</p>
           </div>
           <div style={card}>
-            <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
-              {t('En attente', 'Pending')}
-            </p>
-            <p style={{ color: '#f59e0b', fontSize: '20px', fontWeight: '800' }}>
-              {formatCurrency(pendingRevenue)}
-            </p>
+            <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{t('En attente', 'Pending')}</p>
+            <p style={{ color: '#f59e0b', fontSize: '20px', fontWeight: '800' }}>{formatCurrency(pendingRevenue)}</p>
           </div>
         </div>
 
-        {/* ACTION BUTTONS */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           <button onClick={() => handleCreateInvoice(selectedClient)} style={{
             padding: '14px', borderRadius: '12px', cursor: 'pointer',
             border: `1px solid ${theme.colors.primary}`,
             background: theme.colors.glow1, color: theme.colors.primary,
             fontSize: '13px', fontWeight: '700',
-            display: 'flex', flexDirection: 'column' as const,
-            alignItems: 'center', gap: '4px',
+            display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: '4px',
           }}>
             <span style={{ fontSize: '20px' }}>📄</span>
             {t('Nouvelle facture', 'New invoice')}
@@ -323,15 +302,13 @@ export default function ClientsPage() {
             border: `1px solid ${theme.colors.secondary}`,
             background: `rgba(245,158,11,0.1)`, color: theme.colors.secondary,
             fontSize: '13px', fontWeight: '700',
-            display: 'flex', flexDirection: 'column' as const,
-            alignItems: 'center', gap: '4px',
+            display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: '4px',
           }}>
             <span style={{ fontSize: '20px' }}>📋</span>
             {t('Nouveau devis', 'New quote')}
           </button>
         </div>
 
-        {/* DOCUMENT HISTORY */}
         <div style={card}>
           <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: '700' }}>
             📁 {t('HISTORIQUE', 'HISTORY')} ({clientDocs.length})
@@ -344,11 +321,10 @@ export default function ClientsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {[...clientDocs].reverse().map(doc => {
                 const statusColors: Record<string, string> = {
-                  brouillon: '#64748b', envoye: '#3b82f6',
-                  accepte: '#22c55e', refuse: '#ef4444', paye: '#f59e0b'
+                  draft: '#64748b', sent: '#3b82f6', paid: '#22c55e', overdue: '#ef4444',
                 }
                 const typeEmojis: Record<string, string> = {
-                  facture: '📄', devis: '📋', contrat: '📝'
+                  invoice: '📄', quote: '📋', contract: '📝'
                 }
                 return (
                   <button key={doc.id}
@@ -360,14 +336,12 @@ export default function ClientsPage() {
                       textAlign: 'left' as const,
                     }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '20px' }}>{typeEmojis[doc.type]}</span>
+                      <span style={{ fontSize: '20px' }}>{typeEmojis[doc.type] ?? '📄'}</span>
                       <div>
                         <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: '700' }}>
-                          {doc.number}
+                          {doc.number || doc.id.slice(0, 8)}
                         </p>
-                        <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
-                          {doc.date}
-                        </p>
+                        <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{doc.date}</p>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' as const }}>
@@ -375,7 +349,7 @@ export default function ClientsPage() {
                         {formatCurrency(doc.total)}
                       </p>
                       <p style={{
-                        color: statusColors[doc.status] || theme.colors.textMuted,
+                        color: statusColors[doc.status] ?? theme.colors.textMuted,
                         fontSize: '10px', fontWeight: '700', textTransform: 'uppercase' as const
                       }}>
                         {doc.status}
@@ -410,7 +384,6 @@ export default function ClientsPage() {
         </button>
       </div>
 
-      {/* SEARCH */}
       <input
         value={search}
         onChange={e => setSearch(e.target.value)}
@@ -423,52 +396,33 @@ export default function ClientsPage() {
         }}
       />
 
-      {/* ADD FORM */}
       {showAdd && formCard}
 
-      {/* STATS */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         <div style={card}>
-          <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
-            {t('Total clients', 'Total clients')}
-          </p>
-          <p style={{ color: theme.colors.primary, fontSize: '24px', fontWeight: '800' }}>
-            {clients.length}
-          </p>
+          <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{t('Total clients', 'Total clients')}</p>
+          <p style={{ color: theme.colors.primary, fontSize: '24px', fontWeight: '800' }}>{clients.length}</p>
         </div>
         <div style={card}>
-          <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
-            {t('Total revenus', 'Total revenue')}
-          </p>
+          <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{t('Total revenus', 'Total revenue')}</p>
           <p style={{ color: theme.colors.secondary, fontSize: '18px', fontWeight: '800' }}>
-            {formatCurrency(
-              documents
-                .filter(d => d.status === 'paye')
-                .reduce((s, d) => s + d.total, 0)
-            )}
+            {formatCurrency(documents.filter(d => d.status === 'paid').reduce((s, d) => s + d.total, 0))}
           </p>
         </div>
       </div>
 
-      {/* CLIENT LIST */}
       {filtered.length === 0 ? (
         <div style={{ ...card, textAlign: 'center' as const, padding: '40px' }}>
           <p style={{ fontSize: '40px', marginBottom: '12px' }}>👥</p>
           <p style={{ color: theme.colors.textMuted, fontSize: '14px' }}>
-            {search
-              ? t('Aucun client trouvé', 'No client found')
-              : t('Aucun client. Ajoutez-en un !', 'No clients yet. Add one!')
-            }
+            {search ? t('Aucun client trouvé', 'No client found') : t('Aucun client. Ajoutez-en un !', 'No clients yet. Add one!')}
           </p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {filtered.map(client => {
             const clientDocs = getClientDocs(client)
-            const totalPaid = clientDocs
-              .filter(d => d.status === 'paye')
-              .reduce((s, d) => s + d.total, 0)
-
+            const totalPaid = clientDocs.filter(d => d.status === 'paid').reduce((s, d) => s + d.total, 0)
             return (
               <button key={client.id}
                 onClick={() => setSelectedClient(client)}
@@ -487,9 +441,7 @@ export default function ClientsPage() {
                   {client.name[0].toUpperCase()}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ color: theme.colors.text, fontSize: '15px', fontWeight: '700' }}>
-                    {client.name}
-                  </p>
+                  <p style={{ color: theme.colors.text, fontSize: '15px', fontWeight: '700' }}>{client.name}</p>
                   <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
                     {client.city || client.phone || client.email}
                   </p>
@@ -516,4 +468,3 @@ export default function ClientsPage() {
     </div>
   )
 }
-
