@@ -66,7 +66,7 @@ export default function PunchInModal({
   employeeId, employeeName, employeeHourlyRate,
   mode, onComplete, onCancel,
 }: Props) {
-  const { getActiveLogForEmployee, punchIn, punchOut } = useProjectStore()
+  const { getActiveLogForEmployee, punchInVirtual, punchOut } = useProjectStore()
   const { employees, activeSessions, getNextInvoiceNumber, incrementInvoiceSequence } = useEmployeeStore()
   const invoiceStore = useInvoiceStore()
   const { materials: catalogue } = useCatalogueStore()
@@ -116,10 +116,7 @@ export default function PunchInModal({
   // ── Punch In ───────────────────────────────────────────────────────────────
   function handlePunchIn() {
     if (!chantier.trim()) return
-
-    // Crée un projet virtuel pour le ProjectStore (compatibilité)
-    const virtualProjectId = `virtual-${employeeId}-${Date.now()}`
-    punchIn(virtualProjectId, {
+    punchInVirtual({
       employeeId,
       employeeName,
       hourlyRate: parseFloat(customRate) || employeeHourlyRate,
