@@ -70,7 +70,7 @@ export default function SettingsPage() {
       pin: newPin,
       role: newRole,
       hourlyRate: parseFloat(newRate) || 0,
-      workMode: 'hourly',
+      workMode: 'heure',
       color: '#a855f7',
       active: true,
       invoiceSequence: 1,
