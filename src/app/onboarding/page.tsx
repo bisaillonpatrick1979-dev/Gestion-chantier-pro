@@ -14,7 +14,7 @@ export default function OnboardingPage() {
   const router = useRouter()
   const { complete, completed, reset } = useOnboardingStore()
   const { setLang } = useLangStore()
-  const { updateCompany } = useCompanyStore()
+  const { setCompany } = useCompanyStore()
 
   const [step, setStep]                   = useState<Step>(1)
   const [animKey, setAnimKey]             = useState(0)
@@ -23,7 +23,6 @@ export default function OnboardingPage() {
   const [selectedCountry, setSelectedCountry] = useState<Country>('CA')
   const [selectedProvince, setSelectedProvince] = useState('AB')
 
-  // Si déjà complété, retour au dashboard
   useEffect(() => {
     if (completed) router.replace('/')
   }, [completed, router])
@@ -54,7 +53,7 @@ export default function OnboardingPage() {
 
   function handleComplete() {
     setLang(selectedLang)
-    updateCompany({ province: selectedProvince })
+    setCompany({ province: selectedProvince })
     complete({ lang: selectedLang, country: selectedCountry, province: selectedProvince })
     router.replace('/')
   }
@@ -85,7 +84,6 @@ export default function OnboardingPage() {
         .ob-choice:active { transform: scale(0.97); }
       `}</style>
 
-      {/* Étoiles de fond */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
         {['⭐','✨','💜','🔮','⚡','🌟','💫'].map((star, i) => (
           <div key={i} style={{
@@ -100,7 +98,6 @@ export default function OnboardingPage() {
         ))}
       </div>
 
-      {/* Indicateur de progression */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', position: 'relative', zIndex: 1 }}>
         {([1,2,3,4] as Step[]).map(s => (
           <div key={s} style={{
@@ -114,7 +111,6 @@ export default function OnboardingPage() {
         ))}
       </div>
 
-      {/* Carte principale */}
       <div
         key={`step-${animKey}`}
         className={animDir === 'fwd' ? 'ob-fwd' : 'ob-back'}
@@ -126,29 +122,20 @@ export default function OnboardingPage() {
           boxShadow: '0 0 80px rgba(168,85,247,0.15), 0 30px 80px rgba(0,0,0,0.5)',
         }}
       >
-
-        {/* ══ ÉTAPE 1 — LANGUE ═══════════════════════════════════════════════ */}
+        {/* ══ ÉTAPE 1 — LANGUE ══ */}
         {step === 1 && (
           <div style={{ textAlign: 'center' }}>
             <div className="ob-float" style={{ fontSize: '70px', marginBottom: '18px', lineHeight: 1 }}>🏗️</div>
-
             <h1 className="ob-shimmer" style={{ fontSize: '20px', fontWeight: 900, letterSpacing: '3px', marginBottom: '4px' }}>
               GESTION CHANTIER PRO
             </h1>
-            <p style={{ color: '#6b7280', fontSize: '11px', letterSpacing: '3px', marginBottom: '6px' }}>
-              HAILITE XTERIORS
-            </p>
+            <p style={{ color: '#6b7280', fontSize: '11px', letterSpacing: '3px', marginBottom: '6px' }}>HAILITE XTERIORS</p>
             <div style={{ width: '50px', height: '2px', background: 'linear-gradient(90deg, transparent, #a855f7, transparent)', margin: '0 auto 28px' }}/>
-
             <p style={{ color: '#a855f7', fontSize: '12px', fontWeight: 800, letterSpacing: '2px', marginBottom: '20px', textTransform: 'uppercase' }}>
               Choisissez votre langue · Choose your language
             </p>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button className="ob-choice" onClick={() => selectLang('fr')} style={{
-                border: '1px solid rgba(168,85,247,0.45)',
-                background: 'rgba(168,85,247,0.08)',
-              }}>
+              <button className="ob-choice" onClick={() => selectLang('fr')} style={{ border: '1px solid rgba(168,85,247,0.45)', background: 'rgba(168,85,247,0.08)' }}>
                 <span style={{ fontSize: '44px' }}>🇨🇦</span>
                 <div>
                   <p style={{ color: '#e9d5ff', fontSize: '20px', fontWeight: 900, margin: 0 }}>Français</p>
@@ -156,11 +143,7 @@ export default function OnboardingPage() {
                 </div>
                 <span style={{ marginLeft: 'auto', color: '#a855f7', fontSize: '20px' }}>→</span>
               </button>
-
-              <button className="ob-choice" onClick={() => selectLang('en')} style={{
-                border: '1px solid rgba(34,211,238,0.4)',
-                background: 'rgba(34,211,238,0.05)',
-              }}>
+              <button className="ob-choice" onClick={() => selectLang('en')} style={{ border: '1px solid rgba(34,211,238,0.4)', background: 'rgba(34,211,238,0.05)' }}>
                 <span style={{ fontSize: '44px' }}>🇺🇸</span>
                 <div>
                   <p style={{ color: '#e9d5ff', fontSize: '20px', fontWeight: 900, margin: 0 }}>English</p>
@@ -169,58 +152,41 @@ export default function OnboardingPage() {
                 <span style={{ marginLeft: 'auto', color: '#22d3ee', fontSize: '20px' }}>→</span>
               </button>
             </div>
-
             <p style={{ color: '#4c1d95', fontSize: '11px', marginTop: '20px' }}>
               Vous pourrez changer la langue dans les Réglages · You can change language in Settings
             </p>
           </div>
         )}
 
-        {/* ══ ÉTAPE 2 — PAYS ═════════════════════════════════════════════════ */}
+        {/* ══ ÉTAPE 2 — PAYS ══ */}
         {step === 2 && (
           <div>
-            <button onClick={() => goTo(1, 'back')} style={{
-              background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer',
-              fontSize: '13px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px', padding: 0,
-            }}>
+            <button onClick={() => goTo(1, 'back')} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '13px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px', padding: 0 }}>
               ← {t('Retour', 'Back')}
             </button>
-
             <div style={{ textAlign: 'center', marginBottom: '28px' }}>
               <div style={{ fontSize: '52px', marginBottom: '14px' }}>🌍</div>
-              <h2 style={{ color: '#e9d5ff', fontSize: '22px', fontWeight: 900, marginBottom: '8px', margin: '0 0 8px' }}>
+              <h2 style={{ color: '#e9d5ff', fontSize: '22px', fontWeight: 900, margin: '0 0 8px' }}>
                 {t('Où êtes-vous situés ?', 'Where are you located?')}
               </h2>
               <p style={{ color: '#6b7280', fontSize: '13px', margin: 0 }}>
                 {t('Pour configurer les taxes automatiquement', 'To configure taxes automatically')}
               </p>
             </div>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button className="ob-choice" onClick={() => selectCountry('CA')} style={{
-                border: '1px solid rgba(168,85,247,0.45)',
-                background: 'rgba(168,85,247,0.08)',
-              }}>
+              <button className="ob-choice" onClick={() => selectCountry('CA')} style={{ border: '1px solid rgba(168,85,247,0.45)', background: 'rgba(168,85,247,0.08)' }}>
                 <span style={{ fontSize: '44px' }}>🇨🇦</span>
                 <div>
                   <p style={{ color: '#e9d5ff', fontSize: '20px', fontWeight: 900, margin: 0 }}>Canada</p>
-                  <p style={{ color: '#6b7280', fontSize: '12px', margin: '2px 0 0' }}>
-                    GST 5% (AB) → HST 15% (ON/NB…)
-                  </p>
+                  <p style={{ color: '#6b7280', fontSize: '12px', margin: '2px 0 0' }}>GST 5% (AB) → HST 15% (ON/NB…)</p>
                 </div>
                 <span style={{ marginLeft: 'auto', color: '#a855f7', fontSize: '20px' }}>→</span>
               </button>
-
-              <button className="ob-choice" onClick={() => selectCountry('US')} style={{
-                border: '1px solid rgba(34,211,238,0.4)',
-                background: 'rgba(34,211,238,0.05)',
-              }}>
+              <button className="ob-choice" onClick={() => selectCountry('US')} style={{ border: '1px solid rgba(34,211,238,0.4)', background: 'rgba(34,211,238,0.05)' }}>
                 <span style={{ fontSize: '44px' }}>🇺🇸</span>
                 <div>
                   <p style={{ color: '#e9d5ff', fontSize: '20px', fontWeight: 900, margin: 0 }}>United States</p>
-                  <p style={{ color: '#6b7280', fontSize: '12px', margin: '2px 0 0' }}>
-                    0% (AK/MT/OR) → 7.25% (CA)
-                  </p>
+                  <p style={{ color: '#6b7280', fontSize: '12px', margin: '2px 0 0' }}>0% (AK/MT/OR) → 7.25% (CA)</p>
                 </div>
                 <span style={{ marginLeft: 'auto', color: '#22d3ee', fontSize: '20px' }}>→</span>
               </button>
@@ -228,51 +194,26 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ══ ÉTAPE 3 — PROVINCE / ÉTAT ══════════════════════════════════════ */}
+        {/* ══ ÉTAPE 3 — PROVINCE ══ */}
         {step === 3 && (
           <div>
-            <button onClick={() => goTo(2, 'back')} style={{
-              background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer',
-              fontSize: '13px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px', padding: 0,
-            }}>
+            <button onClick={() => goTo(2, 'back')} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '13px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px', padding: 0 }}>
               ← {t('Retour', 'Back')}
             </button>
-
             <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-              <div style={{ fontSize: '52px', marginBottom: '12px' }}>
-                {selectedCountry === 'CA' ? '🍁' : '⭐'}
-              </div>
+              <div style={{ fontSize: '52px', marginBottom: '12px' }}>{selectedCountry === 'CA' ? '🍁' : '⭐'}</div>
               <h2 style={{ color: '#e9d5ff', fontSize: '20px', fontWeight: 900, margin: '0 0 6px' }}>
-                {t(
-                  selectedCountry === 'CA' ? 'Votre province' : 'Votre état',
-                  selectedCountry === 'CA' ? 'Your province' : 'Your state'
-                )}
+                {t(selectedCountry === 'CA' ? 'Votre province' : 'Votre état', selectedCountry === 'CA' ? 'Your province' : 'Your state')}
               </h2>
               <p style={{ color: '#6b7280', fontSize: '12px', margin: 0 }}>
                 {t('Les taxes s\'ajustent automatiquement', 'Taxes adjust automatically')}
               </p>
             </div>
-
-            {/* Sélecteur */}
             <div style={{ marginBottom: '18px' }}>
-              <label style={{
-                display: 'block', fontSize: '11px', color: '#6b7280',
-                fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '8px',
-              }}>
+              <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '8px' }}>
                 {t(selectedCountry === 'CA' ? 'Province' : 'État', selectedCountry === 'CA' ? 'Province' : 'State')}
               </label>
-              <select
-                value={selectedProvince}
-                onChange={e => setSelectedProvince(e.target.value)}
-                style={{
-                  width: '100%', padding: '14px 16px',
-                  background: 'rgba(168,85,247,0.1)',
-                  border: '1px solid rgba(168,85,247,0.45)',
-                  borderRadius: '14px', color: '#e9d5ff',
-                  fontSize: '16px', fontWeight: 700, outline: 'none',
-                  boxSizing: 'border-box', cursor: 'pointer',
-                }}
-              >
+              <select value={selectedProvince} onChange={e => setSelectedProvince(e.target.value)} style={{ width: '100%', padding: '14px 16px', background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.45)', borderRadius: '14px', color: '#e9d5ff', fontSize: '16px', fontWeight: 700, outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}>
                 {provinces.map(p => (
                   <option key={p.code} value={p.code} style={{ background: '#12082a', color: '#e9d5ff' }}>
                     {p.flag} {selectedLang === 'fr' ? p.nameFr : p.nameEn} ({p.code})
@@ -280,15 +221,7 @@ export default function OnboardingPage() {
                 ))}
               </select>
             </div>
-
-            {/* Aperçu taxes */}
-            <div style={{
-              padding: '16px', borderRadius: '14px',
-              background: 'rgba(34,197,94,0.1)',
-              border: '1px solid rgba(34,197,94,0.35)',
-              marginBottom: '24px',
-              display: 'flex', alignItems: 'center', gap: '14px',
-            }}>
+            <div style={{ padding: '16px', borderRadius: '14px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.35)', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px' }}>
               <span style={{ fontSize: '28px' }}>💰</span>
               <div>
                 <p style={{ color: '#22c55e', fontSize: '11px', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 4px' }}>
@@ -304,108 +237,49 @@ export default function OnboardingPage() {
                 )}
               </div>
             </div>
-
-            <button onClick={() => goTo(4, 'fwd')} className="ob-btn-main" style={{
-              width: '100%', padding: '18px', borderRadius: '16px', border: 'none',
-              cursor: 'pointer', fontSize: '16px', fontWeight: 900, letterSpacing: '1px',
-              background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-              color: 'white',
-            }}>
+            <button onClick={() => goTo(4, 'fwd')} className="ob-btn-main" style={{ width: '100%', padding: '18px', borderRadius: '16px', border: 'none', cursor: 'pointer', fontSize: '16px', fontWeight: 900, letterSpacing: '1px', background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white' }}>
               {t('Continuer →', 'Continue →')}
             </button>
           </div>
         )}
 
-        {/* ══ ÉTAPE 4 — RÉSUMÉ + START ═══════════════════════════════════════ */}
+        {/* ══ ÉTAPE 4 — RÉSUMÉ ══ */}
         {step === 4 && (
           <div style={{ textAlign: 'center' }}>
             <div className="ob-float" style={{ fontSize: '70px', marginBottom: '16px', lineHeight: 1 }}>🚀</div>
-
             <h2 style={{ color: '#22c55e', fontSize: '24px', fontWeight: 900, marginBottom: '8px', letterSpacing: '1px' }}>
               {t('Tout est prêt !', 'All set!')}
             </h2>
             <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '28px', lineHeight: 1.5 }}>
-              {t(
-                "Votre application est configurée et prête à l'emploi.",
-                'Your application is configured and ready to use.'
-              )}
+              {t("Votre application est configurée et prête à l'emploi.", 'Your application is configured and ready to use.')}
             </p>
-
-            {/* Résumé de la config */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '28px', textAlign: 'left' }}>
               {[
-                {
-                  icon: '🌐', label: t('Langue', 'Language'),
-                  value: selectedLang === 'fr' ? '🇨🇦 Français' : '🇺🇸 English',
-                  color: '#a855f7',
-                },
-                {
-                  icon: '🌍', label: t('Pays', 'Country'),
-                  value: selectedCountry === 'CA' ? '🇨🇦 Canada' : '🇺🇸 United States',
-                  color: '#22d3ee',
-                },
-                {
-                  icon: '📍', label: t('Région', 'Region'),
-                  value: currentRegion
-                    ? `${currentRegion.flag} ${selectedLang === 'fr' ? currentRegion.nameFr : currentRegion.nameEn} (${selectedProvince})`
-                    : selectedProvince,
-                  color: '#f59e0b',
-                },
-                {
-                  icon: '💰', label: t('Taxes', 'Tax Rate'),
-                  value: `${taxPct}% — ${taxLabel}`,
-                  color: '#22c55e',
-                },
+                { icon: '🌐', label: t('Langue', 'Language'),  value: selectedLang === 'fr' ? '🇨🇦 Français' : '🇺🇸 English', color: '#a855f7' },
+                { icon: '🌍', label: t('Pays', 'Country'),     value: selectedCountry === 'CA' ? '🇨🇦 Canada' : '🇺🇸 United States', color: '#22d3ee' },
+                { icon: '📍', label: t('Région', 'Region'),    value: currentRegion ? `${currentRegion.flag} ${selectedLang === 'fr' ? currentRegion.nameFr : currentRegion.nameEn} (${selectedProvince})` : selectedProvince, color: '#f59e0b' },
+                { icon: '💰', label: t('Taxes', 'Tax Rate'),   value: `${taxPct}% — ${taxLabel}`, color: '#22c55e' },
               ].map(item => (
-                <div key={item.label} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '13px 16px', borderRadius: '12px',
-                  background: `${item.color}12`, border: `1px solid ${item.color}33`,
-                }}>
-                  <span style={{ color: '#6b7280', fontSize: '12px', fontWeight: 700 }}>
-                    {item.icon} {item.label}
-                  </span>
-                  <span style={{ color: item.color, fontSize: '13px', fontWeight: 800 }}>
-                    {item.value}
-                  </span>
+                <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 16px', borderRadius: '12px', background: `${item.color}12`, border: `1px solid ${item.color}33` }}>
+                  <span style={{ color: '#6b7280', fontSize: '12px', fontWeight: 700 }}>{item.icon} {item.label}</span>
+                  <span style={{ color: item.color, fontSize: '13px', fontWeight: 800 }}>{item.value}</span>
                 </div>
               ))}
             </div>
-
-            {/* Modifier */}
-            <button onClick={() => goTo(3, 'back')} style={{
-              background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer',
-              fontSize: '13px', marginBottom: '18px', display: 'flex', alignItems: 'center',
-              gap: '6px', padding: 0, margin: '0 auto 18px',
-            }}>
+            <button onClick={() => goTo(3, 'back')} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '13px', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '6px', padding: 0, margin: '0 auto 18px' }}>
               ← {t('Modifier la config', 'Edit configuration')}
             </button>
-
-            {/* Bouton démarrer */}
-            <button onClick={handleComplete} className="ob-btn-main" style={{
-              width: '100%', padding: '22px', borderRadius: '18px', border: 'none',
-              cursor: 'pointer', fontSize: '18px', fontWeight: 900, letterSpacing: '2px',
-              background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #22d3ee 100%)',
-              backgroundSize: '200% auto', color: 'white',
-            }}>
+            <button onClick={handleComplete} className="ob-btn-main" style={{ width: '100%', padding: '22px', borderRadius: '18px', border: 'none', cursor: 'pointer', fontSize: '18px', fontWeight: 900, letterSpacing: '2px', background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #22d3ee 100%)', backgroundSize: '200% auto', color: 'white' }}>
               {t('🚀 DÉMARRER L\'APP', '🚀 LET\'S START!')}
             </button>
-
             <p style={{ color: '#4c1d95', fontSize: '11px', marginTop: '14px', lineHeight: 1.5 }}>
-              {t(
-                'Vous pouvez modifier ces réglages à tout moment dans ⚙️ Réglages',
-                'You can change these settings anytime in ⚙️ Settings'
-              )}
+              {t('Vous pouvez modifier ces réglages à tout moment dans ⚙️ Réglages', 'You can change these settings anytime in ⚙️ Settings')}
             </p>
           </div>
         )}
       </div>
 
-      {/* Footer */}
-      <p style={{
-        color: '#2d1b6b', fontSize: '11px', letterSpacing: '2px', fontWeight: 700,
-        marginTop: '24px', position: 'relative', zIndex: 1,
-      }}>
+      <p style={{ color: '#2d1b6b', fontSize: '11px', letterSpacing: '2px', fontWeight: 700, marginTop: '24px', position: 'relative', zIndex: 1 }}>
         HAILITE XTERIORS © 2025
       </p>
     </div>
