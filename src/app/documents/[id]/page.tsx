@@ -172,7 +172,7 @@ export default function DocumentDetailPage() {
       companyEmail: compEmail,
       companyGST: compGST,
       companyWCB: compWCB,
-      companyLogo: company.logo,
+      companyLogo: company.logoUrl,
       lines,
       subtotal,
       discountPct,
