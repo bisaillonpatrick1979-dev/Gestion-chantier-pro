@@ -130,7 +130,6 @@ function getLevelTitle(level: number): string {
   return 'Nouvelle Recrue'
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
 export default function HomePage() {
   const { employees, currentEmployeeId, activeSessions, dayDetails, setCurrentEmployee, verifyPin, punchIn, punchOut, startBreak, endBreak, updateEmployee } = useEmployeeStore()
   const { themeId } = useThemeStore()
@@ -152,7 +151,7 @@ export default function HomePage() {
   const [showPunchModal, setShowPunchModal]       = useState(false)
   const [punchModalMode, setPunchModalMode]       = useState<'in' | 'out'>('in')
   const [showPunchOut, setShowPunchOut]           = useState(false)
-  const [showPunchConfirm, setShowPunchConfirm]   = useState(false)  // ★ B
+  const [showPunchConfirm, setShowPunchConfirm]   = useState(false)
   const [materials, setMaterials]                 = useState<MaterialEntry[]>([])
   const [currentMonth, setCurrentMonth]   = useState(new Date().toISOString().slice(0, 7))
   const [selectedDay, setSelectedDay]     = useState<string | null>(null)
@@ -181,7 +180,6 @@ export default function HomePage() {
     prevRevenueRef.current = goal.currentAmount
   }, [goal?.currentAmount])
 
-  // ★ A — Rappels vocaux progressifs (hook natif SpeechSynthesis)
   useVoiceReminder(activeSession?.elapsed || 0, isRunning)
 
   const robotMessage = !goal ? '👋 Salut!' : goalPct >= 100 ? '🏆 BRAVO!' : goalPct >= 80 ? '🔥 Presque!' : goalPct >= 50 ? '💪 Continue!' : goalPct >= 20 ? '⚡ En route!' : '🎯 Allons-y!'
@@ -207,25 +205,17 @@ export default function HomePage() {
   }
   const handleLogout = () => { setCurrentEmployee(null); setScreen('select'); setPin(''); setSelectedId('') }
   const handlePunchIn = () => { if (!currentEmployeeId) return; setPunchModalMode('in'); setShowPunchModal(true) }
-
-  // ★ B — Punch Out → toujours passer par la confirmation
-  const handlePunchOut = () => {
-    if (!currentEmployeeId) return
-    setShowPunchConfirm(true)
-  }
-
-  // Après confirmation → reprend le flux original
+  const handlePunchOut = () => { if (!currentEmployeeId) return; setShowPunchConfirm(true) }
   const handlePunchOutConfirmed = () => {
     setShowPunchConfirm(false)
     if (!currentEmployeeId) return
-    if (activeProjectLog)                     { setPunchModalMode('out'); setShowPunchModal(true); return }
+    if (activeProjectLog) { setPunchModalMode('out'); setShowPunchModal(true); return }
     if (currentEmployee?.workMode === 'surface') { setShowPunchOut(true); return }
     const earned = activeSession?.revenue || 0
     punchOut(currentEmployeeId)
     if (earned > 0) updateProgress(currentEmployeeId, earned)
     addXP(currentEmployeeId, Math.floor(earned / 10) + 100)
   }
-
   const handlePunchModalComplete = () => {
     setShowPunchModal(false)
     if (!currentEmployeeId) return
@@ -309,15 +299,24 @@ export default function HomePage() {
   if (screen === 'pin') {
     const emp = employees.find(e => e.id === selectedId)
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', paddingTop: '16px' }}>
+      // ✅ FIX : paddingBottom: '120px' pour que le pad dépasse pas sous la BottomNav
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', paddingTop: '16px', paddingBottom: '120px' }}>
         <button onClick={() => setScreen('select')} style={{ alignSelf: 'flex-start', color: isXP ? '#a855f7' : 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px' }}>← {t('Retour', 'Back')}</button>
         {isXP ? (<><div style={{ width: '76px', height: '76px', borderRadius: '18px', background: `linear-gradient(135deg, ${emp?.color}, #a855f7)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px', fontWeight: 800, color: 'white', boxShadow: `0 0 30px ${emp?.color}66, 0 0 60px rgba(168,85,247,0.3)` }}>{emp?.name[0].toUpperCase()}</div><div style={{ textAlign: 'center' }}><p style={{ color: '#e9d5ff', fontSize: '17px', fontWeight: 800, letterSpacing: '2px' }}>{emp?.name}</p><p style={{ color: '#6b21a8', fontSize: '11px', letterSpacing: '1px', marginTop: '2px' }}>ENTREZ VOTRE CODE</p></div></>) : (<><DecoOrnament opacity={0.12}/><div style={{ width: '70px', height: '70px', borderRadius: '50%', background: `radial-gradient(circle at 40% 35%, ${emp?.color}99, ${emp?.color})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', fontWeight: 800, color: 'white', boxShadow: `0 0 30px ${emp?.color}66` }}>{emp?.name[0].toUpperCase()}</div><p style={{ color: 'var(--text)', fontSize: '17px', fontWeight: 700, letterSpacing: '2px' }}>{emp?.name}</p><DecoDiamondRow count={5} opacity={0.3}/></>)}
         <div style={{ display: 'flex', gap: '14px' }}>
           {[0,1,2,3].map(i => (<div key={i} style={{ width: '20px', height: '20px', borderRadius: isXP ? '5px' : '50%', background: pin.length > i ? pinError ? '#ef4444' : (isXP ? '#a855f7' : 'var(--primary)') : (isXP ? 'rgba(168,85,247,0.12)' : 'var(--surface)'), border: `2px solid ${pinError ? '#ef4444' : isXP ? 'rgba(168,85,247,0.4)' : 'var(--border)'}`, transition: 'all 0.2s', boxShadow: pin.length > i ? isXP ? '0 0 14px rgba(168,85,247,0.8)' : '0 0 12px var(--primary)' : 'none' }}/>))}
         </div>
         {pinError && <p style={{ color: '#ef4444', fontSize: '13px' }}>{t('PIN incorrect', 'Incorrect PIN')}</p>}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', width: '100%', maxWidth: '260px' }}>
-          {['1','2','3','4','5','6','7','8','9','','0','⌫'].map((d, i) => (<button key={i} onClick={() => { if (d === '⌫') setPin(p => p.slice(0,-1)); else if (d !== '') handlePinDigit(d) }} style={{ height: '62px', borderRadius: isXP ? '12px' : '10px', cursor: d ? 'pointer' : 'default', border: isXP ? '1px solid rgba(168,85,247,0.2)' : '1px solid var(--border)', background: d ? (isXP ? 'rgba(17,7,40,0.9)' : 'var(--card)') : 'transparent', color: isXP ? '#e9d5ff' : 'var(--text)', fontSize: d === '⌫' ? '20px' : '24px', fontWeight: 700, opacity: d ? 1 : 0, boxShadow: isXP && d ? '0 0 8px rgba(168,85,247,0.12)' : 'none' }}>{d}</button>))}
+
+        {/* ✅ FIX : grille 3x4 correctement centrée avec 0 au milieu en bas */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', width: '100%', maxWidth: '280px' }}>
+          {['1','2','3','4','5','6','7','8','9'].map((d) => (
+            <button key={d} onClick={() => handlePinDigit(d)} style={{ height: '66px', borderRadius: isXP ? '12px' : '10px', cursor: 'pointer', border: isXP ? '1px solid rgba(168,85,247,0.2)' : '1px solid var(--border)', background: isXP ? 'rgba(17,7,40,0.9)' : 'var(--card)', color: isXP ? '#e9d5ff' : 'var(--text)', fontSize: '24px', fontWeight: 700, boxShadow: isXP ? '0 0 8px rgba(168,85,247,0.12)' : 'none' }}>{d}</button>
+          ))}
+          {/* Rangée du bas : vide | 0 | ⌫ */}
+          <div/>
+          <button onClick={() => handlePinDigit('0')} style={{ height: '66px', borderRadius: isXP ? '12px' : '10px', cursor: 'pointer', border: isXP ? '1px solid rgba(168,85,247,0.2)' : '1px solid var(--border)', background: isXP ? 'rgba(17,7,40,0.9)' : 'var(--card)', color: isXP ? '#e9d5ff' : 'var(--text)', fontSize: '24px', fontWeight: 700, boxShadow: isXP ? '0 0 8px rgba(168,85,247,0.12)' : 'none' }}>0</button>
+          <button onClick={() => setPin(p => p.slice(0, -1))} style={{ height: '66px', borderRadius: isXP ? '12px' : '10px', cursor: 'pointer', border: isXP ? '1px solid rgba(168,85,247,0.2)' : '1px solid var(--border)', background: isXP ? 'rgba(17,7,40,0.9)' : 'var(--card)', color: isXP ? '#e9d5ff' : 'var(--text)', fontSize: '20px', fontWeight: 700, boxShadow: isXP ? '0 0 8px rgba(168,85,247,0.12)' : 'none' }}>⌫</button>
         </div>
       </div>
     )
@@ -340,7 +339,6 @@ export default function HomePage() {
         .nr{animation:neonRed 2s ease-in-out infinite}.goalInput:focus{animation:inputGlow 1.5s ease-in-out infinite!important}
       `}</style>
 
-      {/* Célébration */}
       {showCelebration && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 200, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {Array.from({ length: 24 }).map((_, i) => (<div key={i} style={{ position: 'absolute', left: `${Math.random() * 100}%`, top: '-20px', fontSize: '22px', animation: `confettiF ${1 + Math.random() * 2}s ease-in ${Math.random() * 0.5}s forwards` }}>{['🎉','⭐','💜','✨','🏆','💎','🎊'][Math.floor(Math.random() * 7)]}</div>))}
@@ -352,7 +350,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Header */}
       <div className={cardClass} style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isXP ? 'rgba(17,7,40,0.95)' : 'var(--card)', border: isXP ? '1px solid rgba(168,85,247,0.4)' : '1px solid var(--border)' }}>
         {!isXP && <DecoBackground/>}{!isXP && <DecoCorners opacity={0.25}/>}
         {isXP && <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 20% 50%, rgba(168,85,247,0.08), transparent)', pointerEvents: 'none' }}/>}
@@ -366,7 +363,6 @@ export default function HomePage() {
         <button onClick={handleLogout} style={{ padding: '7px 12px', borderRadius: '8px', cursor: 'pointer', border: isXP ? '1px solid rgba(168,85,247,0.3)' : '1px solid var(--border)', background: 'transparent', color: isXP ? '#a855f7' : 'var(--text-muted)', fontSize: '11px', fontWeight: 700, position: 'relative', zIndex: 1 }}>{t('SORTIR', 'LOGOUT')}</button>
       </div>
 
-      {/* Taux + Statut */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
         <div className={cardClass} style={{ ...card }}>
           {!isXP && <DecoBackground/>}{!isXP && <DecoCorners opacity={0.2}/>}
@@ -390,7 +386,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Revenus + Temps */}
       <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '10px' }}>
         <div className={cardClass} style={{ ...card, background: isXP ? 'linear-gradient(135deg, #0a0514, #12082a)' : 'linear-gradient(135deg, #1a1200, #2a1f00, #1a1200)' }}>
           {!isXP && <DecoBackground/>}{!isXP && <DecoCorners opacity={0.35}/>}
@@ -410,7 +405,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Niveau XP */}
       {isXP && goal && (
         <div className={cardClass} style={{ ...card }}>
           <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 50% 50%, rgba(168,85,247,0.05), transparent)', pointerEvents: 'none' }}/>
@@ -428,7 +422,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Objectif semaine XP */}
       {isXP && goal && (
         <div className={cardClass} style={{ ...card, border: '1px solid rgba(34,211,238,0.35)' }}>
           <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 50% 0%, rgba(34,211,238,0.06), transparent 60%)', pointerEvents: 'none' }}/>
@@ -461,22 +454,20 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Badges XP */}
       {isXP && goal && (
         <div className={cardClass} style={{ ...card }}>
           <div style={{ position: 'relative', zIndex: 1 }}>
             <p style={{ fontSize: '10px', fontWeight: 800, color: '#a855f7', letterSpacing: '2px', marginBottom: '14px' }}>🏅 BADGES & STATS</p>
             <div style={{ display: 'flex', justifyContent: 'space-around' }}>
-              <HexBadge label="Série"   value={`${goal.streak}j`}       color="#f59e0b" icon="🔥"/>
-              <HexBadge label="Niveau"  value={`${goal.level}`}          color="#a855f7" icon="⭐"/>
-              <HexBadge label="XP Total" value={`${goal.xpPoints}`}     color="#22d3ee" icon="💎"/>
+              <HexBadge label="Série"    value={`${goal.streak}j`}    color="#f59e0b" icon="🔥"/>
+              <HexBadge label="Niveau"   value={`${goal.level}`}       color="#a855f7" icon="⭐"/>
+              <HexBadge label="XP Total" value={`${goal.xpPoints}`}   color="#22d3ee" icon="💎"/>
               <HexBadge label="Sem. act." value={formatCurrency(goal.currentAmount).replace('CA', '').trim()} color="#22c55e" icon="💰"/>
             </div>
           </div>
         </div>
       )}
 
-      {/* Robot + Bouton Punch */}
       {isXP ? (
         <div className={cardClass} style={{ ...card, background: 'rgba(10,5,20,0.95)', border: '1px solid rgba(168,85,247,0.3)', padding: '20px 16px' }}>
           <div style={{ position: 'absolute', top: '50%', left: '50%', width: '300px', height: '300px', transform: 'translate(-50%, -50%)', pointerEvents: 'none', overflow: 'hidden' }}>
@@ -513,7 +504,6 @@ export default function HomePage() {
         </>
       )}
 
-      {/* ★ B — Modal confirmation Punch Out */}
       {showPunchConfirm && (
         <PunchOutConfirmModal
           elapsed={activeSession?.elapsed || 0}
@@ -523,12 +513,10 @@ export default function HomePage() {
         />
       )}
 
-      {/* Modal PunchIn/Out projet */}
       {showPunchModal && currentEmployee && (
         <PunchInModal employeeId={currentEmployee.id} employeeName={currentEmployee.name} employeeHourlyRate={currentEmployee.hourlyRate ?? 45} mode={punchModalMode} onComplete={handlePunchModalComplete} onCancel={() => setShowPunchModal(false)}/>
       )}
 
-      {/* Modal surface (matériaux) */}
       {showPunchOut && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.88)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 16px 80px' }}>
           <div style={{ background: isXP ? 'rgba(17,7,40,0.98)' : 'var(--surface)', border: isXP ? '1px solid rgba(168,85,247,0.4)' : '1px solid var(--border)', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '80vh', overflowY: 'auto' }}>
@@ -552,7 +540,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Calendrier */}
       <div className={cardClass} style={{ ...card }}>
         {!isXP && <DecoBackground/>}{!isXP && <DecoCorners opacity={0.3}/>}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', position: 'relative', zIndex: 1 }}>
@@ -579,7 +566,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Légende */}
       <div className={cardClass} style={{ ...card }}>
         {!isXP && <DecoBackground/>}{!isXP && <DecoCorners opacity={0.2}/>}
         <div style={{ position: 'relative', zIndex: 1 }}>
@@ -609,7 +595,6 @@ export default function HomePage() {
 
       {!isXP && (<div style={{ padding: '8px 0' }}><DecoSeparator opacity={0.18}/><div style={{ display: 'flex', justifyContent: 'center', gap: '14px', marginTop: '12px', opacity: 0.15 }}><DecoFlower size={28} opacity={1}/><DecoFlower size={44} opacity={1}/><DecoFlower size={28} opacity={1}/></div></div>)}
 
-      {/* Modal détail journée */}
       {selectedDay && (() => {
         const detail = currentEmployeeId ? dayDetails[`${currentEmployeeId}-${selectedDay}`] : null
         return (
