@@ -357,12 +357,12 @@ export default function DocumentPage() {
             }}
           >
             {/* ══ FILIGRANE ══
-                ✅ Logo seul — grand, centré, en diagonale
-                ✅ Pas de texte company.name (le logo contient déjà le nom)
-                ✅ opacity 0.20 = plus foncé, bien visible
-                ✅ mixBlendMode multiply = fond blanc PNG transparent
-                ✅ FACTURE / DEVIS / CONTRAT en petit sous le logo
-            ══════════════════════════════════════════════════════ */}
+                ✅ Logo 3x plus grand : 420px
+                ✅ FACTURE collé juste sous le logo : gap 0px
+                ✅ FACTURE gros : 52px, letterSpacing serré
+                ✅ opacity 0.20, mixBlendMode multiply
+                ✅ Centré avec translate(-50%,-50%) rotate(-22deg)
+            ══════════════════════════════════════════════════ */}
             <div style={{
               position:"absolute",
               top:"50%",
@@ -373,7 +373,7 @@ export default function DocumentPage() {
               display:"flex",
               flexDirection:"column",
               alignItems:"center",
-              gap:"16px",
+              gap:"0px",
               opacity:0.20,
               userSelect:"none",
               textAlign:"center",
@@ -383,22 +383,23 @@ export default function DocumentPage() {
                   src={company.logoUrl}
                   alt=""
                   style={{
-                    width:"280px",
-                    height:"280px",
+                    width:"420px",
+                    height:"420px",
                     objectFit:"contain",
                     mixBlendMode:"multiply",
                     display:"block",
                   }}
                 />
               )}
-              {/* Juste le type de document — pas le nom compagnie */}
               <div style={{
-                fontSize:"28px",
+                fontSize:"52px",
                 fontWeight:900,
                 color:"#000",
-                letterSpacing:"14px",
+                letterSpacing:"16px",
                 textTransform:"uppercase",
                 whiteSpace:"nowrap",
+                lineHeight:1,
+                marginTop:"-8px",
               }}>
                 {wm}
               </div>
