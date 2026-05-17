@@ -1,730 +1,674 @@
-// src/app/settings/page.tsx
-"use client";
+'use client'
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { useCompanyStore } from "@/store/useCompanyStore";
-import { useEmployeeStore } from "@/store/useEmployeeStore";
-import { useClientStore } from "@/store/useClientStore";
-import { useCatalogueStore } from "@/store/useCatalogueStore";
-import { useThemeStore } from "@/store/useThemeStore";
-import { getAllThemes } from "@/lib/themes";
+import { useState, useEffect, useRef } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { useDocumentStore } from '@/store/useDocumentStore'
+import { useClientStore } from '@/store/useClientStore'
+import { useCompanyStore } from '@/store/useCompanyStore'
+import { useLangStore } from '@/store/useLangStore'
+import { useThemeStore } from '@/store/useThemeStore'
+import { GCPDocument } from '@/types/documents'
+import {
+  DecoSeparator, DecoCorners, DecoTitle, DecoOrnament,
+  DecoBackground, DecoDiamondRow,
+} from '@/components/DecoElements'
 
-function Field({
-  label, value, onChange, type = "text", placeholder = "",
-}: {
-  label: string; value: string | number;
-  onChange: (v: string) => void; type?: string; placeholder?: string;
-}) {
-  return (
-    <div style={{ marginBottom: "12px" }}>
-      <label style={{
-        display: "block", fontSize: "11px", color: "var(--text-muted)",
-        marginBottom: "4px", textTransform: "uppercase",
-        letterSpacing: "0.06em", fontWeight: 700,
-      }}>
-        {label}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        style={{
-          width: "100%", background: "var(--surface)",
-          border: "1px solid var(--border)", borderRadius: "8px",
-          padding: "10px 12px", color: "var(--text)",
-          fontSize: "15px", boxSizing: "border-box", outline: "none",
-        }}
-      />
-    </div>
-  );
+// ── Types ──────────────────────────────────────────────────────────────────
+interface LineItem {
+  id: string
+  description: string
+  qty: number
+  unit: string
+  unitPrice: number
 }
 
-export default function SettingsPage() {
-  const router = useRouter();
-  const { company, updateCompany, resetNumbering } = useCompanyStore();
-  const { employees, addEmployee, deleteEmployee, currentEmployeeId } = useEmployeeStore();
-  const { clients, addClient, deleteClient } = useClientStore();
-  const { materials, addMaterial } = useCatalogueStore();
-  const { themeId, setTheme } = useThemeStore();
-  const allThemes = getAllThemes();
-  const logoInputRef = useRef<HTMLInputElement>(null);
+// ── Helpers ────────────────────────────────────────────────────────────────
+const uid = () => Math.random().toString(36).slice(2, 9)
+const fmt = (n: number) =>
+  new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(n)
 
-  const currentEmployee = employees.find((e) => e.id === currentEmployeeId) ?? null;
-  const isAdmin = currentEmployee?.role === "admin";
-  const isXP      = themeId === "xp";
-  const isDeco     = themeId === "deco";
-  const isQuantum  = themeId === "quantum";
-  const isAventure = themeId === "aventure";
-  const cardClass  = isDeco     ? "deco-card-sweep"    :
-                     isQuantum  ? "quantum-card-glow"  :
-                     isAventure ? "aventure-card-glow" : "";
+export default function DocumentDetailPage() {
+  const params   = useParams()
+  const router   = useRouter()
+  const docId    = params?.id as string
 
-  const [saved, setSaved] = useState(false);
+  const { lang } = useLangStore()
+  const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
-  const [showAddEmp, setShowAddEmp]   = useState(false);
-  const [newEmpName, setNewEmpName]   = useState("");
-  const [newEmpPin, setNewEmpPin]     = useState("");
-  const [newEmpRole, setNewEmpRole]   = useState<"admin" | "employee">("employee");
-  const [newEmpMode, setNewEmpMode]   = useState<"heure" | "surface" | "forfait">("heure");
-  const [newEmpRate, setNewEmpRate]   = useState<number>(25);
-  const [empError, setEmpError]       = useState("");
+  const { themeId } = useThemeStore()
+  const isXP       = themeId === 'xp'
+  const isDeco     = themeId === 'deco'
+  const isQuantum  = themeId === 'quantum'
+  const isAventure = themeId === 'aventure'
+  const isZen      = themeId === 'zen'
+  const isLudique  = themeId === 'ludique'
+  const cardClass  = isDeco
+    ? 'deco-card-sweep'
+    : isQuantum
+    ? 'quantum-card-glow'
+    : isAventure
+    ? 'aventure-card-glow'
+    : ''
 
-  const [showAddClient, setShowAddClient] = useState(false);
-  const [newCName, setNewCName]           = useState("");
-  const [newCPhone, setNewCPhone]         = useState("");
-  const [newCEmail, setNewCEmail]         = useState("");
-  const [newCAddress, setNewCAddress]     = useState("");
-  const [newCCity, setNewCCity]           = useState("");
-  const [newCProvince, setNewCProvince]   = useState("AB");
-  const [newCPostal, setNewCPostal]       = useState("");
-  const [newCNotes, setNewCNotes]         = useState("");
+  const { documents, updateDocument, addDocument } = useDocumentStore()
+  const { clients }                                  = useClientStore()
+  const { company }                                  = useCompanyStore()
 
-  const [showAddMat, setShowAddMat]   = useState(false);
-  const [newMatName, setNewMatName]   = useState("");
-  const [newMatPrice, setNewMatPrice] = useState<number>(0);
-  const [newMatCat, setNewMatCat]     = useState("toiture");
-  const [newMatUnit, setNewMatUnit]   = useState("pi²");
-  const [newMatEmoji, setNewMatEmoji] = useState("📦");
+  // ── Trouver ou créer le doc ───────────────────────────────────────────
+  const existing = documents.find(d => d.id === docId)
 
-  type AdminSection = "company"|"contact"|"legal"|"payment"|"billing"|"employees"|"clients"|"catalogue"|"theme"|"numbering"|"danger";
-  type EmpSection   = "theme"|"pin"|"paye";
-  type AnySection   = AdminSection | EmpSection;
-  const [activeSection, setActiveSection] = useState<AnySection>(isAdmin ? "company" : "theme");
+  // ── État local ───────────────────────────────────────────────────────
+  const [docType, setDocType]       = useState<'invoice' | 'quote' | 'contract'>(
+    (existing?.type as any) ?? 'invoice'
+  )
+  const [docNumber, setDocNumber]   = useState(existing?.number ?? '')
+  const [docDate, setDocDate]       = useState(
+    existing?.date ?? new Date().toISOString().split('T')[0]
+  )
+  const [dueDate, setDueDate]       = useState(existing?.dueDate ?? '')
+  const [status, setStatus]         = useState(existing?.status ?? 'draft')
 
-  const adminSections = [
-    { id: "company"   as AdminSection, emoji: "🏢", label: "Compagnie"    },
-    { id: "contact"   as AdminSection, emoji: "📞", label: "Contact"      },
-    { id: "legal"     as AdminSection, emoji: "📋", label: "Légal"        },
-    { id: "payment"   as AdminSection, emoji: "💳", label: "Paiement"     },
-    { id: "billing"   as AdminSection, emoji: "🧾", label: "Facturation"  },
-    { id: "employees" as AdminSection, emoji: "👷", label: "Employés"     },
-    { id: "clients"   as AdminSection, emoji: "👥", label: "Clients"      },
-    { id: "catalogue" as AdminSection, emoji: "📦", label: "Catalogue"    },
-    { id: "theme"     as AdminSection, emoji: "🎨", label: "Thème"        },
-    { id: "numbering" as AdminSection, emoji: "🔢", label: "Numérotation" },
-    { id: "danger"    as AdminSection, emoji: "⚠️", label: "Danger"       },
-  ];
+  // Infos client
+  const [clientId, setClientId]     = useState(existing?.clientId ?? '')
+  const [clientName, setClientName] = useState(existing?.clientName ?? '')
+  const [clientAddress, setClientAddress] = useState(existing?.clientAddress ?? '')
+  const [clientEmail, setClientEmail]   = useState(existing?.clientEmail ?? '')
+  const [clientPhone, setClientPhone]   = useState(existing?.clientPhone ?? '')
 
-  const empSections = [
-    { id: "theme" as EmpSection, emoji: "🎨", label: "Thème"   },
-    { id: "pin"   as EmpSection, emoji: "🔒", label: "Mon PIN" },
-    { id: "paye"  as EmpSection, emoji: "💰", label: "Ma Paye" },
-  ];
+  // Infos compagnie — auto depuis useCompanyStore
+  const [compName, setCompName]         = useState(company.name)
+  const [compAddress, setCompAddress]   = useState(company.address)
+  const [compCity, setCompCity]         = useState(company.city)
+  const [compProvince, setCompProvince] = useState(company.province)
+  const [compPostal, setCompPostal]     = useState(company.postalCode)
+  const [compPhone, setCompPhone]       = useState(company.phone)
+  const [compEmail, setCompEmail]       = useState(company.email)
+  const [compGST, setCompGST]           = useState(company.gstNumber)
+  const [compWCB, setCompWCB]           = useState(company.wcbNumber)
 
-  function save() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  // Lignes
+  const [lines, setLines] = useState<LineItem[]>(
+    existing?.lines ?? [{ id: uid(), description: '', qty: 1, unit: t('unité', 'unit'), unitPrice: 0 }]
+  )
+
+  // Taxes / remise / dépôt
+  const [taxRate, setTaxRate]           = useState(existing?.taxRate ?? 5)   // AB = GST 5%
+  const [discountPct, setDiscountPct]   = useState(existing?.discountPct ?? 0)
+  const [depositAmount, setDepositAmount] = useState(existing?.depositAmount ?? 0)
+
+  // Notes
+  const [notes, setNotes] = useState(existing?.notes ?? company.defaultNotes ?? '')
+
+  // Signature
+  const [signature, setSignature] = useState(existing?.signature ?? '')
+  const sigRef = useRef<HTMLCanvasElement>(null)
+  const [drawing, setDrawing] = useState(false)
+
+  // Tab local
+  const [tab, setTab] = useState<'info' | 'lines' | 'total' | 'sign'>('info')
+
+  // ── Sync infos compagnie quand le store change ─────────────────────
+  useEffect(() => {
+    if (!existing) {
+      setCompName(company.name)
+      setCompAddress(company.address)
+      setCompCity(company.city)
+      setCompProvince(company.province)
+      setCompPostal(company.postalCode)
+      setCompPhone(company.phone)
+      setCompEmail(company.email)
+      setCompGST(company.gstNumber)
+      setCompWCB(company.wcbNumber)
+      setNotes(company.defaultNotes)
+    }
+  }, [company])
+
+  // ── Sync client quand on sélectionne ─────────────────────────────
+  const handleSelectClient = (id: string) => {
+    setClientId(id)
+    const cl = clients.find(c => c.id === id)
+    if (cl) {
+      setClientName(cl.name)
+      setClientAddress(cl.address ?? '')
+      setClientEmail(cl.email ?? '')
+      setClientPhone(cl.phone ?? '')
+    }
   }
 
-  function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      updateCompany({ logoUrl: ev.target?.result as string });
-    };
-    reader.readAsDataURL(file);
+  // ── Calculs ───────────────────────────────────────────────────────
+  const subtotal   = lines.reduce((s, l) => s + l.qty * l.unitPrice, 0)
+  const discountAmt = subtotal * (discountPct / 100)
+  const taxable    = subtotal - discountAmt
+  const taxAmt     = taxable * (taxRate / 100)
+  const total      = taxable + taxAmt
+  const balanceDue = total - depositAmount
+
+  // ── Gestion lignes ────────────────────────────────────────────────
+  const addLine = () =>
+    setLines(l => [...l, { id: uid(), description: '', qty: 1, unit: t('unité', 'unit'), unitPrice: 0 }])
+
+  const updateLine = (id: string, field: keyof LineItem, value: string | number) =>
+    setLines(l => l.map(li => li.id === id ? { ...li, [field]: value } : li))
+
+  const removeLine = (id: string) =>
+    setLines(l => l.filter(li => li.id !== id))
+
+  // ── Sauvegarde ───────────────────────────────────────────────────
+  const save = () => {
+    const payload: GCPDocument = {
+      id: docId,
+      type: docType,
+      number: docNumber,
+      date: docDate,
+      dueDate,
+      status,
+      clientId,
+      clientName,
+      clientAddress,
+      clientEmail,
+      clientPhone,
+      companyName: compName,
+      companyAddress: `${compAddress}, ${compCity} ${compProvince} ${compPostal}`,
+      companyPhone: compPhone,
+      companyEmail: compEmail,
+      companyGST: compGST,
+      companyWCB: compWCB,
+      companyLogo: company.logoUrl,
+      lines,
+      subtotal,
+      discountPct,
+      discountAmount: discountAmt,
+      taxRate,
+      taxAmount: taxAmt,
+      total,
+      depositAmount,
+      balanceDue,
+      notes,
+      signature,
+      createdAt: existing?.createdAt ?? new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    if (existing) {
+      updateDocument(docId, payload)
+    } else {
+      addDocument(payload)
+    }
+    router.push('/documents')
   }
 
-  function handleAddEmployee() {
-    if (!newEmpName.trim()) { setEmpError("Le nom est requis"); return; }
-    if (!/^\d{4}$/.test(newEmpPin)) { setEmpError("PIN = 4 chiffres exactement (ex: 1234)"); return; }
-    addEmployee({
-      name: newEmpName.trim(), role: newEmpRole, pin: newEmpPin,
-      workMode: newEmpMode, hourlyRate: newEmpRate, color: "", active: true,
-    });
-    setNewEmpName(""); setNewEmpPin(""); setNewEmpRole("employee");
-    setNewEmpMode("heure"); setNewEmpRate(25); setEmpError("");
-    setShowAddEmp(false);
+  // ── Signature canvas ────────────────────────────────────────────
+  const startDraw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    setDrawing(true)
+    const ctx = sigRef.current?.getContext('2d')
+    if (!ctx) return
+    const r = sigRef.current!.getBoundingClientRect()
+    ctx.beginPath()
+    ctx.moveTo(e.clientX - r.left, e.clientY - r.top)
+  }
+  const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!drawing) return
+    const ctx = sigRef.current?.getContext('2d')
+    if (!ctx) return
+    const r = sigRef.current!.getBoundingClientRect()
+    ctx.strokeStyle = isDeco ? '#D6B25E' : '#a855f7'
+    ctx.lineWidth = 2
+    ctx.lineTo(e.clientX - r.left, e.clientY - r.top)
+    ctx.stroke()
+  }
+  const endDraw = () => {
+    setDrawing(false)
+    setSignature(sigRef.current?.toDataURL() ?? '')
+  }
+  const clearSig = () => {
+    const ctx = sigRef.current?.getContext('2d')
+    if (ctx) ctx.clearRect(0, 0, sigRef.current!.width, sigRef.current!.height)
+    setSignature('')
   }
 
-  function handleAddClient() {
-    if (!newCName.trim()) return;
-    addClient({
-      name: newCName.trim(), phone: newCPhone, email: newCEmail,
-      address: newCAddress, city: newCCity, province: newCProvince,
-      postalCode: newCPostal, notes: newCNotes,
-    });
-    setNewCName(""); setNewCPhone(""); setNewCEmail("");
-    setNewCAddress(""); setNewCCity(""); setNewCProvince("AB");
-    setNewCPostal(""); setNewCNotes(""); setShowAddClient(false);
-  }
+  // ── UI classes ─────────────────────────────────────────────────
+  const inputClass = `w-full rounded-xl px-4 py-3 text-sm font-medium outline-none border transition-all
+    ${isDeco
+      ? 'bg-[#1a1500]/80 border-[#D6B25E]/30 text-[#D6B25E] placeholder-[#D6B25E]/40 focus:border-[#D6B25E]'
+      : isQuantum
+      ? 'bg-[#0a0015]/80 border-violet-500/30 text-violet-100 placeholder-violet-400/40 focus:border-violet-400'
+      : 'bg-white/10 border-white/20 text-white placeholder-white/40 focus:border-white/60'
+    }`
 
-  function handleAddMaterial() {
-    if (!newMatName.trim()) return;
-    addMaterial({
-      name: newMatName.trim(), nameen: newMatName.trim(),
-      category: newMatCat as "toiture"|"siding"|"fixations"|"etancheite"|"structure"|"maindoeuvre",
-      unit: newMatUnit as "pi²"|"pi lin."|"boîte"|"rouleau"|"feuille"|"tube"|"unité"|"heure",
-      price: newMatPrice, priceMin: newMatPrice, priceMax: newMatPrice,
-      emoji: newMatEmoji || "📦", description: "", descriptionen: "",
-    });
-    setNewMatName(""); setNewMatPrice(0); setNewMatEmoji("📦"); setShowAddMat(false);
-  }
+  const labelClass = `text-xs font-semibold uppercase tracking-widest mb-1 block
+    ${isDeco ? 'text-[#D6B25E]/70' : isQuantum ? 'text-violet-400/70' : 'text-white/60'}`
 
-  // ── Styles ──────────────────────────────────────────────────────────────────
-  const cardStyle: React.CSSProperties = {
-    background: "var(--card)", border: "1px solid var(--border)",
-    borderRadius: "12px", padding: "20px", marginBottom: "16px",
-  };
-  const btnPrimary: React.CSSProperties = {
-    background: isXP
-      ? "linear-gradient(135deg, #7c3aed, #a855f7)"
-      : "linear-gradient(135deg, var(--primary), var(--secondary, #B8963E))",
-    color: isXP ? "#fff" : "#000", border: "none", borderRadius: "10px",
-    padding: "13px 24px", fontWeight: 800, fontSize: "14px", cursor: "pointer",
-    width: "100%", letterSpacing: "0.5px",
-    boxShadow: isXP ? "0 0 16px rgba(168,85,247,0.3)" : "none",
-  };
-  const btnDanger: React.CSSProperties = {
-    background: "#7f1d1d", color: "#fca5a5", border: "1px solid #991b1b",
-    borderRadius: "10px", padding: "13px 24px", fontWeight: 700,
-    fontSize: "14px", cursor: "pointer", width: "100%", marginTop: "10px",
-  };
-  const btnSmallPrimary: React.CSSProperties = {
-    background: isXP
-      ? "linear-gradient(135deg, #7c3aed, #a855f7)"
-      : "linear-gradient(135deg, var(--primary), var(--secondary, #B8963E))",
-    color: isXP ? "#fff" : "#000", border: "none", borderRadius: "8px",
-    padding: "8px 16px", cursor: "pointer", fontSize: "13px", fontWeight: 700,
-    boxShadow: isXP ? "0 0 10px rgba(168,85,247,0.3)" : "none",
-  };
-  const inputStyle: React.CSSProperties = {
-    width: "100%", background: "var(--surface)", border: "1px solid var(--border)",
-    borderRadius: "8px", padding: "10px 12px", color: "var(--text)",
-    fontSize: "14px", boxSizing: "border-box", outline: "none",
-  };
-  const selectStyle: React.CSSProperties = {
-    width: "100%", background: "var(--surface)", border: "1px solid var(--border)",
-    borderRadius: "8px", padding: "10px 12px", color: "var(--text)",
-    fontSize: "14px", boxSizing: "border-box", outline: "none",
-  };
-  const labelStyle: React.CSSProperties = {
-    display: "block", fontSize: "11px", color: "var(--text-muted)",
-    marginBottom: "4px", fontWeight: 700,
-    textTransform: "uppercase", letterSpacing: "0.06em",
-  };
+  const TABS = [
+    { id: 'info',  icon: '📋', label: t('Info', 'Info') },
+    { id: 'lines', icon: '📝', label: t('Lignes', 'Lines') },
+    { id: 'total', icon: '💰', label: t('Total', 'Total') },
+    { id: 'sign',  icon: '✍️', label: t('Signature', 'Sign') },
+  ] as const
 
-  function TabButton({ id, emoji, label }: { id: AnySection; emoji: string; label: string }) {
-    const isActive = activeSection === id;
-    return (
-      <button
-        onClick={() => setActiveSection(id)}
-        style={{
-          flexShrink: 0, padding: "8px 14px", borderRadius: "20px",
-          cursor: "pointer", whiteSpace: "nowrap", fontSize: "13px",
-          fontWeight: isActive ? 700 : 400,
-          border: isActive ? "none" : "1px solid var(--border)",
-          background: isActive
-            ? isXP
-              ? "linear-gradient(135deg, #7c3aed, #a855f7)"
-              : "linear-gradient(135deg, var(--primary), var(--secondary, #B8963E))"
-            : "transparent",
-          color: isActive ? (isXP ? "#fff" : "#000") : "var(--text-muted)",
-          boxShadow: isActive && isXP ? "0 0 12px rgba(168,85,247,0.4)" : "none",
-        }}
-      >
-        {emoji} {label}
-      </button>
-    );
-  }
+  const DOC_TYPES = [
+    { id: 'invoice',  emoji: '🧾', label: t('Facture', 'Invoice') },
+    { id: 'quote',    emoji: '📄', label: t('Devis', 'Quote') },
+    { id: 'contract', emoji: '📜', label: t('Contrat', 'Contract') },
+  ] as const
 
-  const ThemeSection = () => (
-    <div className={cardClass} style={cardStyle}>
-      <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "6px", color: "var(--text)" }}>
-        🎨 Thème de l&apos;application
-      </h2>
-      <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
-        Le thème change toute l&apos;application instantanément.
-      </p>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-        {allThemes.map((theme) => {
-          const isActive = themeId === theme.id;
-          return (
-            <button
-              key={theme.id}
-              onClick={() => setTheme(theme.id)}
-              style={{
-                background: theme.colors.background,
-                border: isActive ? `2px solid ${theme.colors.primary}` : "2px solid transparent",
-                borderRadius: "12px", padding: "14px 12px", cursor: "pointer",
-                textAlign: "left", position: "relative", overflow: "hidden", transition: "all 0.2s",
-              }}
-            >
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: theme.colors.primary }}/>
-              <div style={{ fontSize: "20px", marginBottom: "6px" }}>{theme.emoji}</div>
-              <div style={{ fontSize: "12px", fontWeight: 700, color: theme.colors.text, lineHeight: 1.3 }}>{theme.nameFr}</div>
-              {isActive && (
-                <div style={{ marginTop: "6px", fontSize: "10px", color: theme.colors.primary, fontWeight: 800, letterSpacing: "1px" }}>
-                  ✓ ACTIF
-                </div>
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
+  const STATUSES = [
+    { id: 'draft',   label: t('Brouillon', 'Draft'),   color: 'bg-gray-500/20 text-gray-400' },
+    { id: 'sent',    label: t('Envoyé', 'Sent'),       color: 'bg-blue-500/20 text-blue-300' },
+    { id: 'paid',    label: t('Payé', 'Paid'),         color: 'bg-emerald-500/20 text-emerald-300' },
+    { id: 'overdue', label: t('En retard', 'Overdue'), color: 'bg-red-500/20 text-red-400' },
+  ] as const
 
-  // ── VUE EMPLOYÉ ─────────────────────────────────────────────────────────────
-  if (!isAdmin) {
-    const emp = currentEmployee;
-    return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", paddingBottom: "80px" }}>
-        <div style={{ padding: "20px 16px 12px", borderBottom: "1px solid var(--border)", marginBottom: "16px" }}>
-          <h1 style={{ fontSize: "20px", fontWeight: 800, margin: 0, color: "var(--primary)" }}>⚙️ Réglages</h1>
-          {emp && <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>{emp.name} — Employé</p>}
-        </div>
-        <div style={{ display: "flex", gap: "8px", padding: "0 16px 12px", overflowX: "auto", scrollbarWidth: "none" }}>
-          {empSections.map(s => <TabButton key={s.id} id={s.id} emoji={s.emoji} label={s.label}/>)}
-        </div>
-        <div style={{ padding: "0 16px" }}>
-          {activeSection === "theme" && <ThemeSection/>}
-          {activeSection === "pin" && (
-            <div className={cardClass} style={cardStyle}>
-              <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>🔒 Changer mon PIN</h2>
-              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", padding: "16px", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>
-                👑 Seul l&apos;admin peut modifier les PINs
-              </div>
-            </div>
-          )}
-          {activeSection === "paye" && (
-            <div className={cardClass} style={cardStyle}>
-              <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>💰 Ma Paye</h2>
-              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", padding: "20px" }}>
-                <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "1px" }}>Taux horaire</div>
-                <div style={{ fontSize: "32px", fontWeight: 900, color: "var(--primary)" }}>${emp?.hourlyRate ?? 0}/h</div>
-                <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "8px" }}>Mode: {emp?.workMode ?? "—"}</div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ── VUE ADMIN ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", paddingBottom: "80px" }}>
-      <div style={{ padding: "20px 16px 12px", borderBottom: "1px solid var(--border)", marginBottom: "12px" }}>
-        <h1 style={{ fontSize: "20px", fontWeight: 800, margin: 0, color: "var(--primary)" }}>
-          {isXP ? "⚙️ CONFIG" : "⚙️ Réglages Admin"}
-        </h1>
-      </div>
+    <div className="min-h-screen pb-28 pt-4 px-4 relative" style={{ fontFamily: 'system-ui, sans-serif' }}>
+      {isDeco && <DecoBackground />}
 
-      <div style={{ display: "flex", overflowX: "auto", gap: "8px", padding: "0 16px 12px", scrollbarWidth: "none" }}>
-        {adminSections.map(s => <TabButton key={s.id} id={s.id} emoji={s.emoji} label={s.label}/>)}
-      </div>
+      <div className="max-w-lg mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-5">
+          <button onClick={() => router.back()}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all
+              ${isDeco ? 'bg-[#D6B25E]/20 text-[#D6B25E]' : 'bg-white/10 text-white hover:bg-white/20'}`}>
+            ←
+          </button>
+          {isDeco ? (
+            <DecoTitle>{existing ? t('Modifier', 'Edit') : t('Nouveau', 'New')} {docType === 'invoice' ? t('Facture', 'Invoice') : docType === 'quote' ? t('Devis', 'Quote') : t('Contrat', 'Contract')}</DecoTitle>
+          ) : (
+            <h1 className={`text-xl font-black tracking-tight
+              ${isXP ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400'
+                : isQuantum ? 'text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400'
+                : 'text-white'}`}>
+              {existing ? t('Modifier', 'Edit') : t('Nouveau', 'New')} {docType === 'invoice' ? '🧾' : docType === 'quote' ? '📄' : '📜'}
+            </h1>
+          )}
+        </div>
 
-      <div style={{ padding: "0 16px" }}>
+        {/* Type + Statut */}
+        <div className={`rounded-2xl p-4 mb-4 ${cardClass}
+          ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+            : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+            : 'bg-white/5 border border-white/10'}`}>
+          {isDeco && <DecoCorners />}
 
-        {/* ── COMPANY ── */}
-        {activeSection === "company" && (
-          <div className={cardClass} style={cardStyle}>
-            <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>🏢 Informations Compagnie</h2>
-            <Field label="Nom de la compagnie" value={company.name} onChange={(v) => updateCompany({ name: v })}/>
-            <Field label="Slogan" value={company.tagline} onChange={(v) => updateCompany({ tagline: v })}/>
-            <Field label="Nom du propriétaire" value={company.ownerName} onChange={(v) => updateCompany({ ownerName: v })}/>
-            <div style={{ marginBottom: "16px", marginTop: "4px" }}>
-              <label style={labelStyle}>Logo de la compagnie</label>
-              <p style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "10px", marginTop: "2px" }}>
-                Apparaît en filigrane sur toutes les factures, devis, contrats et commandes.
-              </p>
-              {company.logoUrl ? (
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px", padding: "12px", background: "var(--surface)", borderRadius: "10px", border: "1px solid var(--border)" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={company.logoUrl} alt="Logo" style={{ width: "56px", height: "56px", objectFit: "contain", borderRadius: "8px", background: "#fff" }}/>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)", margin: 0 }}>Logo actuel</p>
-                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0" }}>Visible en filigrane sur les documents</p>
-                  </div>
-                  <button
-                    onClick={() => updateCompany({ logoUrl: "" })}
-                    style={{ background: "#7f1d1d22", border: "1px solid #7f1d1d55", color: "#fca5a5", borderRadius: "8px", padding: "6px 12px", cursor: "pointer", fontSize: "12px", fontWeight: 700 }}
-                  >
-                    ✕ Retirer
-                  </button>
+          {/* Type document */}
+          <div className="flex gap-2 mb-4">
+            {DOC_TYPES.map(dt => (
+              <button key={dt.id} onClick={() => setDocType(dt.id as any)}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all
+                  ${docType === dt.id
+                    ? isDeco ? 'bg-[#D6B25E] text-[#0d0a00]'
+                      : isQuantum ? 'bg-violet-600 text-white'
+                      : 'bg-white/20 text-white'
+                    : 'bg-white/5 text-white/50'}`}>
+                {dt.emoji} {dt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* N° + Date + Statut */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>{t('N° Document', 'Doc Number')}</label>
+              <input className={inputClass} value={docNumber}
+                onChange={e => setDocNumber(e.target.value)}
+                placeholder="INV-2024-001" />
+            </div>
+            <div>
+              <label className={labelClass}>{t('Date', 'Date')}</label>
+              <input className={inputClass} type="date" value={docDate}
+                onChange={e => setDocDate(e.target.value)} />
+            </div>
+            <div>
+              <label className={labelClass}>{t('Échéance', 'Due Date')}</label>
+              <input className={inputClass} type="date" value={dueDate}
+                onChange={e => setDueDate(e.target.value)} />
+            </div>
+            <div>
+              <label className={labelClass}>{t('Statut', 'Status')}</label>
+              <select className={inputClass} value={status}
+                onChange={e => setStatus(e.target.value as any)}>
+                {STATUSES.map(s => (
+                  <option key={s.id} value={s.id}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Onglets */}
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+          {TABS.map(tb => (
+            <button key={tb.id} onClick={() => setTab(tb.id as any)}
+              className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all
+                ${tab === tb.id
+                  ? isDeco ? 'bg-[#D6B25E] text-[#0d0a00]'
+                    : isQuantum ? 'bg-violet-600 text-white'
+                    : 'bg-white/20 text-white'
+                  : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>
+              {tb.icon} {tb.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ─── TAB INFO ─── */}
+        {tab === 'info' && (
+          <div className="space-y-4">
+            {/* Infos compagnie (auto-remplies) */}
+            <div className={`rounded-2xl p-5 space-y-3 ${cardClass}
+              ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+                : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+                : 'bg-white/5 border border-white/10'}`}>
+              {isDeco && <DecoCorners />}
+              <div className="flex items-center gap-2 mb-3">
+                {company.logoUrl && (
+                  <img src={company.logoUrl} alt="Logo" className="w-10 h-10 object-contain rounded-lg" />
+                )}
+                <div className={`text-sm font-bold ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>
+                  🏢 {t('Votre compagnie', 'Your Company')}
+                  <span className="ml-2 text-xs font-normal text-white/40">
+                    {t('(depuis Réglages)', '(from Settings)')}
+                  </span>
                 </div>
-              ) : (
-                <div style={{ padding: "20px", background: "var(--surface)", borderRadius: "10px", border: "2px dashed var(--border)", textAlign: "center", marginBottom: "10px" }}>
-                  <div style={{ fontSize: "32px", marginBottom: "6px" }}>🖼️</div>
-                  <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: 0 }}>Aucun logo — cliquez pour en ajouter un</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className={labelClass}>{t('Nom compagnie', 'Company Name')}</label>
+                  <input className={inputClass} value={compName}
+                    onChange={e => setCompName(e.target.value)} placeholder="Hailite Xteriors" />
+                </div>
+                <div className="col-span-2">
+                  <label className={labelClass}>{t('Adresse', 'Address')}</label>
+                  <input className={inputClass} value={compAddress}
+                    onChange={e => setCompAddress(e.target.value)} placeholder="123 Main St" />
+                </div>
+                <div>
+                  <label className={labelClass}>{t('Ville', 'City')}</label>
+                  <input className={inputClass} value={compCity}
+                    onChange={e => setCompCity(e.target.value)} placeholder="Calgary" />
+                </div>
+                <div>
+                  <label className={labelClass}>{t('Province', 'Province/State')}</label>
+                  <input className={inputClass} value={compProvince}
+                    onChange={e => setCompProvince(e.target.value)} placeholder="AB" />
+                </div>
+                <div>
+                  <label className={labelClass}>{t('Code postal', 'Postal Code')}</label>
+                  <input className={inputClass} value={compPostal}
+                    onChange={e => setCompPostal(e.target.value)} placeholder="T2X 1A1" />
+                </div>
+                <div>
+                  <label className={labelClass}>{t('Téléphone', 'Phone')}</label>
+                  <input className={inputClass} value={compPhone}
+                    onChange={e => setCompPhone(e.target.value)} placeholder="403-555-1234" />
+                </div>
+                <div className="col-span-2">
+                  <label className={labelClass}>{t('Courriel', 'Email')}</label>
+                  <input className={inputClass} value={compEmail}
+                    onChange={e => setCompEmail(e.target.value)} placeholder="info@hailite.ca" />
+                </div>
+                <div>
+                  <label className={labelClass}>{t('N° TPS/GST', 'GST Number')}</label>
+                  <input className={inputClass} value={compGST}
+                    onChange={e => setCompGST(e.target.value)} placeholder="123456789 RT0001" />
+                </div>
+                <div>
+                  <label className={labelClass}>{t('N° WCB', 'WCB Number')}</label>
+                  <input className={inputClass} value={compWCB}
+                    onChange={e => setCompWCB(e.target.value)} placeholder="WCB-XXXXXX" />
+                </div>
+              </div>
+            </div>
+
+            {/* Infos client */}
+            <div className={`rounded-2xl p-5 space-y-3 ${cardClass}
+              ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+                : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+                : 'bg-white/5 border border-white/10'}`}>
+              {isDeco && <DecoCorners />}
+              <div className={`text-sm font-bold mb-2 ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>
+                👥 {t('Client', 'Client')}
+              </div>
+
+              {/* Sélecteur client */}
+              {clients.length > 0 && (
+                <div>
+                  <label className={labelClass}>👥 {t('Choisir un client existant', 'Select Existing Client')}</label>
+                  <select className={inputClass} value={clientId}
+                    onChange={e => handleSelectClient(e.target.value)}>
+                    <option value="">{t('— Nouveau client —', '— New Client —')}</option>
+                    {clients.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
                 </div>
               )}
-              <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={handleLogoUpload} style={{ display: "none" }}/>
-              <button
-                onClick={() => logoInputRef.current?.click()}
-                style={{ width: "100%", padding: "12px", borderRadius: "10px", cursor: "pointer", border: "1px solid var(--primary)", background: "var(--primary)12", color: "var(--primary)", fontSize: "14px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
-              >
-                📁 {company.logoUrl ? "Changer le logo" : "Choisir un logo"}
-              </button>
-              <p style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "6px", textAlign: "center" }}>
-                PNG, JPG, SVG ou WEBP recommandé · Fond transparent idéal
-              </p>
-            </div>
-            <button style={btnPrimary} onClick={save}>{saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}</button>
-          </div>
-        )}
 
-        {/* ── CONTACT ── */}
-        {activeSection === "contact" && (
-          <div className={cardClass} style={cardStyle}>
-            <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>📞 Coordonnées</h2>
-            <Field label="Adresse" value={company.address} onChange={(v) => updateCompany({ address: v })}/>
-            <Field label="Ville" value={company.city} onChange={(v) => updateCompany({ city: v })}/>
-            <Field label="Province" value={company.province} onChange={(v) => updateCompany({ province: v })}/>
-            <Field label="Code postal" value={company.postalCode} onChange={(v) => updateCompany({ postalCode: v })}/>
-            <Field label="Téléphone" value={company.phone} onChange={(v) => updateCompany({ phone: v })} type="tel"/>
-            <Field label="Courriel" value={company.email} onChange={(v) => updateCompany({ email: v })} type="email"/>
-            <Field label="Site web" value={company.website} onChange={(v) => updateCompany({ website: v })}/>
-            <button style={btnPrimary} onClick={save}>{saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}</button>
-          </div>
-        )}
-
-        {/* ── LEGAL ── */}
-        {activeSection === "legal" && (
-          <div className={cardClass} style={cardStyle}>
-            <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>📋 Légal & Taxes (Alberta)</h2>
-            <div style={{ background: "var(--success)18", border: "1px solid var(--success)44", borderRadius: "8px", padding: "12px", marginBottom: "16px", fontSize: "13px", color: "var(--success)" }}>
-              Alberta = GST 5% seulement (pas de PST/HST). WCB pour assurance employés.
-            </div>
-            <Field label="Numéro GST/HST (5% Alberta)" value={company.gstNumber} onChange={(v) => updateCompany({ gstNumber: v })} placeholder="123456789 RT 0001"/>
-            <Field label="Numéro WCB" value={company.wcbNumber} onChange={(v) => updateCompany({ wcbNumber: v })}/>
-            <Field label="Numéro d'entreprise (CRA)" value={company.businessNumber} onChange={(v) => updateCompany({ businessNumber: v })}/>
-            <button style={btnPrimary} onClick={save}>{saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}</button>
-          </div>
-        )}
-
-        {/* ── PAYMENT ── */}
-        {activeSection === "payment" && (
-          <div className={cardClass} style={cardStyle}>
-            <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>💳 Informations de Paiement</h2>
-            <Field label="Courriel Interac e-Transfer" value={company.etransferEmail} onChange={(v) => updateCompany({ etransferEmail: v })} type="email"/>
-            <Field label="Nom de la banque" value={company.bankName} onChange={(v) => updateCompany({ bankName: v })}/>
-            <Field label="Numéro de transit" value={company.bankTransit} onChange={(v) => updateCompany({ bankTransit: v })}/>
-            <Field label="Numéro de compte" value={company.bankAccount} onChange={(v) => updateCompany({ bankAccount: v })}/>
-            <button style={btnPrimary} onClick={save}>{saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}</button>
-          </div>
-        )}
-
-        {/* ── BILLING ── */}
-        {activeSection === "billing" && (
-          <div className={cardClass} style={cardStyle}>
-            <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>🧾 Paramètres Facturation</h2>
-            <Field label="Dépôt requis (%)" value={company.defaultDepositPercent} onChange={(v) => updateCompany({ defaultDepositPercent: Number(v) })} type="number"/>
-            <Field label="Délai de paiement (jours)" value={company.defaultPaymentTermsDays} onChange={(v) => updateCompany({ defaultPaymentTermsDays: Number(v) })} type="number"/>
-            <div style={{ marginBottom: "12px" }}>
-              <label style={labelStyle}>Notes par défaut</label>
-              <textarea
-                value={company.defaultNotes}
-                onChange={(e) => updateCompany({ defaultNotes: e.target.value })}
-                rows={3}
-                style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px 12px", color: "var(--text)", fontSize: "15px", boxSizing: "border-box", outline: "none", resize: "vertical" }}
-              />
-            </div>
-            <button style={btnPrimary} onClick={save}>{saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}</button>
-          </div>
-        )}
-
-        {/* ── EMPLOYEES ── */}
-        {activeSection === "employees" && (
-          <div className={cardClass} style={cardStyle}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text)" }}>
-                👷 Employés <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 400 }}>({employees.length})</span>
-              </h2>
-              <button onClick={() => { setShowAddEmp(!showAddEmp); setEmpError(""); }} style={btnSmallPrimary}>
-                {showAddEmp ? "✕ Fermer" : "+ Ajouter"}
-              </button>
-            </div>
-            {showAddEmp && (
-              <div style={{ background: "var(--surface)", border: "2px solid var(--primary)", borderRadius: "12px", padding: "16px", marginBottom: "16px" }}>
-                <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)", marginTop: 0, marginBottom: "14px", letterSpacing: "1px", textTransform: "uppercase" }}>
-                  ➕ Nouvel Employé
-                </p>
-                {empError && (
-                  <div style={{ background: "#7f1d1d22", border: "1px solid #7f1d1d", borderRadius: "8px", padding: "10px", marginBottom: "12px", fontSize: "13px", color: "#fca5a5" }}>
-                    ⚠️ {empError}
-                  </div>
-                )}
-                <div style={{ marginBottom: "10px" }}>
-                  <label style={labelStyle}>Nom complet *</label>
-                  <input value={newEmpName} onChange={e => setNewEmpName(e.target.value)} placeholder="Ex: Jean Tremblay" style={inputStyle}/>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className={labelClass}>{t('Nom du client', "Client's Name")}</label>
+                  <input className={inputClass} value={clientName}
+                    onChange={e => setClientName(e.target.value)}
+                    placeholder={t('Jean Tremblay', 'John Smith')} />
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
-                  <div>
-                    <label style={labelStyle}>PIN (4 chiffres) *</label>
-                    <input value={newEmpPin} onChange={e => setNewEmpPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="1234" maxLength={4} type="password" style={inputStyle}/>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Rôle</label>
-                    <select value={newEmpRole} onChange={e => setNewEmpRole(e.target.value as "admin"|"employee")} style={selectStyle}>
-                      <option value="employee">👷 Employé</option>
-                      <option value="admin">👑 Admin</option>
-                    </select>
-                  </div>
+                <div className="col-span-2">
+                  <label className={labelClass}>{t('Adresse client', 'Client Address')}</label>
+                  <input className={inputClass} value={clientAddress}
+                    onChange={e => setClientAddress(e.target.value)}
+                    placeholder="456 Oak Ave, Calgary AB" />
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
-                  <div>
-                    <label style={labelStyle}>Mode de travail</label>
-                    <select value={newEmpMode} onChange={e => setNewEmpMode(e.target.value as "heure"|"surface"|"forfait")} style={selectStyle}>
-                      <option value="heure">⏱ Par heure</option>
-                      <option value="surface">📐 Par surface</option>
-                      <option value="forfait">💼 Forfait</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Taux horaire ($)</label>
-                    <input type="number" value={newEmpRate} onChange={e => setNewEmpRate(Number(e.target.value))} min={0} style={inputStyle}/>
-                  </div>
+                <div>
+                  <label className={labelClass}>{t('Courriel', 'Email')}</label>
+                  <input className={inputClass} value={clientEmail}
+                    onChange={e => setClientEmail(e.target.value)}
+                    placeholder="client@email.com" />
                 </div>
-                <button onClick={handleAddEmployee} style={btnPrimary}>✅ Créer l&apos;employé</button>
+                <div>
+                  <label className={labelClass}>{t('Téléphone', 'Phone')}</label>
+                  <input className={inputClass} value={clientPhone}
+                    onChange={e => setClientPhone(e.target.value)}
+                    placeholder="403-555-5678" />
+                </div>
               </div>
-            )}
-            {employees.length === 0 ? (
-              <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "20px 0" }}>Aucun employé enregistré</p>
-            ) : (
-              employees.map((emp) => (
-                <div key={emp.id} className={cardClass} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px", background: "var(--surface)", borderRadius: "10px", marginBottom: "8px", border: "1px solid var(--border)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ width: "36px", height: "36px", borderRadius: isXP ? "8px" : "50%", background: emp.color || "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 800, color: "white", boxShadow: `0 0 10px ${emp.color}55` }}>
-                      {emp.name[0].toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 700, color: "var(--text)" }}>{emp.name}</div>
-                      <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                        {emp.role === "admin" ? "👑 Admin" : "👷 Employé"}{emp.hourlyRate ? ` • $${emp.hourlyRate}/h` : ""}
-                      </div>
-                    </div>
-                  </div>
-                  {emp.role !== "admin" && (
-                    <button
-                      onClick={() => { if (confirm(`Supprimer ${emp.name}?`)) deleteEmployee(emp.id); }}
-                      style={{ background: "#7f1d1d", color: "#fca5a5", border: "none", borderRadius: "8px", padding: "8px 14px", cursor: "pointer", fontSize: "12px", fontWeight: 700 }}
-                    >
-                      Supprimer
+            </div>
+          </div>
+        )}
+
+        {/* ─── TAB LIGNES ─── */}
+        {tab === 'lines' && (
+          <div className="space-y-3">
+            {lines.map((line, idx) => (
+              <div key={line.id} className={`rounded-2xl p-4 space-y-3 ${cardClass}
+                ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+                  : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+                  : 'bg-white/5 border border-white/10'}`}>
+                {isDeco && <DecoCorners />}
+
+                <div className="flex items-center justify-between mb-1">
+                  <span className={`text-xs font-bold uppercase tracking-widest
+                    ${isDeco ? 'text-[#D6B25E]/60' : 'text-white/40'}`}>
+                    {t('Ligne', 'Line')} {idx + 1}
+                  </span>
+                  {lines.length > 1 && (
+                    <button onClick={() => removeLine(line.id)}
+                      className="w-6 h-6 rounded-lg bg-red-500/20 text-red-400 text-xs flex items-center justify-center">
+                      ✕
                     </button>
                   )}
                 </div>
-              ))
-            )}
+
+                <div>
+                  <label className={labelClass}>{t('Description', 'Description')}</label>
+                  <input className={inputClass} value={line.description}
+                    onChange={e => updateLine(line.id, 'description', e.target.value)}
+                    placeholder={t('Remplacement de toiture...', 'Roof replacement...')} />
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className={labelClass}>{t('Qté', 'Qty')}</label>
+                    <input className={inputClass} type="number" value={line.qty}
+                      onChange={e => updateLine(line.id, 'qty', parseFloat(e.target.value) || 0)} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>{t('Unité', 'Unit')}</label>
+                    <input className={inputClass} value={line.unit}
+                      onChange={e => updateLine(line.id, 'unit', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>{t('Prix unit.', 'Unit Price')}</label>
+                    <input className={inputClass} type="number" value={line.unitPrice}
+                      onChange={e => updateLine(line.id, 'unitPrice', parseFloat(e.target.value) || 0)} />
+                  </div>
+                </div>
+
+                <div className={`text-right text-sm font-bold
+                  ${isDeco ? 'text-[#D6B25E]' : isQuantum ? 'text-violet-300' : 'text-white'}`}>
+                  = {fmt(line.qty * line.unitPrice)}
+                </div>
+              </div>
+            ))}
+
+            <button onClick={addLine}
+              className={`w-full py-4 rounded-2xl font-bold text-sm border-2 border-dashed transition-all
+                ${isDeco ? 'border-[#D6B25E]/30 text-[#D6B25E]/60 hover:border-[#D6B25E]/60'
+                  : isQuantum ? 'border-violet-500/30 text-violet-400/60 hover:border-violet-500/60'
+                  : 'border-white/20 text-white/40 hover:border-white/40'}`}>
+              ➕ {t('Ajouter une ligne', 'Add Line')}
+            </button>
           </div>
         )}
 
-        {/* ── CLIENTS ── */}
-        {activeSection === "clients" && (
-          <div className={cardClass} style={cardStyle}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text)" }}>
-                👥 Clients <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 400 }}>({clients.length})</span>
-              </h2>
-              <button onClick={() => setShowAddClient(!showAddClient)} style={btnSmallPrimary}>
-                {showAddClient ? "✕ Fermer" : "+ Ajouter"}
+        {/* ─── TAB TOTAL ─── */}
+        {tab === 'total' && (
+          <div className="space-y-4">
+            <div className={`rounded-2xl p-5 space-y-4 ${cardClass}
+              ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+                : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+                : 'bg-white/5 border border-white/10'}`}>
+              {isDeco && <DecoCorners />}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>{t('Remise %', 'Discount %')}</label>
+                  <input className={inputClass} type="number" value={discountPct}
+                    onChange={e => setDiscountPct(parseFloat(e.target.value) || 0)} min="0" max="100" />
+                </div>
+                <div>
+                  <label className={labelClass}>{t('TPS/GST %', 'GST %')}</label>
+                  <input className={inputClass} type="number" value={taxRate}
+                    onChange={e => setTaxRate(parseFloat(e.target.value) || 0)} min="0" max="100" />
+                </div>
+                <div className="col-span-2">
+                  <label className={labelClass}>{t('Dépôt reçu $', 'Deposit Received $')}</label>
+                  <input className={inputClass} type="number" value={depositAmount}
+                    onChange={e => setDepositAmount(parseFloat(e.target.value) || 0)} min="0" />
+                </div>
+              </div>
+
+              {/* Récapitulatif */}
+              <div className={`rounded-xl p-4 space-y-2 ${isDeco ? 'bg-[#D6B25E]/5 border border-[#D6B25E]/20'
+                : 'bg-white/5 border border-white/10'}`}>
+                {[
+                  { label: t('Sous-total', 'Subtotal'), val: subtotal },
+                  ...(discountPct > 0 ? [{ label: `🏷️ ${t('Remise', 'Discount')} (${discountPct}%)`, val: -discountAmt }] : []),
+                  { label: `🇨🇦 GST (${taxRate}%)`, val: taxAmt },
+                  { label: t('💰 TOTAL', '💰 TOTAL'), val: total, big: true },
+                  ...(depositAmount > 0 ? [
+                    { label: t('✅ Dépôt reçu', '✅ Deposit Received'), val: -depositAmount },
+                    { label: t('🔴 Solde dû', '🔴 Balance Due'), val: balanceDue, big: true, red: true },
+                  ] : []),
+                ].map((row, i) => (
+                  <div key={i} className={`flex justify-between items-center
+                    ${(row as any).big ? 'pt-2 border-t border-white/10' : ''}`}>
+                    <span className={`text-sm ${(row as any).big ? 'font-black' : 'text-white/60'}`}>
+                      {row.label}
+                    </span>
+                    <span className={`font-bold
+                      ${(row as any).red ? 'text-red-400 text-lg' : (row as any).big
+                        ? isDeco ? 'text-[#D6B25E] text-xl' : isQuantum ? 'text-violet-300 text-xl' : 'text-white text-xl'
+                        : 'text-white/80 text-sm'}`}>
+                      {fmt(row.val)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className={labelClass}>{t('Notes / Conditions', 'Notes / Terms')}</label>
+                <textarea
+                  className={`${inputClass} min-h-[80px] resize-none`}
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  placeholder={t('Merci pour votre confiance!', 'Thank you for your business!')}
+                />
+              </div>
+
+              {isDeco && <DecoDiamondRow />}
+            </div>
+          </div>
+        )}
+
+        {/* ─── TAB SIGNATURE ─── */}
+        {tab === 'sign' && (
+          <div className={`rounded-2xl p-5 space-y-4 ${cardClass}
+            ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+              : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+              : 'bg-white/5 border border-white/10'}`}>
+            {isDeco && <DecoCorners />}
+
+            <div className={`text-sm font-bold ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>
+              ✍️ {t('Signature du client', 'Client Signature')}
+            </div>
+
+            <div className={`rounded-xl overflow-hidden border
+              ${isDeco ? 'border-[#D6B25E]/30 bg-[#0a0700]'
+                : 'border-white/20 bg-black/30'}`}>
+              <canvas
+                ref={sigRef} width={320} height={160}
+                className="w-full touch-none cursor-crosshair"
+                onPointerDown={startDraw} onPointerMove={draw}
+                onPointerUp={endDraw} onPointerLeave={endDraw}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={clearSig}
+                className="flex-1 py-3 rounded-xl text-sm font-bold bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all">
+                🗑️ {t('Effacer', 'Clear')}
               </button>
+              {signature && (
+                <div className="flex-1 py-3 rounded-xl text-sm font-bold bg-emerald-500/20 text-emerald-300 text-center">
+                  ✅ {t('Signée', 'Signed')}
+                </div>
+              )}
             </div>
-            {showAddClient && (
-              <div style={{ background: "var(--surface)", border: "2px solid var(--primary)", borderRadius: "12px", padding: "16px", marginBottom: "16px" }}>
-                <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)", marginTop: 0, marginBottom: "14px", letterSpacing: "1px", textTransform: "uppercase" }}>
-                  ➕ Nouveau Client
-                </p>
-                <div style={{ marginBottom: "10px" }}>
-                  <label style={labelStyle}>Nom *</label>
-                  <input value={newCName} onChange={e => setNewCName(e.target.value)} placeholder="Nom du client ou compagnie" style={inputStyle}/>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
-                  <div>
-                    <label style={labelStyle}>Téléphone</label>
-                    <input value={newCPhone} onChange={e => setNewCPhone(e.target.value)} placeholder="780-555-1234" type="tel" style={inputStyle}/>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Courriel</label>
-                    <input value={newCEmail} onChange={e => setNewCEmail(e.target.value)} placeholder="client@email.com" type="email" style={inputStyle}/>
-                  </div>
-                </div>
-                <div style={{ marginBottom: "10px" }}>
-                  <label style={labelStyle}>Adresse</label>
-                  <input value={newCAddress} onChange={e => setNewCAddress(e.target.value)} placeholder="123 rue Exemple" style={inputStyle}/>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
-                  <div>
-                    <label style={labelStyle}>Ville</label>
-                    <input value={newCCity} onChange={e => setNewCCity(e.target.value)} placeholder="Calgary" style={inputStyle}/>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Code postal</label>
-                    <input value={newCPostal} onChange={e => setNewCPostal(e.target.value)} placeholder="T2X 0A1" style={inputStyle}/>
-                  </div>
-                </div>
-                <button onClick={handleAddClient} style={btnPrimary}>✅ Ajouter le client</button>
+
+            {signature && (
+              <div className="rounded-xl overflow-hidden border border-emerald-500/20">
+                <img src={signature} alt="Signature" className="w-full" />
               </div>
             )}
-            {clients.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "30px 0", color: "var(--text-muted)" }}>
-                <div style={{ fontSize: "32px", marginBottom: "8px" }}>👥</div>
-                <p style={{ fontSize: "14px" }}>Aucun client enregistré</p>
-                <p style={{ fontSize: "12px" }}>Cliquez &quot;+ Ajouter&quot; pour commencer</p>
-              </div>
-            ) : (
-              clients.map((client) => (
-                <div key={client.id} className={cardClass} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px", background: "var(--surface)", borderRadius: "10px", marginBottom: "8px", border: "1px solid var(--border)" }}>
-                  <div>
-                    <div style={{ fontWeight: 700, color: "var(--text)", fontSize: "14px" }}>{client.name}</div>
-                    <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
-                      {client.phone ? `📞 ${client.phone}` : ""}
-                      {client.phone && client.city ? " • " : ""}
-                      {client.city ? `📍 ${client.city}` : ""}
-                      {!client.phone && !client.city && client.email ? `✉️ ${client.email}` : ""}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => { if (confirm(`Supprimer ${client.name}?`)) deleteClient(client.id); }}
-                    style={{ background: "#7f1d1d", color: "#fca5a5", border: "none", borderRadius: "8px", padding: "8px 14px", cursor: "pointer", fontSize: "12px", fontWeight: 700 }}
-                  >
-                    Supprimer
-                  </button>
-                </div>
-              ))
-            )}
           </div>
         )}
 
-        {/* ── CATALOGUE ── */}
-        {activeSection === "catalogue" && (
-          <div className={cardClass} style={cardStyle}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text)" }}>
-                📦 Catalogue <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 400 }}>({materials.length} articles)</span>
-              </h2>
-              <button onClick={() => setShowAddMat(!showAddMat)} style={btnSmallPrimary}>
-                {showAddMat ? "✕ Fermer" : "+ Ajouter"}
-              </button>
-            </div>
-            {showAddMat && (
-              <div style={{ background: "var(--surface)", border: "2px solid var(--primary)", borderRadius: "12px", padding: "16px", marginBottom: "16px" }}>
-                <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)", marginTop: 0, marginBottom: "14px", letterSpacing: "1px", textTransform: "uppercase" }}>
-                  ➕ Nouveau Matériau
-                </p>
-                <div style={{ marginBottom: "10px" }}>
-                  <label style={labelStyle}>Nom *</label>
-                  <input value={newMatName} onChange={e => setNewMatName(e.target.value)} placeholder="Ex: Bardeau premium" style={inputStyle}/>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "10px" }}>
-                  <div>
-                    <label style={labelStyle}>Prix ($)</label>
-                    <input type="number" value={newMatPrice} onChange={e => setNewMatPrice(parseFloat(e.target.value) || 0)} min={0} step={0.01} style={inputStyle}/>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Unité</label>
-                    <select value={newMatUnit} onChange={e => setNewMatUnit(e.target.value)} style={selectStyle}>
-                      {["pi²","pi lin.","boîte","rouleau","feuille","tube","unité","heure"].map(u => <option key={u} value={u}>{u}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Emoji</label>
-                    <input value={newMatEmoji} onChange={e => setNewMatEmoji(e.target.value)} placeholder="📦" style={{ ...inputStyle, textAlign: "center" }}/>
-                  </div>
-                </div>
-                <div style={{ marginBottom: "16px" }}>
-                  <label style={labelStyle}>Catégorie</label>
-                  <select value={newMatCat} onChange={e => setNewMatCat(e.target.value)} style={selectStyle}>
-                    <option value="toiture">🏠 Toiture</option>
-                    <option value="siding">🏡 Siding</option>
-                    <option value="fixations">🔩 Fixations</option>
-                    <option value="etancheite">💧 Étanchéité</option>
-                    <option value="structure">🪵 Structure</option>
-                    <option value="maindoeuvre">👷 Main d&apos;oeuvre</option>
-                  </select>
-                </div>
-                <button onClick={handleAddMaterial} style={btnPrimary}>✅ Ajouter au catalogue</button>
-              </div>
-            )}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "14px" }}>
-              {[
-                { key: "toiture",     label: "Toiture",       emoji: "🏠", color: "#ea580c" },
-                { key: "siding",      label: "Siding",        emoji: "🏡", color: "#f59e0b" },
-                { key: "fixations",   label: "Fixations",     emoji: "🔩", color: "#06b6d4" },
-                { key: "etancheite",  label: "Étanchéité",    emoji: "💧", color: "#3b82f6" },
-                { key: "structure",   label: "Structure",     emoji: "🪵", color: "#22c55e" },
-                { key: "maindoeuvre", label: "Main-d'oeuvre", emoji: "👷", color: "#a855f7" },
-              ].map(cat => {
-                const count = materials.filter(m => m.category === cat.key).length;
-                return (
-                  <div key={cat.key} style={{ background: `${cat.color}15`, border: `1px solid ${cat.color}44`, borderRadius: "8px", padding: "10px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "12px", color: cat.color, fontWeight: 700 }}>{cat.emoji} {cat.label}</span>
-                    <span style={{ fontSize: "16px", fontWeight: 800, color: cat.color }}>{count}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <button
-              onClick={() => router.push("/catalogue")}
-              style={{ width: "100%", padding: "14px", borderRadius: "10px", cursor: "pointer", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: "14px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
-            >
-              📦 Gérer le catalogue complet →
-            </button>
-          </div>
-        )}
-
-        {/* ── THEME ── */}
-        {activeSection === "theme" && <ThemeSection/>}
-
-        {/* ── NUMBERING ── */}
-        {activeSection === "numbering" && (
-          <div className={cardClass} style={cardStyle}>
-            <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "16px", color: "var(--text)" }}>🔢 Numérotation des Documents</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
-              <Field label="Préfixe Facture"    value={company.invoicePrefix}      onChange={(v) => updateCompany({ invoicePrefix: v })}                         placeholder="FAC"/>
-              <Field label="Prochain # Facture" value={company.nextInvoiceNumber}  onChange={(v) => updateCompany({ nextInvoiceNumber: Number(v) })}  type="number"/>
-              <Field label="Préfixe Devis"      value={company.quotePrefix}        onChange={(v) => updateCompany({ quotePrefix: v })}                           placeholder="DEV"/>
-              <Field label="Prochain # Devis"   value={company.nextQuoteNumber}    onChange={(v) => updateCompany({ nextQuoteNumber: Number(v) })}    type="number"/>
-              <Field label="Préfixe Contrat"    value={company.contractPrefix}     onChange={(v) => updateCompany({ contractPrefix: v })}                        placeholder="CTR"/>
-              <Field label="Prochain # Contrat" value={company.nextContractNumber} onChange={(v) => updateCompany({ nextContractNumber: Number(v) })} type="number"/>
-            </div>
-            <div style={{ background: "var(--surface)", borderRadius: "8px", padding: "12px", marginBottom: "12px", fontSize: "13px", color: "var(--text-muted)" }}>
-              Exemple: <strong style={{ color: "var(--primary)" }}>{company.invoicePrefix}-{String(company.nextInvoiceNumber).padStart(3, "0")}</strong>
-            </div>
-            <button style={btnPrimary} onClick={save}>{saved ? "✅ Sauvegardé!" : "💾 Sauvegarder"}</button>
-          </div>
-        )}
-
-        {/* ── DANGER ── */}
-        {activeSection === "danger" && (
-          <div className={cardClass} style={{ ...cardStyle, borderColor: "#7f1d1d" }}>
-            <h2 style={{ fontSize: "16px", fontWeight: 700, marginTop: 0, marginBottom: "8px", color: "#fca5a5" }}>⚠️ Zone Danger</h2>
-            <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "16px" }}>Ces actions sont irréversibles.</p>
-            <button
-              style={btnDanger}
-              onClick={() => {
-                if (confirm("Réinitialiser la numérotation? Repart à 001.")) {
-                  resetNumbering();
-                  alert("Numérotation réinitialisée.");
-                }
-              }}
-            >
-              🔢 Réinitialiser numérotation (001)
-            </button>
-            <button
-              style={{ ...btnDanger, marginTop: "12px" }}
-              onClick={() => {
-                if (confirm("ATTENTION: Effacer TOUTES les données de la compagnie?")) {
-                  updateCompany({
-                    name: "Hailite Xteriors", tagline: "", address: "", city: "",
-                    phone: "", email: "", gstNumber: "", wcbNumber: "",
-                    businessNumber: "", etransferEmail: "",
-                  });
-                  alert("Données réinitialisées.");
-                }
-              }}
-            >
-              🗑️ Réinitialiser infos compagnie
-            </button>
-          </div>
-        )}
-
+        {/* ─── BOUTON SAUVEGARDER ─── */}
+        <div className="fixed bottom-20 left-0 right-0 px-4 z-40">
+          <button onClick={save}
+            className={`w-full max-w-lg mx-auto block py-4 rounded-2xl font-black text-base shadow-2xl transition-all active:scale-95
+              ${isDeco
+                ? 'bg-gradient-to-r from-[#D6B25E] to-[#c9a84c] text-[#0d0a00] shadow-[#D6B25E]/30'
+                : isQuantum
+                ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-violet-500/30'
+                : isAventure
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white'
+                : isXP
+                ? 'bg-gradient-to-r from-purple-600 to-cyan-500 text-white'
+                : 'bg-gradient-to-r from-blue-600 to-violet-600 text-white'
+              }`}>
+            💾 {t('Sauvegarder', 'Save')} {docType === 'invoice' ? t('la facture', 'Invoice') : docType === 'quote' ? t('le devis', 'Quote') : t('le contrat', 'Contract')}
+          </button>
+        </div>
       </div>
     </div>
-  );
+  )
 }
-
