@@ -20,7 +20,6 @@ const UNITS: Unit[] = ['pi²', 'pi lin.', 'boîte', 'rouleau', 'feuille', 'tube'
 
 type PriceView = 'tous' | 'fournisseur' | 'client'
 
-// ── Calculateurs ─────────────────────────────────────────────────────────────
 function calcClientFromMarge(fourn: string | number, marge: string | number): string {
   const f = typeof fourn === 'string' ? parseFloat(fourn) : fourn
   const m = typeof marge === 'string' ? parseFloat(marge) : marge
@@ -42,7 +41,6 @@ function profitAmt(fourn: string | number, client: string | number): string {
   return ''
 }
 
-// ── Formulaire vide ───────────────────────────────────────────────────────────
 const emptyForm = () => ({
   name: '', emoji: '📦', category: 'toiture' as Category,
   unit: '' as Unit | '',
@@ -53,11 +51,19 @@ const emptyForm = () => ({
 })
 
 export default function CataloguePage() {
-  const { theme }  = useThemeStore()
+  const { theme, themeId } = useThemeStore()
   const { lang }   = useLangStore()
   const { addDocument, addLineItem, updateLineItem, calculateTotals } = useDocumentStore()
   const { materials, addMaterial, updateMaterial, deleteMaterial } = useCatalogueStore()
   const router = useRouter()
+
+  // ── Classes animées par thème ──────────────────────────────────────────────
+  const isDeco     = themeId === 'deco'
+  const isQuantum  = themeId === 'quantum'
+  const isAventure = themeId === 'aventure'
+  const cardClass  = isDeco    ? 'deco-card-sweep'    :
+                     isQuantum ? 'quantum-card-glow'  :
+                     isAventure ? 'aventure-card-glow' : ''
 
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all')
   const [search, setSearch]           = useState('')
@@ -72,7 +78,6 @@ export default function CataloguePage() {
 
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
-  // ── Filtrage ─────────────────────────────────────────────────────────────────
   const filtered = materials.filter(m => {
     const matchCat = selectedCategory === 'all' || m.category === selectedCategory
     const name     = lang === 'fr' ? m.name : (m.nameen || m.name)
@@ -83,21 +88,18 @@ export default function CataloguePage() {
     return matchCat && matchSearch && matchView
   })
 
-  // ── Handlers formulaire ajout ─────────────────────────────────────────────────
   function onFournChange(val: string) {
     const newClient = form.margePercent
       ? calcClientFromMarge(val, form.margePercent)
       : form.prixClient
     setForm(p => ({ ...p, prixFournisseur: val, prixClient: newClient }))
   }
-
   function onMargeChange(val: string) {
     const newClient = form.prixFournisseur
       ? calcClientFromMarge(form.prixFournisseur, val)
       : form.prixClient
     setForm(p => ({ ...p, margePercent: val, prixClient: newClient }))
   }
-
   function onClientChange(val: string) {
     const newMarge = form.prixFournisseur
       ? calcMargeFromPrices(form.prixFournisseur, val)
@@ -119,7 +121,6 @@ export default function CataloguePage() {
     setShowAddForm(false)
   }
 
-  // ── Handlers formulaire édition ───────────────────────────────────────────────
   function startEdit(mat: Material) {
     setEditingId(mat.id)
     setEditForm({
@@ -139,20 +140,17 @@ export default function CataloguePage() {
     const newClient = (!isNaN(f) && !isNaN(m)) ? parseFloat(calcClientFromMarge(f, m)) || undefined : editForm.prixClient
     setEditForm(p => ({ ...p, prixFournisseur: isNaN(f) ? undefined : f, prixClient: newClient }))
   }
-
   function onEditMargeChange(val: string) {
     const f = editForm.prixFournisseur
     const newClient = (f && val) ? parseFloat(calcClientFromMarge(f, val)) || undefined : editForm.prixClient
     setEditForm(p => ({ ...p, margePercentStr: val, margePercent: parseFloat(val) || undefined, prixClient: newClient }))
   }
-
   function onEditClientChange(val: string) {
     const c = parseFloat(val)
     const f = editForm.prixFournisseur
     const newMarge = (f && !isNaN(c)) ? calcMargeFromPrices(f, c) : (editForm.margePercentStr || '')
     setEditForm(p => ({ ...p, prixClient: isNaN(c) ? undefined : c, margePercentStr: newMarge, margePercent: parseFloat(newMarge) || undefined }))
   }
-
   function saveEdit(id: string) {
     const updates: Partial<Material> = {
       name:     (editForm.name as string) || '',
@@ -169,12 +167,9 @@ export default function CataloguePage() {
     setEditForm({})
   }
 
-  // ── Facture ───────────────────────────────────────────────────────────────────
   function handleAddToDoc(mat: Material) { setShowAddToDoc(mat); setQty(1) }
-
   function handleConfirmAdd() {
     if (!showAddToDoc) return
-    // Toujours utiliser prixClient pour les factures
     const price = showAddToDoc.prixClient ?? showAddToDoc.price ?? 0
     const doc = addDocument('facture')
     addLineItem(doc.id)
@@ -189,7 +184,7 @@ export default function CataloguePage() {
     router.push(`/documents/${doc.id}`)
   }
 
-  // ── Styles ────────────────────────────────────────────────────────────────────
+  // ── Styles ────────────────────────────────────────────────────────────────
   const card = {
     background: theme.colors.card,
     border: `1px solid ${theme.colors.border}`,
@@ -225,7 +220,6 @@ export default function CataloguePage() {
     textAlign: 'right' as const,
   })
 
-  // ── Composant: section prix avec marge ────────────────────────────────────────
   function PriceSection({
     fourn, marge, client,
     onFourn, onMarge, onClient,
@@ -246,66 +240,43 @@ export default function CataloguePage() {
         <p style={{ margin: '0 0 10px', fontSize: '10px', fontWeight: 800, color: theme.colors.textMuted, letterSpacing: '1.5px', textTransform: 'uppercase' }}>
           💰 {t('Prix', 'Prices')} <span style={{ fontWeight: 400 }}>(optionnels)</span>
         </p>
-
-        {/* Ligne 1 : Fournisseur + Marge */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px', gap: '8px', marginBottom: '8px' }}>
           <div>
             <label style={{ ...lbl, color: '#22c55e' }}>🏭 Mon prix fournisseur ($)</label>
-            <input
-              type="number" value={fourn} onChange={e => onFourn(e.target.value)}
-              placeholder="0.00" min={0} step={0.01}
-              style={{ ...inp, border: '1px solid #22c55e44', background: '#22c55e0e' }}
-            />
+            <input type="number" value={fourn} onChange={e => onFourn(e.target.value)} placeholder="0.00" min={0} step={0.01}
+              style={{ ...inp, border: '1px solid #22c55e44', background: '#22c55e0e' }} />
           </div>
           <div>
             <label style={{ ...lbl, color: '#a855f7' }}>📊 Marge %</label>
             <div style={{ position: 'relative' }}>
-              <input
-                type="number" value={marge} onChange={e => onMarge(e.target.value)}
-                placeholder="0" min={0} step={0.1}
-                style={{ ...inp, border: '1px solid #a855f744', background: '#a855f70e', paddingRight: '28px' }}
-              />
+              <input type="number" value={marge} onChange={e => onMarge(e.target.value)} placeholder="0" min={0} step={0.1}
+                style={{ ...inp, border: '1px solid #a855f744', background: '#a855f70e', paddingRight: '28px' }} />
               <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: '#a855f7', fontWeight: 700, pointerEvents: 'none' }}>%</span>
             </div>
           </div>
         </div>
-
-        {/* Flèche calcul */}
         {hasCalc && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', padding: '6px 10px', background: '#a855f710', borderRadius: '8px', border: '1px dashed #a855f744' }}>
             <span style={{ fontSize: '11px', color: '#a855f7', fontWeight: 700 }}>
               {isNaN(fVal) ? '—' : fVal.toFixed(2)}$ × {isNaN(mVal) ? '—' : (1 + mVal / 100).toFixed(2)}
             </span>
             <span style={{ color: '#a855f7', fontSize: '14px' }}>→</span>
-            <span style={{ fontSize: '13px', fontWeight: 900, color: '#f59e0b' }}>
-              {calcClientFromMarge(fourn, marge)}$
-            </span>
-            <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#22c55e', fontWeight: 700 }}>
-              +{profit}$ profit
-            </span>
+            <span style={{ fontSize: '13px', fontWeight: 900, color: '#f59e0b' }}>{calcClientFromMarge(fourn, marge)}$</span>
+            <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#22c55e', fontWeight: 700 }}>+{profit}$ profit</span>
           </div>
         )}
-
-        {/* Ligne 2 : Prix client */}
         <div>
           <label style={{ ...lbl, color: '#f59e0b' }}>
             🏷️ Prix client ($)
             {hasCalc && <span style={{ color: '#a855f7', fontWeight: 400 }}> ← calculé auto (modifiable)</span>}
           </label>
-          <input
-            type="number" value={client} onChange={e => onClient(e.target.value)}
-            placeholder="0.00" min={0} step={0.01}
-            style={{ ...inp, border: '2px solid #f59e0b66', background: '#f59e0b0e', fontWeight: 700 }}
-          />
+          <input type="number" value={client} onChange={e => onClient(e.target.value)} placeholder="0.00" min={0} step={0.01}
+            style={{ ...inp, border: '2px solid #f59e0b66', background: '#f59e0b0e', fontWeight: 700 }} />
         </div>
-
-        {/* Résumé si les deux prix sont remplis */}
         {!isNaN(fVal) && fVal > 0 && !isNaN(cVal) && cVal > 0 && (
           <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
             <span style={{ color: theme.colors.textMuted }}>
-              Marge réelle: <strong style={{ color: '#a855f7' }}>
-                {calcMargeFromPrices(fourn, client)}%
-              </strong>
+              Marge réelle: <strong style={{ color: '#a855f7' }}>{calcMargeFromPrices(fourn, client)}%</strong>
             </span>
             <span style={{ color: theme.colors.textMuted }}>
               Profit: <strong style={{ color: '#22c55e' }}>+{profitAmt(fourn, client)}$</strong>
@@ -316,7 +287,6 @@ export default function CataloguePage() {
     )
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
@@ -339,26 +309,20 @@ export default function CataloguePage() {
 
       {/* ── FORMULAIRE AJOUT ── */}
       {showAddForm && (
-        <div style={{ ...card, border: `2px solid ${theme.colors.primary}`, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div className={cardClass} style={{ ...card, border: `2px solid ${theme.colors.primary}`, display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <p style={{ margin: 0, color: theme.colors.primary, fontSize: '11px', fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase' }}>
             ➕ {t('Nouveau matériau', 'New material')}
           </p>
-
-          {/* Nom + Emoji */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 64px', gap: '8px' }}>
             <div>
               <label style={lbl}>Nom *</label>
-              <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                placeholder="Ex: Bardeau premium" style={inp} />
+              <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Ex: Bardeau premium" style={inp} />
             </div>
             <div>
               <label style={lbl}>Emoji</label>
-              <input value={form.emoji} onChange={e => setForm(p => ({ ...p, emoji: e.target.value }))}
-                style={{ ...inp, textAlign: 'center', padding: '9px 4px' }} />
+              <input value={form.emoji} onChange={e => setForm(p => ({ ...p, emoji: e.target.value }))} style={{ ...inp, textAlign: 'center', padding: '9px 4px' }} />
             </div>
           </div>
-
-          {/* Catégorie + Unité */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div>
               <label style={lbl}>Catégorie</label>
@@ -376,28 +340,15 @@ export default function CataloguePage() {
               </select>
             </div>
           </div>
-
-          {/* Section prix avec marge */}
-          <PriceSection
-            fourn={form.prixFournisseur}
-            marge={form.margePercent}
-            client={form.prixClient}
-            onFourn={onFournChange}
-            onMarge={onMargeChange}
-            onClient={onClientChange}
-          />
-
-          {/* Description */}
+          <PriceSection fourn={form.prixFournisseur} marge={form.margePercent} client={form.prixClient}
+            onFourn={onFournChange} onMarge={onMargeChange} onClient={onClientChange} />
           <div>
             <label style={lbl}>Description (optionnel)</label>
-            <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-              placeholder="Notes sur ce matériau..." style={inp} />
+            <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Notes sur ce matériau..." style={inp} />
           </div>
-
           <button onClick={handleSaveNew} style={{
             padding: '12px', borderRadius: '10px', cursor: 'pointer',
-            background: theme.colors.primary, border: 'none',
-            color: 'white', fontSize: '14px', fontWeight: 700,
+            background: theme.colors.primary, border: 'none', color: 'white', fontSize: '14px', fontWeight: 700,
           }}>
             ✅ {t('Ajouter au catalogue', 'Add to catalog')}
           </button>
@@ -454,10 +405,8 @@ export default function CataloguePage() {
 
       {/* ── LISTE ── */}
       {filtered.length === 0 && (
-        <div style={{ ...card, textAlign: 'center', padding: '40px' }}>
-          <p style={{ color: theme.colors.textMuted }}>
-            {t('Aucun matériau trouvé.', 'No material found.')}
-          </p>
+        <div className={cardClass} style={{ ...card, textAlign: 'center', padding: '40px' }}>
+          <p style={{ color: theme.colors.textMuted }}>{t('Aucun matériau trouvé.', 'No material found.')}</p>
         </div>
       )}
 
@@ -469,15 +418,13 @@ export default function CataloguePage() {
         const hasClient = mat.prixClient      != null && mat.prixClient      > 0
 
         return (
-          <div key={mat.id} style={{ ...card, borderLeft: `4px solid ${cat.color}` }}>
+          <div key={mat.id} className={cardClass} style={{ ...card, borderLeft: `4px solid ${cat.color}` }}>
 
             {isEditing ? (
-              /* ── MODE ÉDITION ── */
               <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
                 <p style={{ margin: 0, fontSize: '11px', fontWeight: 800, color: theme.colors.primary, letterSpacing: '1px' }}>
                   ✏️ {t('Modifier', 'Edit')} — {mat.name}
                 </p>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 56px', gap: '6px' }}>
                   <div>
                     <label style={lbl}>Nom</label>
@@ -489,7 +436,6 @@ export default function CataloguePage() {
                       style={{ ...inp, textAlign: 'center', padding: '9px 2px' }} />
                   </div>
                 </div>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                   <div>
                     <label style={lbl}>Catégorie</label>
@@ -507,24 +453,17 @@ export default function CataloguePage() {
                     </select>
                   </div>
                 </div>
-
-                {/* Section prix édition */}
                 <PriceSection
                   fourn={editForm.prixFournisseur != null ? String(editForm.prixFournisseur) : ''}
                   marge={editForm.margePercentStr || (editForm.margePercent != null ? String(editForm.margePercent) : '')}
                   client={editForm.prixClient != null ? String(editForm.prixClient) : ''}
-                  onFourn={onEditFournChange}
-                  onMarge={onEditMargeChange}
-                  onClient={onEditClientChange}
+                  onFourn={onEditFournChange} onMarge={onEditMargeChange} onClient={onEditClientChange}
                   compact
                 />
-
                 <div>
                   <label style={lbl}>Description</label>
-                  <input value={(editForm.description as string) || ''} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
-                    placeholder="Notes..." style={inp} />
+                  <input value={(editForm.description as string) || ''} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} placeholder="Notes..." style={inp} />
                 </div>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <button onClick={() => setEditingId(null)} style={{
                     padding: '10px', borderRadius: '8px', cursor: 'pointer',
@@ -538,12 +477,9 @@ export default function CataloguePage() {
                   }}>✅ Sauvegarder</button>
                 </div>
               </div>
-
             ) : (
-              /* ── MODE AFFICHAGE ── */
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
-                  {/* Info gauche */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '6px' }}>
                       {mat.emoji && <span style={{ fontSize: '18px' }}>{mat.emoji}</span>}
@@ -564,29 +500,21 @@ export default function CataloguePage() {
                         </span>
                       )}
                     </div>
-                    {mat.description && (
-                      <p style={{ fontSize: '11px', color: theme.colors.textMuted, margin: '4px 0 0' }}>{mat.description}</p>
-                    )}
+                    {mat.description && <p style={{ fontSize: '11px', color: theme.colors.textMuted, margin: '4px 0 0' }}>{mat.description}</p>}
                   </div>
-
-                  {/* Prix droite */}
                   {(hasFourn || hasClient) && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flexShrink: 0 }}>
                       {hasFourn && (
                         <div style={priceBox('#22c55e')}>
                           <div style={{ fontSize: '9px', color: '#22c55e', fontWeight: 800, letterSpacing: '0.8px' }}>🏭 FOURN.</div>
-                          <div style={{ fontSize: '17px', fontWeight: 900, color: '#22c55e', lineHeight: 1.1 }}>
-                            {mat.prixFournisseur!.toFixed(2)}$
-                          </div>
+                          <div style={{ fontSize: '17px', fontWeight: 900, color: '#22c55e', lineHeight: 1.1 }}>{mat.prixFournisseur!.toFixed(2)}$</div>
                           {mat.unit && <div style={{ fontSize: '9px', color: '#22c55e88' }}>/{mat.unit}</div>}
                         </div>
                       )}
                       {hasClient && (
                         <div style={priceBox('#f59e0b')}>
                           <div style={{ fontSize: '9px', color: '#f59e0b', fontWeight: 800, letterSpacing: '0.8px' }}>🏷️ CLIENT</div>
-                          <div style={{ fontSize: '17px', fontWeight: 900, color: '#f59e0b', lineHeight: 1.1 }}>
-                            {mat.prixClient!.toFixed(2)}$
-                          </div>
+                          <div style={{ fontSize: '17px', fontWeight: 900, color: '#f59e0b', lineHeight: 1.1 }}>{mat.prixClient!.toFixed(2)}$</div>
                           {mat.unit && <div style={{ fontSize: '9px', color: '#f59e0b88' }}>/{mat.unit}</div>}
                         </div>
                       )}
@@ -598,42 +526,24 @@ export default function CataloguePage() {
                     </div>
                   )}
                 </div>
-
-                {/* Actions */}
                 <div style={{ display: 'flex', gap: '6px', marginTop: '10px', justifyContent: 'flex-end' }}>
                   <button onClick={() => startEdit(mat)} style={{
                     padding: '6px 12px', borderRadius: '8px', cursor: 'pointer',
                     border: `1px solid ${theme.colors.border}`, background: 'transparent',
                     color: theme.colors.textMuted, fontSize: '12px',
                   }}>✏️ {t('Modifier', 'Edit')}</button>
-
                   {deleteConfirmId === mat.id ? (
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <button onClick={() => setDeleteConfirmId(null)} style={{
-                        padding: '6px 10px', borderRadius: '8px', cursor: 'pointer',
-                        border: `1px solid ${theme.colors.border}`, background: 'transparent',
-                        color: theme.colors.textMuted, fontSize: '12px',
-                      }}>Annuler</button>
-                      <button onClick={() => { deleteMaterial(mat.id); setDeleteConfirmId(null) }} style={{
-                        padding: '6px 12px', borderRadius: '8px', cursor: 'pointer',
-                        border: '2px solid #ef4444', background: '#ef444422',
-                        color: '#ef4444', fontSize: '12px', fontWeight: 800,
-                      }}>🗑️ Confirmer</button>
+                      <button onClick={() => setDeleteConfirmId(null)} style={{ padding: '6px 10px', borderRadius: '8px', cursor: 'pointer', border: `1px solid ${theme.colors.border}`, background: 'transparent', color: theme.colors.textMuted, fontSize: '12px' }}>Annuler</button>
+                      <button onClick={() => { deleteMaterial(mat.id); setDeleteConfirmId(null) }} style={{ padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', border: '2px solid #ef4444', background: '#ef444422', color: '#ef4444', fontSize: '12px', fontWeight: 800 }}>🗑️ Confirmer</button>
                     </div>
                   ) : (
-                    <button onClick={() => setDeleteConfirmId(mat.id)} style={{
-                      padding: '6px 12px', borderRadius: '8px', cursor: 'pointer',
-                      border: `1px solid ${theme.colors.border}`, background: 'transparent',
-                      color: '#ef4444', fontSize: '12px',
-                    }}>🗑️</button>
+                    <button onClick={() => setDeleteConfirmId(mat.id)} style={{ padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', border: `1px solid ${theme.colors.border}`, background: 'transparent', color: '#ef4444', fontSize: '12px' }}>🗑️</button>
                   )}
-
                   {hasClient && (
-                    <button onClick={() => handleAddToDoc(mat)} style={{
-                      padding: '6px 12px', borderRadius: '8px', cursor: 'pointer',
-                      border: `1px solid ${cat.color}`, background: `${cat.color}18`,
-                      color: cat.color, fontSize: '12px', fontWeight: 700,
-                    }}>+ {t('Facture', 'Invoice')}</button>
+                    <button onClick={() => handleAddToDoc(mat)} style={{ padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', border: `1px solid ${cat.color}`, background: `${cat.color}18`, color: cat.color, fontSize: '12px', fontWeight: 700 }}>
+                      + {t('Facture', 'Invoice')}
+                    </button>
                   )}
                 </div>
               </>
@@ -649,7 +559,7 @@ export default function CataloguePage() {
             <h2 style={{ color: theme.colors.primary, fontSize: '16px', fontWeight: 800, margin: 0 }}>
               + {t('Ajouter à une nouvelle facture', 'Add to new invoice')}
             </h2>
-            <div style={{ background: theme.colors.card, borderRadius: '12px', padding: '12px' }}>
+            <div className={cardClass} style={{ background: theme.colors.card, borderRadius: '12px', padding: '12px', border: `1px solid ${theme.colors.border}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <p style={{ color: theme.colors.text, fontSize: '14px', fontWeight: 700, margin: 0 }}>
