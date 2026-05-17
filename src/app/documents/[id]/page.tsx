@@ -355,8 +355,8 @@ export default function DocumentDetailPage() {
                 : 'bg-white/5 border border-white/10'}`}>
               {isDeco && <DecoCorners />}
               <div className="flex items-center gap-2 mb-3">
-                {company.logo && (
-                  <img src={company.logo} alt="Logo" className="w-10 h-10 object-contain rounded-lg" />
+                {company.logoUrl && (
+                  <img src={company.logoUrl} alt="Logo" className="w-10 h-10 object-contain rounded-lg" />
                 )}
                 <div className={`text-sm font-bold ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>
                   🏢 {t('Votre compagnie', 'Your Company')}
