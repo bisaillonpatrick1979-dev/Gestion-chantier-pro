@@ -3,93 +3,50 @@
 import { useEffect } from 'react'
 import { useThemeStore } from '@/store/useThemeStore'
 
-export default function ThemeInjector() {
+export default function ThemeProvider() {
   const { theme, themeId } = useThemeStore()
 
   useEffect(() => {
-    const STYLE_ID = 'gcp-theme-global-css'
-    const VAR_ID = 'gcp-theme-vars'
+    // ── 1. Injecter les variables CSS dans :root ──────────────────────────
+    const root = document.documentElement
+    const c = theme.colors
+    root.style.setProperty('--background',    c.background)
+    root.style.setProperty('--surface',       c.surface)
+    root.style.setProperty('--card',          c.card)
+    root.style.setProperty('--card-alt',      c.cardAlt)
+    root.style.setProperty('--border',        c.border)
+    root.style.setProperty('--border-strong', c.borderStrong)
+    root.style.setProperty('--text',          c.text)
+    root.style.setProperty('--text-muted',    c.textMuted)
+    root.style.setProperty('--text-weak',     c.textWeak)
+    root.style.setProperty('--primary',       c.primary)
+    root.style.setProperty('--primary-light', c.primaryLight)
+    root.style.setProperty('--secondary',     c.secondary)
+    root.style.setProperty('--secondary-light',c.secondaryLight)
+    root.style.setProperty('--glow1',         c.glow1)
+    root.style.setProperty('--glow2',         c.glow2)
+    root.style.setProperty('--success',       c.success)
+    root.style.setProperty('--warning',       c.warning)
+    root.style.setProperty('--danger',        c.danger)
+    root.style.setProperty('--info',          c.info)
+    root.style.setProperty('--nav-bg',        c.navBackground)
+    root.style.setProperty('--nav-border',    c.navBorder)
+    root.style.setProperty('--nav-active',    c.navActive)
+    root.style.setProperty('--nav-inactive',  c.navInactive)
 
-    // Supprime les anciens styles
-    document.getElementById(STYLE_ID)?.remove()
-    document.getElementById(VAR_ID)?.remove()
-
-    // Injecte les variables CSS sur :root
-    const vars = document.createElement('style')
-    vars.id = VAR_ID
-    vars.textContent = `
-      :root {
-        --bg:           ${theme.colors.background};
-        --surface:      ${theme.colors.surface};
-        --card:         ${theme.colors.card};
-        --card-alt:     ${theme.colors.cardAlt};
-        --border:       ${theme.colors.border};
-        --border-strong:${theme.colors.borderStrong};
-        --text:         ${theme.colors.text};
-        --text-muted:   ${theme.colors.textMuted};
-        --text-weak:    ${theme.colors.textWeak};
-        --primary:      ${theme.colors.primary};
-        --primary-light:${theme.colors.primaryLight};
-        --secondary:    ${theme.colors.secondary};
-        --secondary-light:${theme.colors.secondaryLight};
-        --glow1:        ${theme.colors.glow1};
-        --glow2:        ${theme.colors.glow2};
-        --success:      ${theme.colors.success};
-        --warning:      ${theme.colors.warning};
-        --danger:       ${theme.colors.danger};
-        --info:         ${theme.colors.info};
-        --nav-bg:       ${theme.colors.navBackground};
-        --nav-border:   ${theme.colors.navBorder};
-        --nav-active:   ${theme.colors.navActive};
-        --nav-inactive: ${theme.colors.navInactive};
-        --input-bg:     ${theme.colors.surface};
-      }
-
-      * { box-sizing: border-box; }
-
-      body {
-        background: ${theme.colors.background} !important;
-        color: ${theme.colors.text} !important;
-        transition: background 0.3s ease, color 0.3s ease;
-      }
-
-      /* Scrollbar */
-      ::-webkit-scrollbar { width: 4px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: ${theme.colors.border}; border-radius: 2px; }
-
-      /* Inputs globaux */
-      input, textarea, select {
-        background: ${theme.colors.surface} !important;
-        color: ${theme.colors.text} !important;
-        border-color: ${theme.colors.border} !important;
-      }
-
-      /* Transitions douces sur les cartes */
-      .theme-card {
-        background: ${theme.colors.card};
-        border: 1px solid ${theme.colors.border};
-        border-radius: 12px;
-        transition: background 0.3s ease, border-color 0.3s ease;
-      }
-    `
-    document.head.appendChild(vars)
-
-    // Injecte le CSS global du thème
-    if (theme.globalCSS) {
-      const style = document.createElement('style')
-      style.id = STYLE_ID
-      style.textContent = theme.globalCSS
-      document.head.appendChild(style)
+    // ── 2. Injecter le globalCSS du thème ────────────────────────────────
+    const styleId = 'gcp-theme-css'
+    let styleEl = document.getElementById(styleId) as HTMLStyleElement | null
+    if (!styleEl) {
+      styleEl = document.createElement('style')
+      styleEl.id = styleId
+      document.head.appendChild(styleEl)
     }
+    styleEl.textContent = theme.globalCSS ?? ''
 
-    // data-theme sur body pour ciblage CSS
+    // ── 3. Appliquer data-theme sur le body ───────────────────────────────
     document.body.setAttribute('data-theme', themeId)
 
-    return () => {
-      document.getElementById(STYLE_ID)?.remove()
-      document.getElementById(VAR_ID)?.remove()
-    }
   }, [theme, themeId])
 
   return null
