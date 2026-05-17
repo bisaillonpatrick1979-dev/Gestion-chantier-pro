@@ -169,7 +169,7 @@ export default function CataloguePage() {
   function handleConfirmAdd() {
     if (!showAddToDoc) return
     const price = showAddToDoc.prixClient ?? showAddToDoc.price ?? 0
-    const doc = addDocument('facture')
+    const doc = addDocument('invoice')
     addLineItem(doc.id)
     const item = doc.lines[doc.lines.length - 1]
     updateLineItem(doc.id, item.id, {
