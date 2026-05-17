@@ -18,7 +18,7 @@ const CATEGORIES: Record<Category, { label: string; emoji: string; color: string
 
 const UNITS: Unit[] = ['pi²', 'pi lin.', 'boîte', 'rouleau', 'feuille', 'tube', 'unité', 'heure']
 
-type PriceView = 'tous' | 'fournisseur' | 'client'
+type PriceView = 'tous' | 'fournisseur' | 'client' | 'employe'
 
 function calcClientFromMarge(fourn: string | number, marge: string | number): string {
   const f = typeof fourn === 'string' ? parseFloat(fourn) : fourn
@@ -26,14 +26,12 @@ function calcClientFromMarge(fourn: string | number, marge: string | number): st
   if (!isNaN(f) && !isNaN(m) && f > 0) return (f * (1 + m / 100)).toFixed(2)
   return ''
 }
-
 function calcMargeFromPrices(fourn: string | number, client: string | number): string {
   const f = typeof fourn === 'string' ? parseFloat(fourn) : fourn
   const c = typeof client === 'string' ? parseFloat(client) : client
   if (!isNaN(f) && !isNaN(c) && f > 0 && c > 0) return (((c - f) / f) * 100).toFixed(1)
   return ''
 }
-
 function profitAmt(fourn: string | number, client: string | number): string {
   const f = typeof fourn === 'string' ? parseFloat(fourn) : fourn
   const c = typeof client === 'string' ? parseFloat(client) : client
@@ -47,23 +45,21 @@ const emptyForm = () => ({
   prixFournisseur: '',
   margePercent: '',
   prixClient: '',
+  prixEmploye: '',   // ✅ NOUVEAU
   description: '',
 })
 
 export default function CataloguePage() {
   const { theme, themeId } = useThemeStore()
-  const { lang }   = useLangStore()
+  const { lang } = useLangStore()
   const { addDocument, addLineItem, updateLineItem, calculateTotals } = useDocumentStore()
   const { materials, addMaterial, updateMaterial, deleteMaterial } = useCatalogueStore()
   const router = useRouter()
 
-  // ── Classes animées par thème ──────────────────────────────────────────────
   const isDeco     = themeId === 'deco'
   const isQuantum  = themeId === 'quantum'
   const isAventure = themeId === 'aventure'
-  const cardClass  = isDeco    ? 'deco-card-sweep'    :
-                     isQuantum ? 'quantum-card-glow'  :
-                     isAventure ? 'aventure-card-glow' : ''
+  const cardClass  = isDeco ? 'deco-card-sweep' : isQuantum ? 'quantum-card-glow' : isAventure ? 'aventure-card-glow' : ''
 
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all')
   const [search, setSearch]           = useState('')
@@ -74,48 +70,44 @@ export default function CataloguePage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [showAddToDoc, setShowAddToDoc] = useState<Material | null>(null)
   const [qty, setQty] = useState(1)
-  const [editForm, setEditForm]       = useState<Partial<Material> & { margePercentStr?: string }>({})
+  const [editForm, setEditForm] = useState<Partial<Material> & { margePercentStr?: string; prixEmployeStr?: string }>({})
 
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
   const filtered = materials.filter(m => {
     const matchCat = selectedCategory === 'all' || m.category === selectedCategory
-    const name     = lang === 'fr' ? m.name : (m.nameen || m.name)
+    const name = lang === 'fr' ? m.name : (m.nameen || m.name)
     const matchSearch = name.toLowerCase().includes(search.toLowerCase())
     const matchView =
       priceView === 'fournisseur' ? (m.prixFournisseur != null && m.prixFournisseur > 0) :
-      priceView === 'client'      ? (m.prixClient      != null && m.prixClient      > 0) : true
+      priceView === 'client'      ? (m.prixClient      != null && m.prixClient      > 0) :
+      priceView === 'employe'     ? (m.prixEmploye     != null && m.prixEmploye     > 0) : true
     return matchCat && matchSearch && matchView
   })
 
   function onFournChange(val: string) {
-    const newClient = form.margePercent
-      ? calcClientFromMarge(val, form.margePercent)
-      : form.prixClient
+    const newClient = form.margePercent ? calcClientFromMarge(val, form.margePercent) : form.prixClient
     setForm(p => ({ ...p, prixFournisseur: val, prixClient: newClient }))
   }
   function onMargeChange(val: string) {
-    const newClient = form.prixFournisseur
-      ? calcClientFromMarge(form.prixFournisseur, val)
-      : form.prixClient
+    const newClient = form.prixFournisseur ? calcClientFromMarge(form.prixFournisseur, val) : form.prixClient
     setForm(p => ({ ...p, margePercent: val, prixClient: newClient }))
   }
   function onClientChange(val: string) {
-    const newMarge = form.prixFournisseur
-      ? calcMargeFromPrices(form.prixFournisseur, val)
-      : form.margePercent
+    const newMarge = form.prixFournisseur ? calcMargeFromPrices(form.prixFournisseur, val) : form.margePercent
     setForm(p => ({ ...p, prixClient: val, margePercent: newMarge }))
   }
 
   function handleSaveNew() {
     if (!form.name.trim()) return
     const mat: Omit<Material, 'id'> = { name: form.name.trim(), category: form.category }
-    if (form.emoji.trim())         mat.emoji        = form.emoji.trim()
-    if (form.unit)                 mat.unit         = form.unit as Unit
-    if (form.prixFournisseur)      mat.prixFournisseur = parseFloat(form.prixFournisseur) || undefined
-    if (form.margePercent)         mat.margePercent    = parseFloat(form.margePercent)    || undefined
-    if (form.prixClient)           mat.prixClient      = parseFloat(form.prixClient)      || undefined
-    if (form.description.trim())   mat.description  = form.description.trim()
+    if (form.emoji.trim())       mat.emoji           = form.emoji.trim()
+    if (form.unit)               mat.unit            = form.unit as Unit
+    if (form.prixFournisseur)    mat.prixFournisseur = parseFloat(form.prixFournisseur) || undefined
+    if (form.margePercent)       mat.margePercent    = parseFloat(form.margePercent)    || undefined
+    if (form.prixClient)         mat.prixClient      = parseFloat(form.prixClient)      || undefined
+    if (form.prixEmploye)        mat.prixEmploye     = parseFloat(form.prixEmploye)     || undefined
+    if (form.description.trim()) mat.description     = form.description.trim()
     addMaterial(mat)
     setForm(emptyForm())
     setShowAddForm(false)
@@ -130,6 +122,8 @@ export default function CataloguePage() {
       margePercent: mat.margePercent,
       margePercentStr: mat.margePercent != null ? String(mat.margePercent) : '',
       prixClient: mat.prixClient,
+      prixEmploye: mat.prixEmploye,
+      prixEmployeStr: mat.prixEmploye != null ? String(mat.prixEmploye) : '',
       description: mat.description || '',
     })
   }
@@ -151,17 +145,19 @@ export default function CataloguePage() {
     const newMarge = (f && !isNaN(c)) ? calcMargeFromPrices(f, c) : (editForm.margePercentStr || '')
     setEditForm(p => ({ ...p, prixClient: isNaN(c) ? undefined : c, margePercentStr: newMarge, margePercent: parseFloat(newMarge) || undefined }))
   }
+
   function saveEdit(id: string) {
     const updates: Partial<Material> = {
-      name:     (editForm.name as string) || '',
+      name: (editForm.name as string) || '',
       category: editForm.category as Category,
     }
-    if (editForm.emoji        !== undefined) updates.emoji        = editForm.emoji as string
-    if (editForm.unit         !== undefined) updates.unit         = editForm.unit  as Unit
+    if (editForm.emoji        !== undefined) updates.emoji           = editForm.emoji as string
+    if (editForm.unit         !== undefined) updates.unit            = editForm.unit as Unit
     if (editForm.prixFournisseur != null)    updates.prixFournisseur = editForm.prixFournisseur
     if (editForm.margePercent    != null)    updates.margePercent    = editForm.margePercent
     if (editForm.prixClient      != null)    updates.prixClient      = editForm.prixClient
-    if (editForm.description  !== undefined) updates.description  = editForm.description as string
+    if (editForm.prixEmploye     != null)    updates.prixEmploye     = editForm.prixEmploye
+    if (editForm.description  !== undefined) updates.description     = editForm.description as string
     updateMaterial(id, updates)
     setEditingId(null)
     setEditForm({})
@@ -176,54 +172,36 @@ export default function CataloguePage() {
     const item = doc.items[doc.items.length - 1]
     updateLineItem(doc.id, item.id, {
       description: lang === 'fr' ? showAddToDoc.name : (showAddToDoc.nameen || showAddToDoc.name),
-      quantity: qty,
-      unitPrice: price,
+      quantity: qty, unitPrice: price,
     })
     calculateTotals(doc.id)
     setShowAddToDoc(null)
     router.push(`/documents/${doc.id}`)
   }
 
-  // ── Styles ────────────────────────────────────────────────────────────────
+  // ── Styles ──────────────────────────────────────────────────────────────────
   const card = {
-    background: theme.colors.card,
-    border: `1px solid ${theme.colors.border}`,
-    borderRadius: '12px',
-    padding: '14px',
+    background: theme.colors.card, border: `1px solid ${theme.colors.border}`,
+    borderRadius: '12px', padding: '14px',
   }
   const inp = {
-    background: theme.colors.surface,
-    border: `1px solid ${theme.colors.border}`,
-    borderRadius: '8px',
-    padding: '9px 11px',
-    color: theme.colors.text,
-    fontSize: '13px',
-    width: '100%',
-    boxSizing: 'border-box' as const,
-    outline: 'none',
+    background: theme.colors.surface, border: `1px solid ${theme.colors.border}`,
+    borderRadius: '8px', padding: '9px 11px', color: theme.colors.text,
+    fontSize: '13px', width: '100%', boxSizing: 'border-box' as const, outline: 'none',
   }
   const lbl = {
-    display: 'block' as const,
-    fontSize: '10px',
-    color: theme.colors.textMuted,
-    fontWeight: 700,
-    letterSpacing: '0.8px',
-    textTransform: 'uppercase' as const,
-    marginBottom: '4px',
+    display: 'block' as const, fontSize: '10px', color: theme.colors.textMuted,
+    fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' as const, marginBottom: '4px',
   }
   const priceBox = (color: string) => ({
-    background: `${color}18`,
-    border: `1px solid ${color}44`,
-    borderRadius: '8px',
-    padding: '7px 10px',
-    minWidth: '80px',
-    textAlign: 'right' as const,
+    background: `${color}18`, border: `1px solid ${color}44`,
+    borderRadius: '8px', padding: '7px 10px', minWidth: '80px', textAlign: 'right' as const,
   })
 
+  // ── Section prix (fournisseur + marge + client) ─────────────────────────────
   function PriceSection({
     fourn, marge, client,
-    onFourn, onMarge, onClient,
-    compact = false,
+    onFourn, onMarge, onClient, compact = false,
   }: {
     fourn: string; marge: string; client: string;
     onFourn: (v: string) => void; onMarge: (v: string) => void; onClient: (v: string) => void;
@@ -231,10 +209,8 @@ export default function CataloguePage() {
   }) {
     const fVal = parseFloat(fourn)
     const mVal = parseFloat(marge)
-    const cVal = parseFloat(client)
     const hasCalc = !isNaN(fVal) && fVal > 0 && !isNaN(mVal) && mVal >= 0
-    const profit  = profitAmt(fourn, client)
-
+    const profit = profitAmt(fourn, client)
     return (
       <div style={{ background: theme.colors.surface, borderRadius: '10px', padding: compact ? '10px' : '12px' }}>
         <p style={{ margin: '0 0 10px', fontSize: '10px', fontWeight: 800, color: theme.colors.textMuted, letterSpacing: '1.5px', textTransform: 'uppercase' }}>
@@ -244,13 +220,13 @@ export default function CataloguePage() {
           <div>
             <label style={{ ...lbl, color: '#22c55e' }}>🏭 Mon prix fournisseur ($)</label>
             <input type="number" value={fourn} onChange={e => onFourn(e.target.value)} placeholder="0.00" min={0} step={0.01}
-              style={{ ...inp, border: '1px solid #22c55e44', background: '#22c55e0e' }} />
+              style={{ ...inp, border: '1px solid #22c55e44', background: '#22c55e0e' }}/>
           </div>
           <div>
             <label style={{ ...lbl, color: '#a855f7' }}>📊 Marge %</label>
             <div style={{ position: 'relative' }}>
               <input type="number" value={marge} onChange={e => onMarge(e.target.value)} placeholder="0" min={0} step={0.1}
-                style={{ ...inp, border: '1px solid #a855f744', background: '#a855f70e', paddingRight: '28px' }} />
+                style={{ ...inp, border: '1px solid #a855f744', background: '#a855f70e', paddingRight: '28px' }}/>
               <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: '#a855f7', fontWeight: 700, pointerEvents: 'none' }}>%</span>
             </div>
           </div>
@@ -271,18 +247,47 @@ export default function CataloguePage() {
             {hasCalc && <span style={{ color: '#a855f7', fontWeight: 400 }}> ← calculé auto (modifiable)</span>}
           </label>
           <input type="number" value={client} onChange={e => onClient(e.target.value)} placeholder="0.00" min={0} step={0.01}
-            style={{ ...inp, border: '2px solid #f59e0b66', background: '#f59e0b0e', fontWeight: 700 }} />
+            style={{ ...inp, border: '2px solid #f59e0b66', background: '#f59e0b0e', fontWeight: 700 }}/>
         </div>
-        {!isNaN(fVal) && fVal > 0 && !isNaN(cVal) && cVal > 0 && (
+        {!isNaN(fVal) && fVal > 0 && client && parseFloat(client) > 0 && (
           <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-            <span style={{ color: theme.colors.textMuted }}>
-              Marge réelle: <strong style={{ color: '#a855f7' }}>{calcMargeFromPrices(fourn, client)}%</strong>
-            </span>
-            <span style={{ color: theme.colors.textMuted }}>
-              Profit: <strong style={{ color: '#22c55e' }}>+{profitAmt(fourn, client)}$</strong>
-            </span>
+            <span style={{ color: theme.colors.textMuted }}>Marge réelle: <strong style={{ color: '#a855f7' }}>{calcMargeFromPrices(fourn, client)}%</strong></span>
+            <span style={{ color: theme.colors.textMuted }}>Profit: <strong style={{ color: '#22c55e' }}>+{profitAmt(fourn, client)}$</strong></span>
           </div>
         )}
+      </div>
+    )
+  }
+
+  // ── Champ prix employé ───────────────────────────────────────────────────────
+  function EmployeePriceField({
+    value, onChange, unit,
+  }: { value: string; onChange: (v: string) => void; unit?: string }) {
+    return (
+      <div style={{ background: '#fb923c18', border: '1px solid #fb923c44', borderRadius: '10px', padding: '12px' }}>
+        <p style={{ margin: '0 0 8px', fontSize: '10px', fontWeight: 800, color: '#fb923c', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+          👷 Prix employé (ce que tu paies pour l&apos;installation)
+        </p>
+        <div>
+          <label style={{ ...lbl, color: '#fb923c' }}>
+            Taux d&apos;installation employé ({unit || 'pi²'})
+          </label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="number" value={value}
+              onChange={e => onChange(e.target.value)}
+              placeholder="Ex: 0.85"
+              min={0} step={0.01}
+              style={{ ...inp, border: '2px solid #fb923c66', background: '#fb923c0e', fontWeight: 700, paddingRight: '50px' }}
+            />
+            <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: '#fb923c', fontWeight: 700, pointerEvents: 'none' }}>
+              $/{unit || 'pi²'}
+            </span>
+          </div>
+          <p style={{ fontSize: '10px', color: theme.colors.textMuted, marginTop: '4px' }}>
+            Visible seulement par l&apos;admin. Utilisé dans les factures employés au punch out.
+          </p>
+        </div>
       </div>
     )
   }
@@ -300,8 +305,7 @@ export default function CataloguePage() {
         </h1>
         <button onClick={() => { setShowAddForm(!showAddForm); setForm(emptyForm()) }} style={{
           padding: '8px 16px', borderRadius: '10px', cursor: 'pointer',
-          background: theme.colors.primary, border: 'none',
-          color: 'white', fontSize: '13px', fontWeight: 700,
+          background: theme.colors.primary, border: 'none', color: 'white', fontSize: '13px', fontWeight: 700,
         }}>
           {showAddForm ? '✕ Fermer' : '＋ Ajouter'}
         </button>
@@ -316,11 +320,11 @@ export default function CataloguePage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 64px', gap: '8px' }}>
             <div>
               <label style={lbl}>Nom *</label>
-              <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Ex: Bardeau premium" style={inp} />
+              <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Ex: Bardeau premium" style={inp}/>
             </div>
             <div>
               <label style={lbl}>Emoji</label>
-              <input value={form.emoji} onChange={e => setForm(p => ({ ...p, emoji: e.target.value }))} style={{ ...inp, textAlign: 'center', padding: '9px 4px' }} />
+              <input value={form.emoji} onChange={e => setForm(p => ({ ...p, emoji: e.target.value }))} style={{ ...inp, textAlign: 'center', padding: '9px 4px' }}/>
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -340,11 +344,21 @@ export default function CataloguePage() {
               </select>
             </div>
           </div>
+
+          {/* Prix fournisseur + marge + client */}
           <PriceSection fourn={form.prixFournisseur} marge={form.margePercent} client={form.prixClient}
-            onFourn={onFournChange} onMarge={onMargeChange} onClient={onClientChange} />
+            onFourn={onFournChange} onMarge={onMargeChange} onClient={onClientChange}/>
+
+          {/* ✅ Prix employé */}
+          <EmployeePriceField
+            value={form.prixEmploye}
+            onChange={v => setForm(p => ({ ...p, prixEmploye: v }))}
+            unit={form.unit || 'pi²'}
+          />
+
           <div>
             <label style={lbl}>Description (optionnel)</label>
-            <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Notes sur ce matériau..." style={inp} />
+            <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Notes sur ce matériau..." style={inp}/>
           </div>
           <button onClick={handleSaveNew} style={{
             padding: '12px', borderRadius: '10px', cursor: 'pointer',
@@ -358,14 +372,15 @@ export default function CataloguePage() {
       {/* ── RECHERCHE ── */}
       <input value={search} onChange={e => setSearch(e.target.value)}
         placeholder={t('🔍 Rechercher...', '🔍 Search...')}
-        style={{ ...inp, background: theme.colors.card, fontSize: '14px', padding: '11px 14px' }} />
+        style={{ ...inp, background: theme.colors.card, fontSize: '14px', padding: '11px 14px' }}/>
 
       {/* ── FILTRES VUE PRIX ── */}
       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
         {([
-          { id: 'tous',        label: t('Tous', 'All'),                         emoji: '📦' },
-          { id: 'fournisseur', label: t('Prix fournisseurs', 'Supplier prices'), emoji: '🏭' },
-          { id: 'client',      label: t('Prix clients', 'Client prices'),        emoji: '🏷️' },
+          { id: 'tous',        label: t('Tous', 'All'),                          emoji: '📦' },
+          { id: 'fournisseur', label: t('Prix fournisseur', 'Supplier prices'),  emoji: '🏭' },
+          { id: 'client',      label: t('Prix client', 'Client prices'),          emoji: '🏷️' },
+          { id: 'employe',     label: t('Prix employé', 'Employee rates'),        emoji: '👷' },
         ] as { id: PriceView; label: string; emoji: string }[]).map(v => (
           <button key={v.id} onClick={() => setPriceView(v.id)} style={{
             padding: '7px 12px', borderRadius: '20px', cursor: 'pointer',
@@ -411,11 +426,12 @@ export default function CataloguePage() {
       )}
 
       {filtered.map(mat => {
-        const cat       = CATEGORIES[mat.category]
-        const name      = lang === 'fr' ? mat.name : (mat.nameen || mat.name)
+        const cat = CATEGORIES[mat.category]
+        const name = lang === 'fr' ? mat.name : (mat.nameen || mat.name)
         const isEditing = editingId === mat.id
         const hasFourn  = mat.prixFournisseur != null && mat.prixFournisseur > 0
         const hasClient = mat.prixClient      != null && mat.prixClient      > 0
+        const hasEmploye = mat.prixEmploye    != null && mat.prixEmploye     > 0
 
         return (
           <div key={mat.id} className={cardClass} style={{ ...card, borderLeft: `4px solid ${cat.color}` }}>
@@ -428,12 +444,12 @@ export default function CataloguePage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 56px', gap: '6px' }}>
                   <div>
                     <label style={lbl}>Nom</label>
-                    <input value={(editForm.name as string) || ''} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} style={inp} />
+                    <input value={(editForm.name as string) || ''} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} style={inp}/>
                   </div>
                   <div>
                     <label style={lbl}>Emoji</label>
                     <input value={(editForm.emoji as string) || ''} onChange={e => setEditForm(p => ({ ...p, emoji: e.target.value }))}
-                      style={{ ...inp, textAlign: 'center', padding: '9px 2px' }} />
+                      style={{ ...inp, textAlign: 'center', padding: '9px 2px' }}/>
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
@@ -460,21 +476,19 @@ export default function CataloguePage() {
                   onFourn={onEditFournChange} onMarge={onEditMargeChange} onClient={onEditClientChange}
                   compact
                 />
+                {/* ✅ Prix employé en édition */}
+                <EmployeePriceField
+                  value={editForm.prixEmployeStr || (editForm.prixEmploye != null ? String(editForm.prixEmploye) : '')}
+                  onChange={v => setEditForm(p => ({ ...p, prixEmployeStr: v, prixEmploye: parseFloat(v) || undefined }))}
+                  unit={(editForm.unit as string) || mat.unit || 'pi²'}
+                />
                 <div>
                   <label style={lbl}>Description</label>
-                  <input value={(editForm.description as string) || ''} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} placeholder="Notes..." style={inp} />
+                  <input value={(editForm.description as string) || ''} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} placeholder="Notes..." style={inp}/>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <button onClick={() => setEditingId(null)} style={{
-                    padding: '10px', borderRadius: '8px', cursor: 'pointer',
-                    border: `1px solid ${theme.colors.border}`, background: 'transparent',
-                    color: theme.colors.textMuted, fontSize: '13px', fontWeight: 700,
-                  }}>✕ Annuler</button>
-                  <button onClick={() => saveEdit(mat.id)} style={{
-                    padding: '10px', borderRadius: '8px', cursor: 'pointer',
-                    border: 'none', background: theme.colors.primary,
-                    color: 'white', fontSize: '13px', fontWeight: 700,
-                  }}>✅ Sauvegarder</button>
+                  <button onClick={() => setEditingId(null)} style={{ padding: '10px', borderRadius: '8px', cursor: 'pointer', border: `1px solid ${theme.colors.border}`, background: 'transparent', color: theme.colors.textMuted, fontSize: '13px', fontWeight: 700 }}>✕ Annuler</button>
+                  <button onClick={() => saveEdit(mat.id)} style={{ padding: '10px', borderRadius: '8px', cursor: 'pointer', border: 'none', background: theme.colors.primary, color: 'white', fontSize: '13px', fontWeight: 700 }}>✅ Sauvegarder</button>
                 </div>
               </div>
             ) : (
@@ -499,10 +513,18 @@ export default function CataloguePage() {
                           📊 {mat.margePercent}%
                         </span>
                       )}
+                      {/* ✅ Badge prix employé */}
+                      {hasEmploye && (
+                        <span style={{ background: '#fb923c18', color: '#fb923c', fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', border: '1px solid #fb923c44' }}>
+                          👷 {mat.prixEmploye!.toFixed(2)}$/{mat.unit || 'pi²'}
+                        </span>
+                      )}
                     </div>
                     {mat.description && <p style={{ fontSize: '11px', color: theme.colors.textMuted, margin: '4px 0 0' }}>{mat.description}</p>}
                   </div>
-                  {(hasFourn || hasClient) && (
+
+                  {/* Colonnes de prix */}
+                  {(hasFourn || hasClient || hasEmploye) && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flexShrink: 0 }}>
                       {hasFourn && (
                         <div style={priceBox('#22c55e')}>
@@ -518,6 +540,14 @@ export default function CataloguePage() {
                           {mat.unit && <div style={{ fontSize: '9px', color: '#f59e0b88' }}>/{mat.unit}</div>}
                         </div>
                       )}
+                      {/* ✅ Boîte prix employé */}
+                      {hasEmploye && (
+                        <div style={priceBox('#fb923c')}>
+                          <div style={{ fontSize: '9px', color: '#fb923c', fontWeight: 800, letterSpacing: '0.8px' }}>👷 EMP.</div>
+                          <div style={{ fontSize: '17px', fontWeight: 900, color: '#fb923c', lineHeight: 1.1 }}>{mat.prixEmploye!.toFixed(2)}$</div>
+                          {mat.unit && <div style={{ fontSize: '9px', color: '#fb923c88' }}>/{mat.unit}</div>}
+                        </div>
+                      )}
                       {hasFourn && hasClient && (
                         <div style={{ textAlign: 'right', fontSize: '10px', color: '#22c55e' }}>
                           +{profitAmt(mat.prixFournisseur!, mat.prixClient!)}$ profit
@@ -526,12 +556,11 @@ export default function CataloguePage() {
                     </div>
                   )}
                 </div>
+
                 <div style={{ display: 'flex', gap: '6px', marginTop: '10px', justifyContent: 'flex-end' }}>
-                  <button onClick={() => startEdit(mat)} style={{
-                    padding: '6px 12px', borderRadius: '8px', cursor: 'pointer',
-                    border: `1px solid ${theme.colors.border}`, background: 'transparent',
-                    color: theme.colors.textMuted, fontSize: '12px',
-                  }}>✏️ {t('Modifier', 'Edit')}</button>
+                  <button onClick={() => startEdit(mat)} style={{ padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', border: `1px solid ${theme.colors.border}`, background: 'transparent', color: theme.colors.textMuted, fontSize: '12px' }}>
+                    ✏️ {t('Modifier', 'Edit')}
+                  </button>
                   {deleteConfirmId === mat.id ? (
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button onClick={() => setDeleteConfirmId(null)} style={{ padding: '6px 10px', borderRadius: '8px', cursor: 'pointer', border: `1px solid ${theme.colors.border}`, background: 'transparent', color: theme.colors.textMuted, fontSize: '12px' }}>Annuler</button>
