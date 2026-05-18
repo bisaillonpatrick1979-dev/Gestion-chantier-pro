@@ -27,6 +27,18 @@ export interface CompanyInfo {
   defaultNotes: string
   defaultPaymentTerms: string
   defaultDuedays: number
+  // ── Paramètres paie salariés ─────────────────────────────────────────────
+  payrollVacationRate: number       // % vacances (6 = min construction AB)
+  payrollHealthInsurance: number    // Assurance santé $/période
+  payrollDentalInsurance: number    // Assurance dentaire $/période
+  payrollLifeInsurance: number      // Assurance vie $/période
+  payrollLTD: number                // Invalidité longue durée $/période
+  payrollRRSP: number               // REER collectif % du brut
+  payrollEAP: number                // PAE $/période
+  payrollCustom1Name: string        // Déduction personnalisée 1 — nom
+  payrollCustom1Amount: number      // Déduction personnalisée 1 — montant
+  payrollCustom2Name: string        // Déduction personnalisée 2 — nom
+  payrollCustom2Amount: number      // Déduction personnalisée 2 — montant
 }
 
 interface CompanyStore {
@@ -58,6 +70,18 @@ const defaultCompany: CompanyInfo = {
   defaultNotes: '',
   defaultPaymentTerms: 'Net 30',
   defaultDuedays: 30,
+  // Payroll defaults
+  payrollVacationRate: 6,
+  payrollHealthInsurance: 0,
+  payrollDentalInsurance: 0,
+  payrollLifeInsurance: 0,
+  payrollLTD: 0,
+  payrollRRSP: 0,
+  payrollEAP: 0,
+  payrollCustom1Name: '',
+  payrollCustom1Amount: 0,
+  payrollCustom2Name: '',
+  payrollCustom2Amount: 0,
 }
 
 export const useCompanyStore = create<CompanyStore>()(
