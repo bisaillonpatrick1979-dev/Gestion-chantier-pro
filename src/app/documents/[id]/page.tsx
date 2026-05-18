@@ -492,7 +492,12 @@ export default function DocumentDetailPage() {
                   <div>
                     <p className={`text-xs font-bold mb-2 ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>👤 {t('Client', 'Client')}</p>
                     <div className={`rounded-xl overflow-hidden border ${isDeco ? 'border-[#D6B25E]/30 bg-[#0a0700]' : 'border-white/20 bg-black/30'}`}>
-                      <canvas ref={sigRef} width={300} height={120} className="w-full touch-none cursor-crosshair" style={{ display: 'block' }} onPointerDown={startDraw} onPointerMove={draw} onPointerUp={endDraw} onPointerLeave={endDraw} />
+                      <canvas ref={sigRef} width={300} height={120} className="w-full cursor-crosshair" style={{ display: 'block', touchAction: 'none' }}
+                        onPointerDown={startDraw} onPointerMove={draw} onPointerUp={endDraw} onPointerLeave={endDraw}
+                        onTouchStart={e => { e.preventDefault(); const t = e.touches[0]; const pe = { clientX: t.clientX, clientY: t.clientY } as any; startDraw(pe) }}
+                        onTouchMove={e => { e.preventDefault(); const t = e.touches[0]; const pe = { clientX: t.clientX, clientY: t.clientY } as any; draw(pe) }}
+                        onTouchEnd={e => { e.preventDefault(); endDraw() }}
+                      />
                     </div>
                     <button onClick={clearSig} className="w-full mt-2 py-2 rounded-xl text-xs font-bold bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all">🗑️ {t('Effacer', 'Clear')}</button>
                     {clientSignature && <p className="text-center text-xs mt-1 text-emerald-400 font-bold">✅ {t('Signée', 'Signed')}</p>}
@@ -576,7 +581,7 @@ export default function DocumentDetailPage() {
             <div id="document-to-print" style={{ background: 'white', margin: '12px', borderRadius: '12px', padding: '24px 20px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)', position: 'relative', overflow: 'hidden' }}>
 
               {/* Filigrane */}
-              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-35deg)', fontSize: '72px', fontWeight: 900, color: accentColor, opacity: 0.04, pointerEvents: 'none', userSelect: 'none', whiteSpace: 'nowrap', zIndex: 0, letterSpacing: '4px' }}>
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-35deg)', fontSize: '80px', fontWeight: 900, color: accentColor, opacity: 0.10, pointerEvents: 'none', userSelect: 'none', whiteSpace: 'nowrap', zIndex: 2, letterSpacing: '4px', mixBlendMode: 'multiply' }}>
                 {watermarkText}
               </div>
 
