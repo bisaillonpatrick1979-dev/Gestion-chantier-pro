@@ -1,8 +1,9 @@
-export type EmployeeRole        = 'admin' | 'employee'
-export type EmployeeWorkMode    = 'heure' | 'forfait' | 'surface'
-export type EmployeeWorkerType  = 'contractor' | 'salaried'
-export type EmployeeCountry     = 'CA' | 'US'
+export type EmployeeRole         = 'admin' | 'employee'
+export type EmployeeWorkMode     = 'heure' | 'forfait' | 'surface'
+export type EmployeeWorkerType   = 'contractor' | 'salaried'
+export type EmployeeCountry      = 'CA' | 'US'
 export type EmployeePayFrequency = 'weekly' | 'biweekly' | 'semimonthly' | 'monthly'
+export type EmployeePayPeriodStart = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
 
 export interface Employee {
   id: string
@@ -15,11 +16,13 @@ export interface Employee {
   active: boolean
   createdAt: string
   invoiceSequence: number
-  // Nouveaux champs — type de travailleur et paie
-  workerType?: EmployeeWorkerType      // 'contractor' | 'salaried'
-  employeeCountry?: EmployeeCountry    // 'CA' | 'US'
-  employeeProvince?: string            // 'AB' | 'BC' | 'TX' | etc.
-  payFrequency?: EmployeePayFrequency  // fréquence de paie
+  // Type de travailleur et paie
+  workerType?: EmployeeWorkerType
+  employeeCountry?: EmployeeCountry
+  employeeProvince?: string
+  payFrequency?: EmployeePayFrequency
+  payPeriodStart?: EmployeePayPeriodStart  // Jour de début de la semaine de paie
+  annualSalary?: number                    // Salaire annuel (si salarié)
 }
 
 export interface EmployeeSession {
