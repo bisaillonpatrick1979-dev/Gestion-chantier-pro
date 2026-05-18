@@ -1327,4 +1327,83 @@ export default function DocumentDetailPage() {
                       {holdbackPct > 0 && <p>• {t(`Retenue Builders' Lien Act : ${holdbackPct}%`, `Builders' Lien Act holdback: ${holdbackPct}%`)}</p>}
                       {warrantyYears > 0 && <p>• {t(`Garantie pose : ${warrantyYears} an(s)`, `Warranty: ${warrantyYears} year(s)`)}</p>}
                       {docType === 'quote' && quoteExpiryDate && <p>• {t(`Devis valide jusqu'au ${quoteExpiryDate}`, `Quote valid until ${quoteExpiryDate}`)}</p>}
-                      {docType !== 'invoice' && permitBy !== 'na' && <p>• {t(`Permis : ${permitBy === 'client' ? 'Client' : 'Contracteur'}`, `P
+                                            <p>• {t('Province : Alberta — GST 5% seulement', 'Province: Alberta — GST 5% only')}</p>
+                      {compWCB && <p>• WCB: {compWCB}</p>}
+                      {compGST && <p>• {t('N° GST:', 'GST#:')} {compGST}</p>}
+                      {compBN && <p>• {t('N° Entreprise:', 'BN:')} {compBN}</p>}
+                      {hasInsurance && docType === 'contract' && <p>• {t('Assurance responsabilité civile : Oui', 'Liability Insurance: Yes')}</p>}
+                      <p>• {t('Droit applicable : Alberta, Canada', 'Governing law: Alberta, Canada')}</p>
+                      <p>• {t('Conservation dossiers : 6 ans min.', 'Records retention: 6 yrs min.')}</p>
+                    </div>
+                  </div>
+
+                  {/* ── EXCLUSIONS (Devis) ── */}
+                  {docType === 'quote' && (
+                    <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', padding: '8px', marginBottom: '10px', fontSize: '9px', color: '#9a3412' }}>
+                      <p style={{ fontWeight: 700, marginBottom: '3px' }}>⚠️ {t('Exclusions', 'Exclusions')}</p>
+                      <p>• {t('Dommages cachés, structure non visible avant démontage', 'Hidden damage, structure not visible before dismantling')}</p>
+                      <p>• {t('Infiltration non reliée aux travaux décrits', 'Water infiltration unrelated to described work')}</p>
+                      <p>• {t('Dommages causés par événements extérieurs après la pose', 'Damage from external events after installation')}</p>
+                    </div>
+                  )}
+
+                  {/* ── BUILDERS' LIEN (Contrat) ── */}
+                  {docType === 'contract' && holdbackPct > 0 && (
+                    <div style={{ background: '#fefce8', border: '1px solid #fde68a', borderRadius: '8px', padding: '8px', marginBottom: '10px', fontSize: '9px', color: '#92400e' }}>
+                      <p style={{ fontWeight: 700, marginBottom: '3px' }}>🔒 {t("Builders' Lien Act — Retenue", "Builders' Lien Act — Holdback")}</p>
+                      <p>• {t(`Retenue de ${holdbackPct}% (${fmt(holdbackAmt)}) jusqu'à l'expiration du délai légal`, `${holdbackPct}% holdback (${fmt(holdbackAmt)}) until statutory lien period expires`)}</p>
+                      <p>• {t('Attestation de libération de privilège requise avant paiement final', 'Lien release certificate required before final payment')}</p>
+                    </div>
+                  )}
+
+                  {/* ── SIGNATURES ── */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '12px' }}>
+                    {/* Client */}
+                    <div>
+                      {clientSignature ? (
+                        <div style={{ border: '1px solid #e5e7eb', borderRadius: '6px', overflow: 'hidden', marginBottom: '5px', height: '50px' }}>
+                          <img src={clientSignature} alt={t('Signature client', 'Client signature')} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+                        </div>
+                      ) : (
+                        <div style={{ borderBottom: '1px solid #d1d5db', height: '45px', marginBottom: '5px' }} />
+                      )}
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: '#374151' }}>{clientName || '_______________'}</p>
+                      <p style={{ fontSize: '8px', color: '#9ca3af', marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('Signature du client · Date: ___________', 'Client Signature · Date: ___________')}</p>
+                    </div>
+                    {/* Contracteur */}
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ borderBottom: '1px solid #d1d5db', height: '45px', marginBottom: '5px' }} />
+                      <p style={{ fontSize: '12px', fontWeight: 900, color: '#111827', fontFamily: 'Georgia, serif' }}>{ownerName}</p>
+                      <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>{compName}</p>
+                      <p style={{ fontSize: '9px', color: '#9ca3af', marginTop: '1px' }}>{todayFormatted}</p>
+                      <p style={{ fontSize: '8px', color: '#9ca3af', marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('Signature autorisée', 'Authorized Signature')}</p>
+                    </div>
+                  </div>
+
+                  {/* Pied de page */}
+                  <div style={{ borderTop: '1px solid #e5e7eb', marginTop: '12px', paddingTop: '8px', textAlign: 'center' }}>
+                    <p style={{ fontSize: '9px', color: '#9ca3af' }}>
+                      {compName} · {compPhone} · {compEmail}
+                      {compGST ? ` · GST: ${compGST}` : ''}{compWCB ? ` · WCB: ${compWCB}` : ''}
+                    </p>
+                    <p style={{ fontSize: '8px', color: '#d1d5db', marginTop: '3px' }}>
+                      {t('Généré par Gestion Chantier Pro — Hailite Xteriors', 'Generated by Gestion Chantier Pro — Hailite Xteriors')}
+                    </p>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Boutons bas */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', padding: '10px 16px 20px' }}>
+                <button onClick={() => window.print()} style={{ padding: '14px', borderRadius: '12px', background: accentColor, border: 'none', color: 'white', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }}>🖨️ {t('Imprimer / PDF', 'Print / PDF')}</button>
+                <button onClick={() => setShowPdfPreview(false)} style={{ padding: '14px', borderRadius: '12px', background: '#374151', border: 'none', color: '#d1d5db', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>✕ {t('Fermer', 'Close')}</button>
+              </div>
+
+            </div>
+          </div>
+        )
+      })()}
+    </div>
+  )
+}
