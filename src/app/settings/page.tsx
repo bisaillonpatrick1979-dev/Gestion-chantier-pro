@@ -262,7 +262,7 @@ export default function SettingsPage() {
               {sectionTitle(t('➕ Ajouter employé', '➕ Add Employee'))}
               <div className="space-y-3">
                 <input className={inputClass} value={newName} onChange={e => setNewName(e.target.value)} placeholder={t('Prénom Nom', 'First Last')} />
-                <input className={inputClass} value={newPin} onChange={e => setNewPin(e.target.value)} type="password" placeholder={t('PIN (4+ chiffres)', 'PIN (4+ digits)')} />
+                <input className={inputClass} value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0,4))} type="password" maxLength={4} inputMode="numeric" placeholder={t('PIN (4 chiffres)', 'PIN (4 digits)')} />
                 <input className={inputClass} value={newRate} onChange={e => setNewRate(e.target.value)} type="number" placeholder={t('Taux horaire $/h', 'Hourly Rate $/h')} />
                 <select className={inputClass} value={newRole} onChange={e => setNewRole(e.target.value as 'admin' | 'employee')}><option value="employee">👷 {t('Employé', 'Employee')}</option><option value="admin">👑 Admin</option></select>
                 <select className={inputClass} value={newWorkerType} onChange={e => setNewWorkerType(e.target.value as any)}>
@@ -297,18 +297,32 @@ export default function SettingsPage() {
             </div>
             <div className={cardStyle}>
               {isDeco && <DecoCorners />}
-              {sectionTitle(t('🔐 Reset PIN Admin', '🔐 Reset Admin PIN'))}
-              {showResetPin ? (
-                <div className="space-y-3">
-                  <input className={inputClass} value={resetPinVal} onChange={e => setResetPinVal(e.target.value)} type="password" placeholder={t('Nouveau PIN admin', 'New admin PIN')} />
-                  <div className="flex gap-2">
-                    <button onClick={() => { const admin = employees.find(e => e.role === 'admin'); if (admin && resetPinVal.length >= 4) { updateEmployee(admin.id, { pin: resetPinVal }); setShowResetPin(false); setResetPinVal('') } }} className={`flex-1 py-2 rounded-xl text-xs font-bold ${isDeco ? 'bg-[#D6B25E] text-[#0d0a00]' : 'bg-emerald-500 text-white'}`}>✅ {t('Confirmer', 'Confirm')}</button>
-                    <button onClick={() => setShowResetPin(false)} className="flex-1 py-2 rounded-xl text-xs font-bold bg-white/10 text-white">✕ {t('Annuler', 'Cancel')}</button>
+              {sectionTitle(t('🔐 Reset PIN', '🔐 Reset PIN'))}
+              <div className="space-y-3">
+                {employees.map(emp => (
+                  <div key={emp.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: emp.color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: 13 }}>{emp.name[0]}</div>
+                    <p className={`flex-1 text-sm font-bold ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>{emp.name}</p>
+                    <input
+                      type="password"
+                      maxLength={4}
+                      inputMode="numeric"
+                      placeholder="PIN"
+                      className={`${inputClass} w-24 text-center`}
+                      onChange={e => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0,4)
+                        e.target.value = val
+                        if (val.length === 4) {
+                          updateEmployee(emp.id, { pin: val })
+                          e.target.style.border = '2px solid #22c55e'
+                          setTimeout(() => { e.target.style.border = ''; e.target.value = '' }, 1500)
+                        }
+                      }}
+                    />
                   </div>
-                </div>
-              ) : (
-                <button onClick={() => setShowResetPin(true)} className="w-full py-3 rounded-xl font-bold text-sm bg-red-500/20 text-red-400">🔐 {t('Réinitialiser PIN', 'Reset PIN')}</button>
-              )}
+                ))}
+                <p className="text-white/30 text-xs text-center">{t('Tapez 4 chiffres pour sauvegarder automatiquement', 'Type 4 digits to save automatically')}</p>
+              </div>
             </div>
           </div>
         )}
