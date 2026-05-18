@@ -58,6 +58,8 @@ export default function SettingsPage() {
   const [newWorkerType, setNewWorkerType] = useState<'contractor' | 'salaried'>('contractor')
   const [newProvince, setNewProvince] = useState('AB')
   const [newPayFrequency, setNewPayFrequency] = useState<'weekly' | 'biweekly' | 'semimonthly' | 'monthly'>('biweekly')
+  const [newPayPeriodStart, setNewPayPeriodStart] = useState<'monday'|'tuesday'|'wednesday'|'thursday'|'friday'|'saturday'|'sunday'>('monday')
+  const [newAnnualSalary, setNewAnnualSalary] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editRate, setEditRate] = useState('')
   const [editName, setEditName] = useState('')
@@ -74,8 +76,8 @@ export default function SettingsPage() {
 
   const handleAddEmployee = () => {
     if (!newName.trim() || newPin.length < 4) return
-    addEmployee({ name: newName.trim(), pin: newPin, role: newRole, hourlyRate: parseFloat(newRate) || 0, workMode: 'heure', color: '#a855f7', active: true, workerType: newWorkerType, employeeProvince: newWorkerType === 'salaried' ? newProvince : undefined, payFrequency: newWorkerType === 'salaried' ? newPayFrequency : undefined })
-    setNewName(''); setNewPin(''); setNewRate(''); setNewRole('employee'); setNewWorkerType('contractor'); setNewProvince('AB'); setNewPayFrequency('biweekly')
+    addEmployee({ name: newName.trim(), pin: newPin, role: newRole, hourlyRate: parseFloat(newRate) || 0, workMode: 'heure', color: '#a855f7', active: true, workerType: newWorkerType, employeeProvince: newWorkerType === 'salaried' ? newProvince : undefined, payFrequency: newWorkerType === 'salaried' ? newPayFrequency : undefined, payPeriodStart: newWorkerType === 'salaried' ? newPayPeriodStart : undefined, annualSalary: newWorkerType === 'salaried' && newAnnualSalary ? parseFloat(newAnnualSalary) : undefined })
+    setNewName(''); setNewPin(''); setNewRate(''); setNewRole('employee'); setNewWorkerType('contractor'); setNewProvince('AB'); setNewPayFrequency('biweekly'); setNewPayPeriodStart('monday'); setNewAnnualSalary('')
   }
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,6 +216,26 @@ export default function SettingsPage() {
                             <option value="monthly">{t('Mensuel (173.33h)', 'Monthly (173.33h)')}</option>
                           </select>
                         </div>
+                        <div>
+                          <label className={labelClass}>📅 {t('Début semaine de paie', 'Pay Period Start')}</label>
+                          <select className={inputClass} defaultValue={emp.payPeriodStart || 'monday'}
+                            onChange={e => updateEmployee(emp.id, { payPeriodStart: e.target.value as any })}>
+                            <option value="monday">{t('Lundi → Dimanche', 'Monday → Sunday')}</option>
+                            <option value="tuesday">{t('Mardi → Lundi', 'Tuesday → Monday')}</option>
+                            <option value="wednesday">{t('Mercredi → Mardi', 'Wednesday → Tuesday')}</option>
+                            <option value="thursday">{t('Jeudi → Mercredi', 'Thursday → Wednesday')}</option>
+                            <option value="friday">{t('Vendredi → Jeudi', 'Friday → Thursday')}</option>
+                            <option value="saturday">{t('Samedi → Vendredi', 'Saturday → Friday')}</option>
+                            <option value="sunday">{t('Dimanche → Samedi', 'Sunday → Saturday')}</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className={labelClass}>💵 {t('Salaire annuel $ (optionnel)', 'Annual Salary $ (optional)')}</label>
+                          <input className={inputClass} type="number"
+                            defaultValue={emp.annualSalary || ''}
+                            onChange={e => updateEmployee(emp.id, { annualSalary: parseFloat(e.target.value) || undefined })}
+                            placeholder="Ex: 52000" />
+                        </div>
                       </>
                     )}
                     <div className="flex gap-2">
@@ -258,6 +280,16 @@ export default function SettingsPage() {
                       <option value="semimonthly">{t('2x/mois (86.67h)', 'Semi-monthly (86.67h)')}</option>
                       <option value="monthly">{t('Mensuel (173.33h)', 'Monthly (173.33h)')}</option>
                     </select>
+                    <select className={inputClass} value={newPayPeriodStart} onChange={e => setNewPayPeriodStart(e.target.value as any)}>
+                      <option value="monday">📅 {t('Lundi → Dimanche', 'Monday → Sunday')}</option>
+                      <option value="tuesday">📅 {t('Mardi → Lundi', 'Tuesday → Monday')}</option>
+                      <option value="wednesday">📅 {t('Mercredi → Mardi', 'Wednesday → Tuesday')}</option>
+                      <option value="thursday">📅 {t('Jeudi → Mercredi', 'Thursday → Wednesday')}</option>
+                      <option value="friday">📅 {t('Vendredi → Jeudi', 'Friday → Thursday')}</option>
+                      <option value="saturday">📅 {t('Samedi → Vendredi', 'Saturday → Friday')}</option>
+                      <option value="sunday">📅 {t('Dimanche → Samedi', 'Sunday → Saturday')}</option>
+                    </select>
+                    <input className={inputClass} value={newAnnualSalary} onChange={e => setNewAnnualSalary(e.target.value)} type="number" placeholder={t('Salaire annuel $ (optionnel)', 'Annual Salary $ (optional)')} />
                   </>
                 )}
                 <button onClick={handleAddEmployee} className={`w-full py-3 rounded-xl font-bold text-sm ${isDeco ? 'bg-gradient-to-r from-[#D6B25E] to-[#c9a84c] text-[#0d0a00]' : isQuantum ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white' : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white'}`}>{t('✅ Ajouter', '✅ Add')}</button>
