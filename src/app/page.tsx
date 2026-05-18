@@ -658,26 +658,9 @@ export default function HomePage() {
                   )}
                 </div>
 
-                {/* Point de statut + bouton slip de paye */}
+                {/* Point de statut uniquement — pas de bouton Paye ici, personne n'est authentifié */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', position: 'relative', zIndex: 1, flexShrink: 0 }}>
                   <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: activeSessions[emp.id] ? activeSessions[emp.id].isOnBreak ? '#f59e0b' : '#22c55e' : '#ef4444', boxShadow: activeSessions[emp.id] ? activeSessions[emp.id].isOnBreak ? '0 0 8px #f59e0b' : '0 0 8px #22c55e' : '0 0 8px #ef4444' }}/>
-                  {/* ── BOUTON SLIP DE PAYE ── */}
-                  <button
-                    onClick={e => { e.stopPropagation(); setPayslipEmployeeId(emp.id) }}
-                    style={{
-                      background: 'rgba(255,255,255,0.07)',
-                      border: '1px solid rgba(255,255,255,0.15)',
-                      borderRadius: '6px',
-                      padding: '3px 6px',
-                      fontSize: '9px',
-                      fontWeight: 800,
-                      color: isXP ? '#a855f7' : isDeco ? '#D6B25E' : '#94a3b8',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    💵 Paye
-                  </button>
                 </div>
               </button>
             )
@@ -689,22 +672,6 @@ export default function HomePage() {
         ) : (
           <><DecoSeparator opacity={0.2}/><div style={{ display: 'flex', justifyContent: 'center', gap: '20px', opacity: 0.2 }}><DecoFlower size={35} opacity={1}/><DecoFlower size={50} opacity={1}/><DecoFlower size={35} opacity={1}/></div></>
         )}
-
-        {/* ── Modal slip de paye ── */}
-        {payslipEmployeeId && (() => {
-          const emp = employees.find(e => e.id === payslipEmployeeId)
-          if (!emp) return null
-          return (
-            <PayslipModal
-              employee={emp}
-              dayDetails={dayDetails}
-              isXP={isXP}
-              isDeco={isDeco}
-              onClose={() => setPayslipEmployeeId(null)}
-              t={t}
-            />
-          )
-        })()}
       </div>
     )
   }
@@ -790,8 +757,8 @@ export default function HomePage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px', position: 'relative', zIndex: 1 }}>
-          {/* Bouton slip de paye dans le dashboard */}
-          {currentEmployee && (
+          {/* Bouton slip de paye — admin voit tous, employé voit seulement le sien */}
+          {currentEmployee && (currentEmployee.role === 'admin' || currentEmployeeId === currentEmployee.id) && (
             <button
               onClick={() => setPayslipEmployeeId(currentEmployee.id)}
               style={{
@@ -1063,10 +1030,14 @@ export default function HomePage() {
         )
       })()}
 
-      {/* ── Modal slip de paye (dashboard) ── */}
+      {/* ── Modal slip de paye (dashboard) — sécurisé ── */}
       {payslipEmployeeId && (() => {
         const emp = employees.find(e => e.id === payslipEmployeeId)
         if (!emp) return null
+        // Sécurité : seul l'admin ou l'employé lui-même peut voir sa paye
+        const isAdmin = currentEmployee?.role === 'admin'
+        const isOwn   = payslipEmployeeId === currentEmployeeId
+        if (!isAdmin && !isOwn) { setPayslipEmployeeId(null); return null }
         return (
           <PayslipModal
             employee={emp}
