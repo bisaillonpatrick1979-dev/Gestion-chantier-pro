@@ -757,24 +757,73 @@ export default function HomePage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px', position: 'relative', zIndex: 1 }}>
-          {/* Bouton slip de paye — admin voit tous, employé voit seulement le sien */}
-          {currentEmployee && (currentEmployee.role === 'admin' || currentEmployeeId === currentEmployee.id) && (
-            <button
-              onClick={() => setPayslipEmployeeId(currentEmployee.id)}
-              style={{
-                padding: '7px 10px', borderRadius: '8px', cursor: 'pointer',
-                border: isXP ? '1px solid rgba(168,85,247,0.3)' : '1px solid var(--border)',
-                background: 'transparent',
-                color: isXP ? '#a855f7' : 'var(--text-muted)',
-                fontSize: '11px', fontWeight: 700,
-              }}
-            >💵</button>
-          )}
-          <button onClick={handleLogout} style={{ padding: '7px 12px', borderRadius: '8px', cursor: 'pointer', border: isXP ? '1px solid rgba(168,85,247,0.3)' : '1px solid var(--border)', background: 'transparent', color: isXP ? '#a855f7' : 'var(--text-muted)', fontSize: '11px', fontWeight: 700 }}>{t('SORTIR', 'LOGOUT')}</button>
+          {/* Bouton slip de paye — gros, facile à tapper */}
+          <button
+            onClick={() => setPayslipEmployeeId(currentEmployeeId)}
+            style={{
+              padding: '10px 14px', borderRadius: '12px', cursor: 'pointer',
+              border: isXP ? '1px solid rgba(168,85,247,0.4)' : '1px solid var(--border)',
+              background: isXP ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.08)',
+              color: isXP ? '#a855f7' : 'var(--text)',
+              fontSize: '18px', fontWeight: 700,
+              minWidth: '44px', minHeight: '44px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >💵</button>
+          <button onClick={handleLogout} style={{ padding: '10px 14px', borderRadius: '12px', cursor: 'pointer', border: isXP ? '1px solid rgba(168,85,247,0.3)' : '1px solid var(--border)', background: 'transparent', color: isXP ? '#a855f7' : 'var(--text-muted)', fontSize: '11px', fontWeight: 700, minHeight: '44px' }}>{t('SORTIR', 'LOGOUT')}</button>
         </div>
       </div>
 
-      {/* Le reste du dashboard est identique à l'original */}
+      {/* ══ SECTION PAIE ADMIN — liste tous les employés ══ */}
+      {currentEmployee?.role === 'admin' && (
+        <div className={cardClass} style={{ ...card }}>
+          {!isXP && <DecoBackground/>}{!isXP && <DecoCorners opacity={0.2}/>}
+          <p style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '2px', color: isXP ? '#a855f7' : 'var(--primary)', textTransform: 'uppercase', marginBottom: '10px', position: 'relative', zIndex: 1 }}>
+            💵 {t('Paie des employés', 'Employee Payroll')}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative', zIndex: 1 }}>
+            {employees.filter(e => e.active).map(emp => {
+              const isSalaried = emp.workerType === 'salaried'
+              const isActive   = !!activeSessions[emp.id]
+              return (
+                <button
+                  key={emp.id}
+                  onClick={() => setPayslipEmployeeId(emp.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '12px',
+                    padding: '12px 14px', borderRadius: '14px', cursor: 'pointer',
+                    border: isXP ? '1px solid rgba(168,85,247,0.2)' : '1px solid var(--border)',
+                    background: isXP ? 'rgba(168,85,247,0.06)' : 'var(--surface)',
+                    textAlign: 'left' as const, width: '100%',
+                  }}
+                >
+                  {/* Avatar */}
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0, background: `radial-gradient(circle at 40% 35%, ${emp.color}99, ${emp.color})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 800, color: 'white' }}>
+                    {emp.name[0].toUpperCase()}
+                  </div>
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ color: isXP ? '#e9d5ff' : 'var(--text)', fontSize: '13px', fontWeight: 700 }}>{emp.name}</p>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '9px', fontWeight: 800, padding: '1px 6px', borderRadius: '5px', background: isSalaried ? 'rgba(34,197,94,0.15)' : 'rgba(251,146,60,0.15)', color: isSalaried ? '#22c55e' : '#fb923c' }}>
+                        {isSalaried ? '💼 Salarié' : '🔧 S-traitant'}
+                      </span>
+                      <span style={{ fontSize: '9px', color: isXP ? '#6b7280' : 'var(--text-muted)' }}>
+                        ${emp.hourlyRate || 0}/h
+                      </span>
+                      {isActive && <span style={{ fontSize: '9px', color: '#22c55e', fontWeight: 700 }}>● {t('En service', 'Working')}</span>}
+                    </div>
+                  </div>
+                  {/* Flèche */}
+                  <span style={{ fontSize: '16px', color: isXP ? '#a855f7' : 'var(--primary)', flexShrink: 0 }}>💵</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
         <div className={cardClass} style={{ ...card }}>
           {!isXP && <DecoBackground/>}{!isXP && <DecoCorners opacity={0.2}/>}
@@ -1030,14 +1079,14 @@ export default function HomePage() {
         )
       })()}
 
-      {/* ── Modal slip de paye (dashboard) — sécurisé ── */}
+      {/* ── Modal slip de paye — sécurisé ── */}
       {payslipEmployeeId && (() => {
         const emp = employees.find(e => e.id === payslipEmployeeId)
         if (!emp) return null
-        // Sécurité : seul l'admin ou l'employé lui-même peut voir sa paye
+        // Admin voit tout. Employé voit seulement le sien.
         const isAdmin = currentEmployee?.role === 'admin'
         const isOwn   = payslipEmployeeId === currentEmployeeId
-        if (!isAdmin && !isOwn) { setPayslipEmployeeId(null); return null }
+        if (!isAdmin && !isOwn) { return null }
         return (
           <PayslipModal
             employee={emp}
