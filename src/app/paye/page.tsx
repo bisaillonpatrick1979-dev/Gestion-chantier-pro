@@ -55,6 +55,16 @@ export default function PayePage() {
   const isAventure = themeId === 'aventure'
   const cardClass  = isDeco ? 'deco-card-sweep' : isQuantum ? 'quantum-card-glow' : isAventure ? 'aventure-card-glow' : ''
 
+  // ── Visibilité des onglets ──────────────────────────────────────────────────
+  const showContractorTab = isAdmin || currentEmployee?.workerType !== 'salaried'
+  const showSalariedTab   = isAdmin || currentEmployee?.workerType === 'salaried'
+  const bothTabsVisible   = showContractorTab && showSalariedTab
+
+  const defaultTab: 'contractor' | 'salaried' =
+    !isAdmin && currentEmployee?.workerType === 'salaried' ? 'salaried' : 'contractor'
+
+  const [activeTab, setActiveTab] = useState<'contractor' | 'salaried'>(defaultTab)
+
   // ── État PIN ────────────────────────────────────────────────────────────────
   const [showPinChange, setShowPinChange]   = useState(false)
   const [oldPin, setOldPin]                 = useState('')
@@ -83,16 +93,17 @@ export default function PayePage() {
   const [payStubEmpId, setPayStubEmpId]         = useState<string | null>(null)
   const [payStubStartDate, setPayStubStartDate] = useState('')
   const [payStubEndDate, setPayStubEndDate]     = useState('')
-  const [payStubVacRate, setPayStubVacRate]     = useState(6) // 6% construction AB
+  const [payStubVacRate, setPayStubVacRate]     = useState(6)
   const [payStubNotes, setPayStubNotes]         = useState('')
   const [payStubPrinting, setPayStubPrinting]   = useState(false)
+
+  // ── Employés filtrés par type ──────────────────────────────────────────────
+  const contractorEmployees = employees.filter(e => e.workerType !== 'salaried')
+  const salariedEmployees   = employees.filter(e => e.workerType === 'salaried')
 
   const viewEmployee = isAdmin
     ? employees.find(e => e.id === selectedEmpId)
     : currentEmployee
-
-  // ── Employés salariés ──────────────────────────────────────────────────────
-  const salariedEmployees = employees.filter(e => e.workerType === 'salaried')
 
   // ── Styles ─────────────────────────────────────────────────────────────────
   const card: React.CSSProperties = {
@@ -282,222 +293,279 @@ export default function PayePage() {
         💵 {t('LIVRE DE PAYE', 'PAYROLL BOOK')}
       </h1>
 
-      {/* ADMIN: Sélecteur employé */}
-      {isAdmin && (
-        <div className={cardClass} style={card}>
-          <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>
-            👥 {t('VOIR LES STATS DE', 'VIEW STATS FOR')}
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {employees.map(emp => (
-              <button key={emp.id} onClick={() => setSelectedEmpId(emp.id)} style={{
-                display: 'flex', alignItems: 'center', gap: '12px', padding: '12px',
-                borderRadius: '10px', cursor: 'pointer',
-                border: selectedEmpId === emp.id ? `2px solid ${emp.color}` : `1px solid ${theme.colors.border}`,
-                background: selectedEmpId === emp.id ? `${emp.color}22` : theme.colors.surface,
-                textAlign: 'left',
-              }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: emp.color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '14px' }}>
-                  {emp.name[0]}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: 700 }}>
-                    {emp.name} {emp.role === 'admin' ? '👑' : ''}
-                    {emp.workerType === 'salaried' ? ' 💼' : ' 📋'}
+      {/* ── BARRE D'ONGLETS (seulement si les 2 sont accessibles) ─────────── */}
+      {bothTabsVisible && (
+        <div style={{
+          display: 'flex', gap: '6px',
+          background: theme.colors.card,
+          borderRadius: '14px', padding: '6px',
+          border: `1px solid ${theme.colors.border}`,
+        }}>
+          <button
+            onClick={() => setActiveTab('contractor')}
+            style={{
+              flex: 1, padding: '11px 8px', borderRadius: '10px', cursor: 'pointer',
+              border: 'none',
+              background: activeTab === 'contractor' ? theme.colors.primary : 'transparent',
+              color: activeTab === 'contractor' ? 'white' : theme.colors.textMuted,
+              fontSize: '13px', fontWeight: 700, transition: 'all 0.2s',
+            }}>
+            📋 {t('Mes Invoices', 'My Invoices')}
+          </button>
+          <button
+            onClick={() => setActiveTab('salaried')}
+            style={{
+              flex: 1, padding: '11px 8px', borderRadius: '10px', cursor: 'pointer',
+              border: 'none',
+              background: activeTab === 'salaried' ? theme.colors.primary : 'transparent',
+              color: activeTab === 'salaried' ? 'white' : theme.colors.textMuted,
+              fontSize: '13px', fontWeight: 700, transition: 'all 0.2s',
+            }}>
+            💼 {t('Paie Salariés', 'Salaried Pay')}
+          </button>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+           ONGLET 1 — CONTRACTEURS (📋 Mes Invoices)
+          ══════════════════════════════════════════════════════════════════════ */}
+      {showContractorTab && activeTab === 'contractor' && (
+        <>
+          {/* ADMIN: Sélecteur employé — contracteurs seulement */}
+          {isAdmin && (
+            <div className={cardClass} style={card}>
+              <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>
+                👥 {t('VOIR LES INVOICES DE', 'VIEW INVOICES FOR')}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {contractorEmployees.length === 0 ? (
+                  <p style={{ color: theme.colors.textMuted, fontSize: '13px', textAlign: 'center', padding: '12px' }}>
+                    {t('Aucun contracteur configuré', 'No contractors configured')}
                   </p>
-                  <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
-                    {emp.workerType === 'salaried' ? t('Salarié','Salaried') : t('Contracteur','Contractor')} · {emp.hourlyRate}$/h
-                  </p>
-                </div>
-                {selectedEmpId === emp.id && <span style={{ color: emp.color, fontSize: '16px' }}>✓</span>}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION — TALONS DE PAIE SALARIÉS                                      */}
-      {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {salariedEmployees.length > 0 && (
-        <div className={cardClass} style={card}>
-          <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>
-            💼 {t('TALONS DE PAIE — EMPLOYÉS SALARIÉS', 'PAY STUBS — SALARIED EMPLOYEES')}
-          </p>
-          <p style={{ color: theme.colors.textMuted, fontSize: '12px' }}>
-            {t('Générez un talon de paie officiel avec toutes les déductions.',
-               'Generate an official pay stub with all deductions.')}
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {salariedEmployees.map(emp => (
-              <button key={emp.id}
-                onClick={() => {
-                  setPayStubEmpId(emp.id)
-                  // Période par défaut : semaine courante
-                  const today = new Date()
-                  const day = today.getDay()
-                  const diffMon = today.getDate() - day + (day === 0 ? -6 : 1)
-                  const monday = new Date(today); monday.setDate(diffMon)
-                  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6)
-                  setPayStubStartDate(monday.toISOString().split('T')[0])
-                  setPayStubEndDate(sunday.toISOString().split('T')[0])
-                  setPayStubVacRate(6)
-                  setPayStubNotes('')
-                }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', padding: '14px',
-                  borderRadius: '10px', cursor: 'pointer', textAlign: 'left',
-                  border: payStubEmpId === emp.id ? `2px solid ${emp.color}` : `1px solid ${theme.colors.border}`,
-                  background: payStubEmpId === emp.id ? `${emp.color}22` : theme.colors.surface,
-                }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: emp.color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '16px' }}>
-                  {emp.name[0]}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: 700 }}>{emp.name}</p>
-                  <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
-                    {emp.hourlyRate}$/h · {emp.employeeProvince || 'AB'} · {emp.payFrequency || 'weekly'}
-                  </p>
-                </div>
-                <span style={{ color: emp.color, fontSize: '20px' }}>🧾</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* RÉSUMÉ EMPLOYÉ (contracteur) */}
-      {viewEmployee && viewEmployee.workerType !== 'salaried' && (
-        <div className={cardClass} style={{ ...card, borderLeft: `4px solid ${viewEmployee.color}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: viewEmployee.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '20px' }}>
-              {viewEmployee.name[0]}
-            </div>
-            <div>
-              <p style={{ color: theme.colors.text, fontSize: '16px', fontWeight: 800 }}>{viewEmployee.name}</p>
-              <p style={{ color: theme.colors.textMuted, fontSize: '12px' }}>{viewEmployee.workMode} · {viewEmployee.hourlyRate}$/h · {t('Autonome','Contractor')}</p>
-            </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
-              <p style={{ color: theme.colors.textMuted, fontSize: '11px', marginBottom: '4px' }}>{t('Total revenus', 'Total revenue')}</p>
-              <p style={{ color: theme.colors.secondary, fontSize: '20px', fontWeight: 800 }}>{formatCurrency(totalRevenue)}</p>
-            </div>
-            <div style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
-              <p style={{ color: theme.colors.textMuted, fontSize: '11px', marginBottom: '4px' }}>{t('Total heures', 'Total hours')}</p>
-              <p style={{ color: theme.colors.primary, fontSize: '20px', fontWeight: 800 }}>{totalHours.toFixed(1)}h</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* HISTORIQUE INVOICES */}
-      {empInvoices.length > 0 && (
-        <div className={cardClass} style={card}>
-          <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>
-            🧾 {t('MES INVOICES', 'MY INVOICES')} ({empInvoices.length})
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {empInvoices.map(inv => {
-              const sc = STATUS_CONFIG[inv.status]
-              return (
-                <div key={inv.id} onClick={() => openInvoiceModal(inv.periodStart)}
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: theme.colors.surface, borderRadius: '10px', padding: '12px', borderLeft: `3px solid ${sc.color}`, cursor: 'pointer' }}>
-                  <div>
-                    <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: 700 }}>{inv.number}</p>
-                    <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{inv.periodStart} → {inv.periodEnd}</p>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <p style={{ color: theme.colors.primary, fontSize: '14px', fontWeight: 800 }}>{formatCurrency(inv.total)}</p>
-                    <span style={{ fontSize: '10px', fontWeight: 700, color: sc.color }}>{sc.emoji} {sc.label}</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* SEMAINES (contracteurs) */}
-      {viewEmployee && viewEmployee.workerType !== 'salaried' && Object.keys(weekGroups).length === 0 && (
-        <div className={cardClass} style={{ ...card, textAlign: 'center', padding: '32px' }}>
-          <p style={{ color: theme.colors.textMuted, fontSize: '14px' }}>
-            {t('Aucune donnée disponible', 'No data available')}
-          </p>
-        </div>
-      )}
-
-      {viewEmployee && viewEmployee.workerType !== 'salaried' &&
-        Object.entries(weekGroups)
-          .sort(([a], [b]) => b.localeCompare(a))
-          .map(([weekStart, days]) => {
-            const weekRevenue = days.reduce((s, d) => s + d.totalRevenue, 0)
-            const weekHours   = days.reduce((s, d) => s + d.totalHours, 0)
-            const weekBreak   = days.reduce((s, d) => s + d.totalBreak, 0)
-            const weekEnd = new Date(weekStart + 'T12:00:00')
-            weekEnd.setDate(weekEnd.getDate() + 6)
-            const weekEndStr = weekEnd.toISOString().split('T')[0]
-            const existingInv = viewEmployee ? getByWeek(viewEmployee.id, weekStart) : undefined
-            const sc = existingInv ? STATUS_CONFIG[existingInv.status] : null
-
-            return (
-              <div key={weekStart} className={cardClass} style={card}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <p style={{ color: theme.colors.text, fontSize: '14px', fontWeight: 800 }}>
-                      📅 {t('Semaine du', 'Week of')} {weekStart}
-                    </p>
-                    <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{t('au', 'to')} {weekEndStr}</p>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <p style={{ color: theme.colors.secondary, fontSize: '16px', fontWeight: 800 }}>{formatCurrency(weekRevenue)}</p>
-                    <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{weekHours.toFixed(2)}h</p>
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                  {[
-                    { label: t('Jours','Days'),   value: `${days.length}`,           color: theme.colors.primary },
-                    { label: t('Heures','Hours'),  value: `${weekHours.toFixed(1)}h`, color: theme.colors.primaryLight },
-                    { label: t('Pauses','Breaks'), value: formatTimer(weekBreak),     color: '#f97316' },
-                  ].map(item => (
-                    <div key={item.label} style={{ background: theme.colors.surface, borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
-                      <p style={{ color: item.color, fontSize: '15px', fontWeight: 800 }}>{item.value}</p>
-                      <p style={{ color: theme.colors.textMuted, fontSize: '10px' }}>{item.label}</p>
+                ) : contractorEmployees.map(emp => (
+                  <button key={emp.id} onClick={() => setSelectedEmpId(emp.id)} style={{
+                    display: 'flex', alignItems: 'center', gap: '12px', padding: '12px',
+                    borderRadius: '10px', cursor: 'pointer',
+                    border: selectedEmpId === emp.id ? `2px solid ${emp.color}` : `1px solid ${theme.colors.border}`,
+                    background: selectedEmpId === emp.id ? `${emp.color}22` : theme.colors.surface,
+                    textAlign: 'left',
+                  }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: emp.color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '14px' }}>
+                      {emp.name[0]}
                     </div>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {days.map(detail => (
-                    <div key={detail.date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${theme.colors.border}`, paddingBottom: '6px' }}>
-                      <div>
-                        <p style={{ color: theme.colors.text, fontSize: '13px' }}>
-                          {new Date(detail.date + 'T12:00:00').toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { weekday: 'short', day: 'numeric', month: 'short' })}
-                        </p>
-                        <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{detail.sessions.length} session(s) · {detail.totalHours.toFixed(2)}h</p>
-                      </div>
-                      <p style={{ color: theme.colors.secondary, fontSize: '13px', fontWeight: 700 }}>{formatCurrency(detail.totalRevenue)}</p>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: 700 }}>
+                        {emp.name} {emp.role === 'admin' ? '👑' : ''} 📋
+                      </p>
+                      <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
+                        {t('Contracteur', 'Contractor')} · {emp.hourlyRate}$/h
+                      </p>
                     </div>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: `2px solid ${theme.colors.primary}`, paddingTop: '10px' }}>
-                  <p style={{ color: theme.colors.text, fontSize: '14px', fontWeight: 800 }}>TOTAL</p>
-                  <p style={{ color: theme.colors.secondary, fontSize: '14px', fontWeight: 800 }}>{formatCurrency(weekRevenue)}</p>
-                </div>
-                <button onClick={() => openInvoiceModal(weekStart)} style={{
-                  padding: '12px', borderRadius: '10px', cursor: 'pointer',
-                  border: existingInv ? `1px solid ${sc!.color}` : `1px solid ${theme.colors.primary}`,
-                  background: existingInv ? `${sc!.color}15` : `${theme.colors.primary}18`,
-                  color: existingInv ? sc!.color : theme.colors.primary,
-                  fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                }}>
-                  {existingInv ? `${sc!.emoji} ${existingInv.number} — ${sc!.label}` : `📄 ${t('Générer Invoice', 'Generate Invoice')}`}
-                </button>
+                    {selectedEmpId === emp.id && <span style={{ color: emp.color, fontSize: '16px' }}>✓</span>}
+                  </button>
+                ))}
               </div>
-            )
-          })
-      }
+            </div>
+          )}
 
-      {/* PIN CHANGE */}
+          {/* RÉSUMÉ EMPLOYÉ (contracteur) */}
+          {viewEmployee && viewEmployee.workerType !== 'salaried' && (
+            <div className={cardClass} style={{ ...card, borderLeft: `4px solid ${viewEmployee.color}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: viewEmployee.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '20px' }}>
+                  {viewEmployee.name[0]}
+                </div>
+                <div>
+                  <p style={{ color: theme.colors.text, fontSize: '16px', fontWeight: 800 }}>{viewEmployee.name}</p>
+                  <p style={{ color: theme.colors.textMuted, fontSize: '12px' }}>{viewEmployee.workMode} · {viewEmployee.hourlyRate}$/h · {t('Autonome', 'Contractor')}</p>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                  <p style={{ color: theme.colors.textMuted, fontSize: '11px', marginBottom: '4px' }}>{t('Total revenus', 'Total revenue')}</p>
+                  <p style={{ color: theme.colors.secondary, fontSize: '20px', fontWeight: 800 }}>{formatCurrency(totalRevenue)}</p>
+                </div>
+                <div style={{ background: theme.colors.surface, borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                  <p style={{ color: theme.colors.textMuted, fontSize: '11px', marginBottom: '4px' }}>{t('Total heures', 'Total hours')}</p>
+                  <p style={{ color: theme.colors.primary, fontSize: '20px', fontWeight: 800 }}>{totalHours.toFixed(1)}h</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* HISTORIQUE INVOICES */}
+          {empInvoices.length > 0 && (
+            <div className={cardClass} style={card}>
+              <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>
+                🧾 {t('MES INVOICES', 'MY INVOICES')} ({empInvoices.length})
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {empInvoices.map(inv => {
+                  const sc = STATUS_CONFIG[inv.status]
+                  return (
+                    <div key={inv.id} onClick={() => openInvoiceModal(inv.periodStart)}
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: theme.colors.surface, borderRadius: '10px', padding: '12px', borderLeft: `3px solid ${sc.color}`, cursor: 'pointer' }}>
+                      <div>
+                        <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: 700 }}>{inv.number}</p>
+                        <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{inv.periodStart} → {inv.periodEnd}</p>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ color: theme.colors.primary, fontSize: '14px', fontWeight: 800 }}>{formatCurrency(inv.total)}</p>
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: sc.color }}>{sc.emoji} {sc.label}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* SEMAINES vides */}
+          {viewEmployee && viewEmployee.workerType !== 'salaried' && Object.keys(weekGroups).length === 0 && (
+            <div className={cardClass} style={{ ...card, textAlign: 'center', padding: '32px' }}>
+              <p style={{ color: theme.colors.textMuted, fontSize: '14px' }}>
+                {t('Aucune donnée disponible', 'No data available')}
+              </p>
+            </div>
+          )}
+
+          {/* SEMAINES (contracteurs) */}
+          {viewEmployee && viewEmployee.workerType !== 'salaried' &&
+            Object.entries(weekGroups)
+              .sort(([a], [b]) => b.localeCompare(a))
+              .map(([weekStart, days]) => {
+                const weekRevenue = days.reduce((s, d) => s + d.totalRevenue, 0)
+                const weekHours   = days.reduce((s, d) => s + d.totalHours, 0)
+                const weekBreak   = days.reduce((s, d) => s + d.totalBreak, 0)
+                const weekEnd = new Date(weekStart + 'T12:00:00')
+                weekEnd.setDate(weekEnd.getDate() + 6)
+                const weekEndStr  = weekEnd.toISOString().split('T')[0]
+                const existingInv = viewEmployee ? getByWeek(viewEmployee.id, weekStart) : undefined
+                const sc          = existingInv ? STATUS_CONFIG[existingInv.status] : null
+
+                return (
+                  <div key={weekStart} className={cardClass} style={card}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <p style={{ color: theme.colors.text, fontSize: '14px', fontWeight: 800 }}>
+                          📅 {t('Semaine du', 'Week of')} {weekStart}
+                        </p>
+                        <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{t('au', 'to')} {weekEndStr}</p>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ color: theme.colors.secondary, fontSize: '16px', fontWeight: 800 }}>{formatCurrency(weekRevenue)}</p>
+                        <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{weekHours.toFixed(2)}h</p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                      {[
+                        { label: t('Jours', 'Days'),    value: `${days.length}`,           color: theme.colors.primary },
+                        { label: t('Heures', 'Hours'),  value: `${weekHours.toFixed(1)}h`, color: theme.colors.primaryLight },
+                        { label: t('Pauses', 'Breaks'), value: formatTimer(weekBreak),     color: '#f97316' },
+                      ].map(item => (
+                        <div key={item.label} style={{ background: theme.colors.surface, borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
+                          <p style={{ color: item.color, fontSize: '15px', fontWeight: 800 }}>{item.value}</p>
+                          <p style={{ color: theme.colors.textMuted, fontSize: '10px' }}>{item.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {days.map(detail => (
+                        <div key={detail.date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${theme.colors.border}`, paddingBottom: '6px' }}>
+                          <div>
+                            <p style={{ color: theme.colors.text, fontSize: '13px' }}>
+                              {new Date(detail.date + 'T12:00:00').toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { weekday: 'short', day: 'numeric', month: 'short' })}
+                            </p>
+                            <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{detail.sessions.length} session(s) · {detail.totalHours.toFixed(2)}h</p>
+                          </div>
+                          <p style={{ color: theme.colors.secondary, fontSize: '13px', fontWeight: 700 }}>{formatCurrency(detail.totalRevenue)}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: `2px solid ${theme.colors.primary}`, paddingTop: '10px' }}>
+                      <p style={{ color: theme.colors.text, fontSize: '14px', fontWeight: 800 }}>TOTAL</p>
+                      <p style={{ color: theme.colors.secondary, fontSize: '14px', fontWeight: 800 }}>{formatCurrency(weekRevenue)}</p>
+                    </div>
+                    <button onClick={() => openInvoiceModal(weekStart)} style={{
+                      padding: '12px', borderRadius: '10px', cursor: 'pointer',
+                      border: existingInv ? `1px solid ${sc!.color}` : `1px solid ${theme.colors.primary}`,
+                      background: existingInv ? `${sc!.color}15` : `${theme.colors.primary}18`,
+                      color: existingInv ? sc!.color : theme.colors.primary,
+                      fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    }}>
+                      {existingInv ? `${sc!.emoji} ${existingInv.number} — ${sc!.label}` : `📄 ${t('Générer Invoice', 'Generate Invoice')}`}
+                    </button>
+                  </div>
+                )
+              })
+          }
+        </>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+           ONGLET 2 — SALARIÉS (💼 Paie Salariés)
+          ══════════════════════════════════════════════════════════════════════ */}
+      {showSalariedTab && activeTab === 'salaried' && (
+        <>
+          {salariedEmployees.length === 0 ? (
+            <div className={cardClass} style={{ ...card, textAlign: 'center', padding: '40px 20px' }}>
+              <p style={{ fontSize: '40px', marginBottom: '10px' }}>💼</p>
+              <p style={{ color: theme.colors.text, fontSize: '15px', fontWeight: 700 }}>
+                {t('Aucun employé salarié', 'No salaried employees')}
+              </p>
+              <p style={{ color: theme.colors.textMuted, fontSize: '12px', marginTop: '6px' }}>
+                {t('→ Réglages → Employés → Type : Salarié', '→ Settings → Employees → Type: Salaried')}
+              </p>
+            </div>
+          ) : (
+            <div className={cardClass} style={card}>
+              <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>
+                💼 {t('TALONS DE PAIE — EMPLOYÉS SALARIÉS', 'PAY STUBS — SALARIED EMPLOYEES')}
+              </p>
+              <p style={{ color: theme.colors.textMuted, fontSize: '12px' }}>
+                {t('Générez un talon de paie officiel avec toutes les déductions.',
+                   'Generate an official pay stub with all deductions.')}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {salariedEmployees.map(emp => (
+                  <button key={emp.id}
+                    onClick={() => {
+                      setPayStubEmpId(emp.id)
+                      const today = new Date()
+                      const day = today.getDay()
+                      const diffMon = today.getDate() - day + (day === 0 ? -6 : 1)
+                      const monday = new Date(today); monday.setDate(diffMon)
+                      const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6)
+                      setPayStubStartDate(monday.toISOString().split('T')[0])
+                      setPayStubEndDate(sunday.toISOString().split('T')[0])
+                      setPayStubVacRate(6)
+                      setPayStubNotes('')
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '12px', padding: '14px',
+                      borderRadius: '10px', cursor: 'pointer', textAlign: 'left',
+                      border: payStubEmpId === emp.id ? `2px solid ${emp.color}` : `1px solid ${theme.colors.border}`,
+                      background: payStubEmpId === emp.id ? `${emp.color}22` : theme.colors.surface,
+                    }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: emp.color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '16px' }}>
+                      {emp.name[0]}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: 700 }}>{emp.name}</p>
+                      <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
+                        {emp.hourlyRate}$/h · {emp.employeeProvince || 'AB'} · {emp.payFrequency || 'weekly'}
+                      </p>
+                    </div>
+                    <span style={{ color: emp.color, fontSize: '20px' }}>🧾</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── PIN CHANGE (toujours visible, peu importe l'onglet) ───────────── */}
       <div className={cardClass} style={card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>🔐 {t('CHANGER MON PIN', 'CHANGE MY PIN')}</p>
@@ -530,7 +598,7 @@ export default function PayePage() {
         )}
       </div>
 
-      {/* ADMIN: Reset PIN */}
+      {/* ADMIN: Reset PIN (toujours visible pour admin) */}
       {isAdmin && (
         <div className={cardClass} style={card}>
           <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>🔑 {t('RÉINITIALISER UN PIN EMPLOYÉ', 'RESET EMPLOYEE PIN')}</p>
@@ -547,7 +615,7 @@ export default function PayePage() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════════
-           MODAL TALON DE PAIE — SALARIÉ
+           MODAL TALON DE PAIE — SALARIÉ (inchangé)
           ════════════════════════════════════════════════════════════════════════ */}
       {payStubEmpId && payStubEmployee && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
@@ -643,7 +711,6 @@ export default function PayePage() {
                       </div>
                     )
                   })}
-
                   {/* Vacances */}
                   {payStubResult && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: `1px solid ${theme.colors.border}`, marginTop: '4px' }}>
@@ -674,7 +741,7 @@ export default function PayePage() {
                   rows={3} style={{ ...inputStyle, marginTop: '4px', resize: 'vertical' as const }} />
               </div>
 
-              {/* ─── APERÇU TALON DE PAIE (version imprimable) ─── */}
+              {/* Aperçu talon de paie imprimable */}
               {payStubResult && (
                 <div id="pay-stub-print" style={{ background: 'white', borderRadius: '12px', padding: '24px', border: '2px solid #e5e7eb', position: 'relative', overflow: 'hidden' }}>
                   <EmployeeWatermark
@@ -682,7 +749,6 @@ export default function PayePage() {
                     color={payStubEmployee.color}
                   />
                   <div style={{ position: 'relative', zIndex: 1 }}>
-
                     {/* En-tête compagnie */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', paddingBottom: '16px', borderBottom: '2px solid #e5e7eb' }}>
                       <div>
@@ -704,7 +770,6 @@ export default function PayePage() {
                         </p>
                       </div>
                     </div>
-
                     {/* Infos employé */}
                     <div style={{ background: '#f9fafb', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
                       <p style={{ fontSize: '10px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
@@ -715,7 +780,6 @@ export default function PayePage() {
                         {payStubEmployee.employeeProvince} · {payStubEmployee.hourlyRate}$/h · {t('Salarié', 'Salaried')}
                       </p>
                     </div>
-
                     {/* Gains */}
                     <div style={{ marginBottom: '12px' }}>
                       <p style={{ fontSize: '10px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
@@ -736,7 +800,6 @@ export default function PayePage() {
                         <p style={{ fontSize: '14px', fontWeight: 800, color: '#1a1a1a' }}>{formatCurrency(payStubResult.grossPay + payStubResult.grossPay * payStubVacRate / 100)}</p>
                       </div>
                     </div>
-
                     {/* Déductions */}
                     <div style={{ marginBottom: '12px' }}>
                       <p style={{ fontSize: '10px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
@@ -763,13 +826,11 @@ export default function PayePage() {
                         <p style={{ fontSize: '13px', fontWeight: 800, color: '#ef4444' }}>-{formatCurrency(payStubResult.totalDeductions)}</p>
                       </div>
                     </div>
-
                     {/* NET À PAYER */}
                     <div style={{ background: payStubEmployee.color, borderRadius: '10px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                       <p style={{ fontSize: '16px', fontWeight: 900, color: 'white' }}>💵 {t('NET À PAYER', 'NET PAY')}</p>
                       <p style={{ fontSize: '24px', fontWeight: 900, color: 'white' }}>{formatCurrency(payStubResult.netPay)}</p>
                     </div>
-
                     {/* Coûts employeur */}
                     <div style={{ background: '#fff7ed', borderRadius: '8px', padding: '10px', marginBottom: '12px', border: '1px solid #fed7aa' }}>
                       <p style={{ fontSize: '10px', fontWeight: 800, color: '#9a3412', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
@@ -788,7 +849,6 @@ export default function PayePage() {
                         <p style={{ fontSize: '12px', fontWeight: 800, color: '#9a3412' }}>{formatCurrency(payStubResult.totalEmployerCost)}</p>
                       </div>
                     </div>
-
                     {/* Notes */}
                     {payStubNotes && (
                       <div style={{ background: '#f9fafb', borderRadius: '8px', padding: '10px', marginBottom: '12px', borderLeft: `3px solid ${payStubEmployee.color}` }}>
@@ -796,7 +856,6 @@ export default function PayePage() {
                         <p style={{ fontSize: '12px', color: '#374151' }}>{payStubNotes}</p>
                       </div>
                     )}
-
                     {/* Disclaimer légal */}
                     <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '10px', marginTop: '8px' }}>
                       <p style={{ fontSize: '9px', color: '#9ca3af', textAlign: 'center', lineHeight: 1.4 }}>
@@ -806,7 +865,6 @@ export default function PayePage() {
                         )}
                       </p>
                     </div>
-
                     {/* Signatures */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '20px' }}>
                       {[t('Signature employeur', 'Employer Signature'), t('Signature employé', 'Employee Signature')].map(label => (
@@ -862,8 +920,8 @@ export default function PayePage() {
            MODAL INVOICE CONTRACTEUR (inchangé)
           ════════════════════════════════════════════════════════════════════════ */}
       {invoiceModalWeek && viewEmployee && (() => {
-        const days   = weekGroups[invoiceModalWeek] || []
-        const calc   = calcInvoice(days, viewEmployee.hourlyRate)
+        const days    = weekGroups[invoiceModalWeek] || []
+        const calc    = calcInvoice(days, viewEmployee.hourlyRate)
         const weekEnd = new Date(invoiceModalWeek + 'T12:00:00')
         weekEnd.setDate(weekEnd.getDate() + 6)
         const periodEnd   = weekEnd.toISOString().split('T')[0]
@@ -988,7 +1046,7 @@ export default function PayePage() {
                       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '16px', fontSize: '12px' }}>
                         <thead>
                           <tr style={{ borderBottom: `2px solid ${viewEmployee.color}40` }}>
-                            {[t('Date','Date'), t('Heures','Hours'), t('Montant','Amount')].map((h, i) => (
+                            {[t('Date', 'Date'), t('Heures', 'Hours'), t('Montant', 'Amount')].map((h, i) => (
                               <th key={h} style={{ textAlign: i === 0 ? 'left' : i === 1 ? 'center' : 'right', padding: '6px 0', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
                             ))}
                           </tr>
@@ -1005,7 +1063,7 @@ export default function PayePage() {
                       </table>
                       <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '12px' }}>
                         {[
-                          { label: t('Sous-total','Subtotal'), value: formatCurrency(calc.subtotal) },
+                          { label: t('Sous-total', 'Subtotal'), value: formatCurrency(calc.subtotal) },
                           ...(remisePercent > 0 ? [{ label: `Remise -${remisePercent}%`, value: `-${formatCurrency(calc.remiseAmount)}` }] : []),
                           ...(gstEnabled ? [{ label: 'TPS 5%', value: formatCurrency(calc.gstAmount) }] : []),
                         ].map(row => (
@@ -1068,3 +1126,4 @@ export default function PayePage() {
     </div>
   )
 }
+
