@@ -107,6 +107,9 @@ export default function DocumentDetailPage() {
   // Tab local
   const [tab, setTab] = useState<'info' | 'lines' | 'total' | 'sign'>('info')
 
+  // ── État PDF Preview ─────────────────────────────────────────────────
+  const [showPdfPreview, setShowPdfPreview] = useState(false)
+
   // ── Sync infos compagnie quand le store change ─────────────────────
   useEffect(() => {
     if (!existing) {
@@ -196,6 +199,60 @@ export default function DocumentDetailPage() {
     router.push('/documents')
   }
 
+  // ── Actions ──────────────────────────────────────────────────────
+  const docTypeLabel = docType === 'invoice'
+    ? t('Facture', 'Invoice')
+    : docType === 'quote'
+    ? t('Devis', 'Quote')
+    : t('Contrat', 'Contract')
+
+  const handleSendEmail = () => {
+    const subject = encodeURIComponent(`${docTypeLabel} ${docNumber} — ${compName}`)
+    const bodyLines = [
+      t(`Bonjour ${clientName},`, `Hello ${clientName},`),
+      '',
+      t(
+        `Veuillez trouver ci-joint votre ${docTypeLabel.toLowerCase()} #${docNumber}.`,
+        `Please find attached your ${docTypeLabel} #${docNumber}.`
+      ),
+      '',
+      `${t('Sous-total', 'Subtotal')}: ${fmt(subtotal)}`,
+      ...(discountPct > 0 ? [`${t('Remise', 'Discount')} (${discountPct}%): -${fmt(discountAmt)}`] : []),
+      `GST (${taxRate}%): ${fmt(taxAmt)}`,
+      `${t('TOTAL', 'TOTAL')}: ${fmt(total)}`,
+      ...(depositAmount > 0 ? [`${t('Solde dû', 'Balance Due')}: ${fmt(balanceDue)}`] : []),
+      ...(dueDate ? [`${t('Échéance', 'Due Date')}: ${dueDate}`] : []),
+      '',
+      notes ? `${t('Notes', 'Notes')}: ${notes}` : '',
+      '',
+      t('Merci pour votre confiance!', 'Thank you for your business!'),
+      compName,
+      compPhone,
+    ].filter(l => l !== undefined)
+    const body = encodeURIComponent(bodyLines.join('\n'))
+    const to = clientEmail || ''
+    window.open(`mailto:${to}?subject=${subject}&body=${body}`)
+  }
+
+  const handleSendSMS = () => {
+    const msgLines = [
+      `${compName}`,
+      `${docTypeLabel} #${docNumber}`,
+      `${t('Client', 'Client')}: ${clientName}`,
+      `${t('Total', 'Total')}: ${fmt(total)}`,
+      ...(depositAmount > 0 ? [`${t('Solde dû', 'Balance Due')}: ${fmt(balanceDue)}`] : []),
+      ...(dueDate ? [`${t('Échéance', 'Due')}: ${dueDate}`] : []),
+    ]
+    const body = encodeURIComponent(msgLines.join('\n'))
+    const phone = clientPhone.replace(/\D/g, '')
+    window.open(`sms:${phone ? `+1${phone}` : ''}?body=${body}`)
+  }
+
+  const handlePrintPdf = () => {
+    setShowPdfPreview(true)
+    setTimeout(() => window.print(), 400)
+  }
+
   // ── Signature canvas ────────────────────────────────────────────
   const startDraw = (e: React.PointerEvent<HTMLCanvasElement>) => {
     setDrawing(true)
@@ -256,6 +313,14 @@ export default function DocumentDetailPage() {
     { id: 'paid',    label: t('Payé', 'Paid'),         color: 'bg-emerald-500/20 text-emerald-300' },
     { id: 'overdue', label: t('En retard', 'Overdue'), color: 'bg-red-500/20 text-red-400' },
   ] as const
+
+  // ── Couleur accent selon thème ────────────────────────────────
+  const accentColor = isDeco ? '#D6B25E' : isQuantum ? '#a855f7' : '#3b82f6'
+  const accentBg    = isDeco ? 'rgba(214,178,94,0.12)' : isQuantum ? 'rgba(168,85,247,0.12)' : 'rgba(59,130,246,0.12)'
+  const accentBorder = isDeco ? 'rgba(214,178,94,0.3)' : isQuantum ? 'rgba(168,85,247,0.3)' : 'rgba(59,130,246,0.3)'
+
+  // ── Contenu du PDF (document formaté) ────────────────────────
+  const companyFullAddress = [compAddress, compCity, compProvince, compPostal].filter(Boolean).join(', ')
 
   return (
     <div className="min-h-screen pb-28 pt-4 px-4 relative" style={{ fontFamily: 'system-ui, sans-serif' }}>
@@ -648,6 +713,59 @@ export default function DocumentDetailPage() {
           </div>
         )}
 
+        {/* ═══════════════════════════════════════════════════════════════
+             SECTION ACTIONS — Email / SMS / Preview PDF / Télécharger
+            ═══════════════════════════════════════════════════════════════ */}
+        <div className={`rounded-2xl p-4 mt-4 ${cardClass}
+          ${isDeco ? 'bg-[#0d0a00]/80 border border-[#D6B25E]/20'
+            : isQuantum ? 'bg-[#0a0015]/80 border border-violet-500/20'
+            : 'bg-white/5 border border-white/10'}`}>
+          {isDeco && <DecoCorners />}
+
+          <p className={`text-xs font-bold uppercase tracking-widest mb-3
+            ${isDeco ? 'text-[#D6B25E]/70' : isQuantum ? 'text-violet-400/70' : 'text-white/50'}`}>
+            📤 {t('Envoyer & Exporter', 'Send & Export')}
+          </p>
+
+          <div className="grid grid-cols-2 gap-3">
+            {/* Email */}
+            <button
+              onClick={handleSendEmail}
+              style={{ background: accentBg, border: `1px solid ${accentBorder}`, color: accentColor }}
+              className="rounded-xl py-3 px-2 text-xs font-bold flex flex-col items-center gap-1.5 transition-all active:scale-95">
+              <span className="text-2xl">📧</span>
+              {t('Envoyer Email', 'Send Email')}
+            </button>
+
+            {/* SMS */}
+            <button
+              onClick={handleSendSMS}
+              style={{ background: accentBg, border: `1px solid ${accentBorder}`, color: accentColor }}
+              className="rounded-xl py-3 px-2 text-xs font-bold flex flex-col items-center gap-1.5 transition-all active:scale-95">
+              <span className="text-2xl">📱</span>
+              {t('Envoyer SMS', 'Send SMS')}
+            </button>
+
+            {/* Preview PDF */}
+            <button
+              onClick={() => setShowPdfPreview(true)}
+              style={{ background: accentBg, border: `1px solid ${accentBorder}`, color: accentColor }}
+              className="rounded-xl py-3 px-2 text-xs font-bold flex flex-col items-center gap-1.5 transition-all active:scale-95">
+              <span className="text-2xl">👁️</span>
+              {t('Preview PDF', 'Preview PDF')}
+            </button>
+
+            {/* Télécharger PDF */}
+            <button
+              onClick={handlePrintPdf}
+              style={{ background: accentBg, border: `1px solid ${accentBorder}`, color: accentColor }}
+              className="rounded-xl py-3 px-2 text-xs font-bold flex flex-col items-center gap-1.5 transition-all active:scale-95">
+              <span className="text-2xl">⬇️</span>
+              {t('Télécharger PDF', 'Download PDF')}
+            </button>
+          </div>
+        </div>
+
         {/* ─── BOUTON SAUVEGARDER ─── */}
         <div className="fixed bottom-20 left-0 right-0 px-4 z-40">
           <button onClick={save}
@@ -666,6 +784,232 @@ export default function DocumentDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+           MODAL PDF PREVIEW
+          ═══════════════════════════════════════════════════════════════════════ */}
+      {showPdfPreview && (
+        <div
+          id="pdf-modal-overlay"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.95)', zIndex: 300, display: 'flex', alignItems: 'flex-end', fontFamily: 'system-ui, sans-serif' }}>
+          <div style={{ background: '#f3f4f6', borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '96vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+
+            {/* Header modal */}
+            <div style={{ position: 'sticky', top: 0, background: '#1f2937', borderRadius: '20px 20px 0 0', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
+              <div>
+                <p style={{ color: 'white', fontSize: '15px', fontWeight: 800 }}>
+                  👁️ {t('Preview', 'Preview')} — {docTypeLabel} {docNumber}
+                </p>
+                <p style={{ color: '#9ca3af', fontSize: '11px', marginTop: '2px' }}>
+                  {clientName || t('Sans client', 'No client')} · {fmt(total)}
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => window.print()}
+                  style={{ background: '#3b82f6', border: 'none', borderRadius: '10px', padding: '8px 14px', color: 'white', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                  🖨️ {t('Imprimer / PDF', 'Print / PDF')}
+                </button>
+                <button
+                  onClick={() => setShowPdfPreview(false)}
+                  style={{ background: '#374151', border: 'none', borderRadius: '50%', width: '36px', height: '36px', color: '#9ca3af', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Document formaté (fond blanc, printable) */}
+            <div id="document-to-print" style={{ background: 'white', margin: '12px', borderRadius: '12px', padding: '28px 24px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
+
+              {/* ── EN-TÊTE ── */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', paddingBottom: '20px', borderBottom: '2px solid #e5e7eb' }}>
+                <div>
+                  {company.logoUrl && (
+                    <img src={company.logoUrl} alt="Logo" style={{ height: '48px', objectFit: 'contain', marginBottom: '8px' }} />
+                  )}
+                  <p style={{ fontSize: '18px', fontWeight: 900, color: '#111827', marginBottom: '4px' }}>
+                    {compName || 'Hailite Xteriors'}
+                  </p>
+                  {compAddress && <p style={{ fontSize: '11px', color: '#6b7280', lineHeight: 1.5 }}>{compAddress}</p>}
+                  {(compCity || compProvince) && (
+                    <p style={{ fontSize: '11px', color: '#6b7280' }}>
+                      {[compCity, compProvince, compPostal].filter(Boolean).join(' ')}
+                    </p>
+                  )}
+                  {compPhone && <p style={{ fontSize: '11px', color: '#6b7280' }}>📞 {compPhone}</p>}
+                  {compEmail && <p style={{ fontSize: '11px', color: '#6b7280' }}>✉️ {compEmail}</p>}
+                  {compGST && <p style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px' }}>TPS/GST: {compGST}</p>}
+                  {compWCB && <p style={{ fontSize: '10px', color: '#9ca3af' }}>WCB: {compWCB}</p>}
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: '22px', fontWeight: 900, color: accentColor, letterSpacing: '-0.5px' }}>
+                    {docType === 'invoice' ? t('FACTURE', 'INVOICE') : docType === 'quote' ? t('DEVIS', 'QUOTE') : t('CONTRAT', 'CONTRACT')}
+                  </p>
+                  {docNumber && (
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#374151', marginTop: '4px' }}>#{docNumber}</p>
+                  )}
+                  <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px' }}>
+                    {t('Date :', 'Date:')} {docDate}
+                  </p>
+                  {dueDate && (
+                    <p style={{ fontSize: '11px', color: '#6b7280' }}>
+                      {t('Échéance :', 'Due:')} {dueDate}
+                    </p>
+                  )}
+                  <span style={{
+                    display: 'inline-block', marginTop: '8px', padding: '3px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: 700,
+                    background: status === 'paid' ? '#d1fae5' : status === 'overdue' ? '#fee2e2' : status === 'sent' ? '#dbeafe' : '#f3f4f6',
+                    color: status === 'paid' ? '#065f46' : status === 'overdue' ? '#991b1b' : status === 'sent' ? '#1e40af' : '#6b7280',
+                  }}>
+                    {status === 'paid' ? t('PAYÉ', 'PAID') : status === 'overdue' ? t('EN RETARD', 'OVERDUE') : status === 'sent' ? t('ENVOYÉ', 'SENT') : t('BROUILLON', 'DRAFT')}
+                  </span>
+                </div>
+              </div>
+
+              {/* ── INFOS CLIENT ── */}
+              {clientName && (
+                <div style={{ background: '#f9fafb', borderRadius: '10px', padding: '14px', marginBottom: '20px', borderLeft: `4px solid ${accentColor}` }}>
+                  <p style={{ fontSize: '10px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
+                    {t('FACTURÉ À', 'BILL TO')}
+                  </p>
+                  <p style={{ fontSize: '15px', fontWeight: 800, color: '#111827' }}>{clientName}</p>
+                  {clientAddress && <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{clientAddress}</p>}
+                  {clientPhone && <p style={{ fontSize: '12px', color: '#6b7280' }}>📞 {clientPhone}</p>}
+                  {clientEmail && <p style={{ fontSize: '12px', color: '#6b7280' }}>✉️ {clientEmail}</p>}
+                </div>
+              )}
+
+              {/* ── TABLEAU LIGNES ── */}
+              {lines.some(l => l.description || l.unitPrice > 0) && (
+                <div style={{ marginBottom: '20px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ background: '#f3f4f6', borderBottom: `2px solid ${accentColor}` }}>
+                        {[
+                          { label: t('Description', 'Description'), align: 'left', width: '45%' },
+                          { label: t('Qté', 'Qty'), align: 'center', width: '10%' },
+                          { label: t('Unité', 'Unit'), align: 'center', width: '12%' },
+                          { label: t('Prix unit.', 'Unit Price'), align: 'right', width: '16%' },
+                          { label: t('Total', 'Total'), align: 'right', width: '17%' },
+                        ].map(h => (
+                          <th key={h.label} style={{ padding: '8px 6px', textAlign: h.align as any, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', width: h.width }}>
+                            {h.label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lines.filter(l => l.description || l.unitPrice > 0).map((line, i) => (
+                        <tr key={line.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+                          <td style={{ padding: '10px 6px', color: '#374151', fontWeight: 500 }}>{line.description}</td>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', color: '#374151' }}>{line.qty}</td>
+                          <td style={{ padding: '10px 6px', textAlign: 'center', color: '#6b7280' }}>{line.unit}</td>
+                          <td style={{ padding: '10px 6px', textAlign: 'right', color: '#374151' }}>{fmt(line.unitPrice)}</td>
+                          <td style={{ padding: '10px 6px', textAlign: 'right', color: '#111827', fontWeight: 700 }}>{fmt(line.qty * line.unitPrice)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* ── TOTAUX ── */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
+                <div style={{ minWidth: '260px', background: '#f9fafb', borderRadius: '10px', padding: '14px', border: '1px solid #e5e7eb' }}>
+                  {[
+                    { label: t('Sous-total', 'Subtotal'), value: fmt(subtotal), muted: true },
+                    ...(discountPct > 0 ? [{ label: `${t('Remise', 'Discount')} (${discountPct}%)`, value: `-${fmt(discountAmt)}`, red: true }] : []),
+                    { label: `GST (${taxRate}%)`, value: fmt(taxAmt), muted: true },
+                  ].map((row, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #e5e7eb' }}>
+                      <p style={{ fontSize: '12px', color: '#6b7280' }}>{row.label}</p>
+                      <p style={{ fontSize: '12px', color: (row as any).red ? '#ef4444' : '#374151', fontWeight: 600 }}>{row.value}</p>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 4px', borderTop: '2px solid #e5e7eb', marginTop: '4px' }}>
+                    <p style={{ fontSize: '14px', fontWeight: 900, color: '#111827' }}>TOTAL</p>
+                    <p style={{ fontSize: '18px', fontWeight: 900, color: accentColor }}>{fmt(total)}</p>
+                  </div>
+                  {depositAmount > 0 && (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                        <p style={{ fontSize: '12px', color: '#6b7280' }}>{t('Dépôt reçu', 'Deposit Received')}</p>
+                        <p style={{ fontSize: '12px', color: '#22c55e', fontWeight: 600 }}>-{fmt(depositAmount)}</p>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 10px', background: '#fef2f2', borderRadius: '8px', marginTop: '6px' }}>
+                        <p style={{ fontSize: '13px', fontWeight: 800, color: '#991b1b' }}>{t('SOLDE DÛ', 'BALANCE DUE')}</p>
+                        <p style={{ fontSize: '16px', fontWeight: 900, color: '#ef4444' }}>{fmt(balanceDue)}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* ── NOTES ── */}
+              {notes && (
+                <div style={{ background: '#f9fafb', borderRadius: '10px', padding: '14px', marginBottom: '20px', borderLeft: `3px solid ${accentColor}` }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
+                    {t('Notes / Conditions', 'Notes / Terms')}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{notes}</p>
+                </div>
+              )}
+
+              {/* ── SIGNATURE ── */}
+              {signature && (
+                <div style={{ marginBottom: '20px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+                    ✍️ {t('Signature du client', 'Client Signature')}
+                  </p>
+                  <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden', maxWidth: '240px' }}>
+                    <img src={signature} alt="Signature" style={{ width: '100%', display: 'block' }} />
+                  </div>
+                </div>
+              )}
+
+              {/* ── LIGNES DE SIGNATURE (si pas de signature numérique) ── */}
+              {!signature && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '32px' }}>
+                  {[t('Signature client', 'Client Signature'), t('Signature autorisée', 'Authorized Signature')].map(label => (
+                    <div key={label} style={{ textAlign: 'center' }}>
+                      <div style={{ borderBottom: '1px solid #d1d5db', height: '44px', marginBottom: '6px' }} />
+                      <p style={{ fontSize: '10px', color: '#9ca3af' }}>{label}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ── PIED DE PAGE ── */}
+              <div style={{ borderTop: '1px solid #e5e7eb', marginTop: '20px', paddingTop: '12px', textAlign: 'center' }}>
+                <p style={{ fontSize: '10px', color: '#9ca3af' }}>
+                  {compName} · {compPhone} · {compEmail}
+                  {compGST ? ` · TPS/GST: ${compGST}` : ''}
+                </p>
+                <p style={{ fontSize: '9px', color: '#d1d5db', marginTop: '4px' }}>
+                  {t('Généré par Gestion Chantier Pro — Hailite Xteriors', 'Generated by Gestion Chantier Pro — Hailite Xteriors')}
+                </p>
+              </div>
+
+            </div>{/* end document-to-print */}
+
+            {/* Boutons bas modal */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', padding: '12px 16px 24px' }}>
+              <button
+                onClick={() => window.print()}
+                style={{ padding: '14px', borderRadius: '12px', background: accentColor, border: 'none', color: 'white', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }}>
+                🖨️ {t('Imprimer / PDF', 'Print / PDF')}
+              </button>
+              <button
+                onClick={() => setShowPdfPreview(false)}
+                style={{ padding: '14px', borderRadius: '12px', background: '#374151', border: 'none', color: '#d1d5db', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
+                ✕ {t('Fermer', 'Close')}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   )
 }
