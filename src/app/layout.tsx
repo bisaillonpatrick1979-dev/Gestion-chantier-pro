@@ -5,6 +5,7 @@ import BottomNav from '@/components/layout/BottomNav'
 import OnboardingGuard from '@/components/OnboardingGuard'
 import PWARegister from '@/components/PWARegister'
 import ThemeInjector from '@/components/ThemeInjector'
+import DevTools from '@/components/DevTools'
 
 export const metadata: Metadata = {
   title: 'Gestion Chantier Pro',
@@ -56,6 +57,7 @@ export default function RootLayout({
           {children}
         </main>
         <BottomNav />
+        <DevTools />
       </body>
     </html>
   )
