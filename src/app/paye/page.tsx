@@ -48,6 +48,9 @@ export default function PayePage() {
   const currentEmployee = employees.find(e => e.id === currentEmployeeId)
   const isAdmin = currentEmployee?.role === 'admin'
 
+  // ── NON-ADMIN → talon de paie en lecture seule ──────────────────────────
+  const isReadOnlyPayStub = !isAdmin
+
   const isDeco     = themeId === 'deco'
   const isQuantum  = themeId === 'quantum'
   const isAventure = themeId === 'aventure'
@@ -73,7 +76,7 @@ export default function PayePage() {
   const [adminResetPins, setAdminResetPins] = useState<Record<string, string>>({})
   const [selectedEmpId, setSelectedEmpId]  = useState(currentEmployeeId || '')
 
-  // ── État Invoice (contracteurs) ────────────────────────────────────────────
+  // ── État Invoice ───────────────────────────────────────────────────────────
   const [invoiceModalWeek, setInvoiceModalWeek] = useState<string | null>(null)
   const [invoiceTab, setInvoiceTab]            = useState<'config' | 'apercu'>('config')
   const [gstEnabled, setGstEnabled]            = useState(false)
@@ -91,7 +94,6 @@ export default function PayePage() {
   const [payStubEmpId, setPayStubEmpId]         = useState<string | null>(null)
   const [payStubStartDate, setPayStubStartDate] = useState('')
   const [payStubEndDate, setPayStubEndDate]     = useState('')
-  // Initialise le % vacances depuis les réglages compagnie
   const [payStubVacRate, setPayStubVacRate]     = useState(company.payrollVacationRate || 6)
   const [payStubNotes, setPayStubNotes]         = useState('')
   const [payStubPrinting, setPayStubPrinting]   = useState(false)
@@ -164,7 +166,7 @@ export default function PayePage() {
   const totalRevenue = empDetails.reduce((s, d) => s + d.totalRevenue, 0)
   const totalHours   = empDetails.reduce((s, d) => s + d.totalHours, 0)
 
-  // ── Calcul talon de paie salarié ──────────────────────────────────────────
+  // ── Calcul talon de paie ──────────────────────────────────────────────────
   const payStubEmployee = employees.find(e => e.id === payStubEmpId)
 
   const payStubResult = useMemo(() => {
@@ -186,20 +188,20 @@ export default function PayePage() {
     return formatPayrollResult(payStubResult, lang as 'fr' | 'en')
   }, [payStubResult, lang])
 
-  // ── Calcul avantages sociaux compagnie ────────────────────────────────────
+  // ── Avantages sociaux compagnie ────────────────────────────────────────────
   const companyBenefits = useMemo(() => {
     if (!payStubResult) return []
-    const benefits: { label: string; amount: number; color: string }[] = []
+    const benefits: { label: string; amount: number }[] = []
     const vac = payStubResult.grossPay * (payStubVacRate / 100)
-    benefits.push({ label: `🏖️ ${t('Paie vacances', 'Vacation Pay')} (${payStubVacRate}%)`, amount: vac, color: '#f59e0b' })
-    if (company.payrollHealthInsurance > 0) benefits.push({ label: `🏥 ${t('Assurance santé', 'Health Ins.')}`, amount: -company.payrollHealthInsurance, color: '#ef4444' })
-    if (company.payrollDentalInsurance > 0) benefits.push({ label: `🦷 ${t('Assurance dentaire', 'Dental Ins.')}`, amount: -company.payrollDentalInsurance, color: '#ef4444' })
-    if (company.payrollLifeInsurance > 0) benefits.push({ label: `💛 ${t('Assurance vie', 'Life Ins.')}`, amount: -company.payrollLifeInsurance, color: '#ef4444' })
-    if (company.payrollLTD > 0) benefits.push({ label: `♿ ${t('Invalidité LT', 'LTD')}`, amount: -company.payrollLTD, color: '#ef4444' })
-    if (company.payrollRRSP > 0) benefits.push({ label: `💰 REER (${company.payrollRRSP}%)`, amount: -(payStubResult.grossPay * company.payrollRRSP / 100), color: '#ef4444' })
-    if (company.payrollEAP > 0) benefits.push({ label: `🧠 PAE`, amount: -company.payrollEAP, color: '#ef4444' })
-    if (company.payrollCustom1Name && company.payrollCustom1Amount > 0) benefits.push({ label: company.payrollCustom1Name, amount: -company.payrollCustom1Amount, color: '#ef4444' })
-    if (company.payrollCustom2Name && company.payrollCustom2Amount > 0) benefits.push({ label: company.payrollCustom2Name, amount: -company.payrollCustom2Amount, color: '#ef4444' })
+    benefits.push({ label: `🏖️ ${t('Paie vacances', 'Vacation Pay')} (${payStubVacRate}%)`, amount: vac })
+    if (company.payrollHealthInsurance > 0) benefits.push({ label: `🏥 ${t('Assurance santé', 'Health Ins.')}`, amount: -company.payrollHealthInsurance })
+    if (company.payrollDentalInsurance > 0) benefits.push({ label: `🦷 ${t('Assurance dentaire', 'Dental Ins.')}`, amount: -company.payrollDentalInsurance })
+    if (company.payrollLifeInsurance > 0) benefits.push({ label: `💛 ${t('Assurance vie', 'Life Ins.')}`, amount: -company.payrollLifeInsurance })
+    if (company.payrollLTD > 0) benefits.push({ label: `♿ ${t('Invalidité LT', 'LTD')}`, amount: -company.payrollLTD })
+    if (company.payrollRRSP > 0) benefits.push({ label: `💰 REER (${company.payrollRRSP}%)`, amount: -(payStubResult.grossPay * company.payrollRRSP / 100) })
+    if (company.payrollEAP > 0) benefits.push({ label: `🧠 PAE`, amount: -company.payrollEAP })
+    if (company.payrollCustom1Name && company.payrollCustom1Amount > 0) benefits.push({ label: company.payrollCustom1Name, amount: -company.payrollCustom1Amount })
+    if (company.payrollCustom2Name && company.payrollCustom2Amount > 0) benefits.push({ label: company.payrollCustom2Name, amount: -company.payrollCustom2Amount })
     return benefits
   }, [payStubResult, payStubVacRate, company, lang])
 
@@ -207,18 +209,10 @@ export default function PayePage() {
     companyBenefits.filter(b => b.amount < 0).reduce((s, b) => s + Math.abs(b.amount), 0),
     [companyBenefits]
   )
+  const vacationPay = useMemo(() => payStubResult ? payStubResult.grossPay * (payStubVacRate / 100) : 0, [payStubResult, payStubVacRate])
+  const finalNetPay = useMemo(() => payStubResult ? payStubResult.netPay + vacationPay - totalBenefitsDeductions : 0, [payStubResult, vacationPay, totalBenefitsDeductions])
 
-  const vacationPay = useMemo(() =>
-    payStubResult ? payStubResult.grossPay * (payStubVacRate / 100) : 0,
-    [payStubResult, payStubVacRate]
-  )
-
-  const finalNetPay = useMemo(() =>
-    payStubResult ? payStubResult.netPay + vacationPay - totalBenefitsDeductions : 0,
-    [payStubResult, vacationPay, totalBenefitsDeductions]
-  )
-
-  // ── Calcul invoice contracteur ─────────────────────────────────────────────
+  // ── Invoice ────────────────────────────────────────────────────────────────
   const calcInvoice = (days: typeof empDetails, hourlyRate: number) => {
     const subtotal     = days.reduce((s, d) => s + d.totalRevenue, 0)
     const remiseAmount = remisePercent > 0 ? subtotal * (remisePercent / 100) : 0
@@ -228,28 +222,21 @@ export default function PayePage() {
     return { subtotal, remiseAmount, afterRemise, gstAmount, total }
   }
 
-  // ── Ouvrir modal invoice ───────────────────────────────────────────────────
   const openInvoiceModal = (weekStart: string) => {
     const existing = getByWeek(viewEmployee?.id || '', weekStart)
     if (existing) {
-      setViewingInvoiceId(existing.id)
-      setGstEnabled(existing.gstEnabled)
-      setGstNumber(existing.employeeGSTNumber)
-      setRemisePercent(existing.remisePercent)
-      setEmpAddress(existing.employeeAddress)
-      setEmpCity(existing.employeeCity)
-      setEmpPhone(existing.employeePhone)
-      setEmpEmail(existing.employeeEmail)
+      setViewingInvoiceId(existing.id); setGstEnabled(existing.gstEnabled)
+      setGstNumber(existing.employeeGSTNumber); setRemisePercent(existing.remisePercent)
+      setEmpAddress(existing.employeeAddress); setEmpCity(existing.employeeCity)
+      setEmpPhone(existing.employeePhone); setEmpEmail(existing.employeeEmail)
       setInvoiceNotes(existing.notes)
     } else {
-      setViewingInvoiceId(null)
-      setGstEnabled(false); setGstNumber(''); setRemisePercent(0)
+      setViewingInvoiceId(null); setGstEnabled(false); setGstNumber(''); setRemisePercent(0)
       setEmpAddress(''); setEmpCity(''); setEmpPhone(''); setEmpEmail(''); setInvoiceNotes('')
     }
     setInvoiceTab('config'); setInvoiceModalWeek(weekStart); setSaved(false)
   }
 
-  // ── Sauvegarder invoice ────────────────────────────────────────────────────
   const handleSaveInvoice = (weekStart: string, days: typeof empDetails) => {
     if (!viewEmployee) return
     const weekEnd = new Date(weekStart + 'T12:00:00')
@@ -277,18 +264,11 @@ export default function PayePage() {
     setSaved(true); setTimeout(() => setSaved(false), 2000)
   }
 
-  // ── Changer PIN ────────────────────────────────────────────────────────────
   const handlePinChange = () => {
     if (!currentEmployee || !currentEmployeeId) return
-    if (!isAdmin && oldPin !== currentEmployee.pin) {
-      setPinError(true); setPinMsg(t('Ancien PIN incorrect', 'Incorrect old PIN')); return
-    }
-    if (newPin.length !== 4) {
-      setPinError(true); setPinMsg(t('Le nouveau PIN doit avoir 4 chiffres', 'New PIN must be 4 digits')); return
-    }
-    if (newPin !== confirmPin) {
-      setPinError(true); setPinMsg(t('Les PINs ne correspondent pas', 'PINs do not match')); return
-    }
+    if (!isAdmin && oldPin !== currentEmployee.pin) { setPinError(true); setPinMsg(t('Ancien PIN incorrect', 'Incorrect old PIN')); return }
+    if (newPin.length !== 4) { setPinError(true); setPinMsg(t('Le nouveau PIN doit avoir 4 chiffres', 'New PIN must be 4 digits')); return }
+    if (newPin !== confirmPin) { setPinError(true); setPinMsg(t('Les PINs ne correspondent pas', 'PINs do not match')); return }
     useEmployeeStore.getState().updateEmployee(currentEmployeeId, { pin: newPin })
     setPinError(false); setPinMsg(t('PIN changé avec succès !', 'PIN changed successfully!'))
     setOldPin(''); setNewPin(''); setConfirmPin('')
@@ -307,11 +287,6 @@ export default function PayePage() {
     ? invoices.filter(inv => inv.employeeId === viewEmployee.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     : []
 
-  const handlePrintPayStub = () => {
-    setPayStubPrinting(true)
-    setTimeout(() => { window.print(); setPayStubPrinting(false) }, 300)
-  }
-
   const openPayStubForEmployee = (emp: typeof currentEmployee) => {
     if (!emp) return
     setPayStubEmpId(emp.id)
@@ -322,6 +297,7 @@ export default function PayePage() {
     const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6)
     setPayStubStartDate(monday.toISOString().split('T')[0])
     setPayStubEndDate(sunday.toISOString().split('T')[0])
+    // Pour les employés, taux fixé depuis les réglages compagnie
     setPayStubVacRate(company.payrollVacationRate || 6)
     setPayStubNotes('')
   }
@@ -337,45 +313,29 @@ export default function PayePage() {
       {/* ── BARRE D'ONGLETS ── */}
       {bothTabsVisible && (
         <div style={{ display: 'flex', gap: '6px', background: theme.colors.card, borderRadius: '14px', padding: '6px', border: `1px solid ${theme.colors.border}` }}>
-          <button onClick={() => setActiveTab('contractor')} style={{
-            flex: 1, padding: '11px 8px', borderRadius: '10px', cursor: 'pointer', border: 'none',
-            background: activeTab === 'contractor' ? theme.colors.primary : 'transparent',
-            color: activeTab === 'contractor' ? 'white' : theme.colors.textMuted,
-            fontSize: '13px', fontWeight: 700, transition: 'all 0.2s',
-          }}>📋 {t('Mes Invoices', 'My Invoices')}</button>
-          <button onClick={() => setActiveTab('salaried')} style={{
-            flex: 1, padding: '11px 8px', borderRadius: '10px', cursor: 'pointer', border: 'none',
-            background: activeTab === 'salaried' ? theme.colors.primary : 'transparent',
-            color: activeTab === 'salaried' ? 'white' : theme.colors.textMuted,
-            fontSize: '13px', fontWeight: 700, transition: 'all 0.2s',
-          }}>💼 {t('Paie Salariés', 'Salaried Pay')}</button>
+          <button onClick={() => setActiveTab('contractor')} style={{ flex: 1, padding: '11px 8px', borderRadius: '10px', cursor: 'pointer', border: 'none', background: activeTab === 'contractor' ? theme.colors.primary : 'transparent', color: activeTab === 'contractor' ? 'white' : theme.colors.textMuted, fontSize: '13px', fontWeight: 700, transition: 'all 0.2s' }}>
+            📋 {t('Mes Invoices', 'My Invoices')}
+          </button>
+          <button onClick={() => setActiveTab('salaried')} style={{ flex: 1, padding: '11px 8px', borderRadius: '10px', cursor: 'pointer', border: 'none', background: activeTab === 'salaried' ? theme.colors.primary : 'transparent', color: activeTab === 'salaried' ? 'white' : theme.colors.textMuted, fontSize: '13px', fontWeight: 700, transition: 'all 0.2s' }}>
+            💼 {t('Paie Salariés', 'Salaried Pay')}
+          </button>
         </div>
       )}
 
-      {/* ══ ONGLET 1 — CONTRACTEURS ══ */}
+      {/* ══ ONGLET CONTRACTEURS ══ */}
       {showContractorTab && activeTab === 'contractor' && (
         <>
           {isAdmin && (
             <div className={cardClass} style={card}>
-              <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>
-                👥 {t('VOIR LES INVOICES DE', 'VIEW INVOICES FOR')}
-              </p>
+              <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>👥 {t('VOIR LES INVOICES DE', 'VIEW INVOICES FOR')}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {contractorEmployees.length === 0 ? (
-                  <p style={{ color: theme.colors.textMuted, fontSize: '13px', textAlign: 'center', padding: '12px' }}>
-                    {t('Aucun contracteur configuré', 'No contractors configured')}
-                  </p>
+                  <p style={{ color: theme.colors.textMuted, fontSize: '13px', textAlign: 'center', padding: '12px' }}>{t('Aucun contracteur configuré', 'No contractors configured')}</p>
                 ) : contractorEmployees.map(emp => (
-                  <button key={emp.id} onClick={() => setSelectedEmpId(emp.id)} style={{
-                    display: 'flex', alignItems: 'center', gap: '12px', padding: '12px',
-                    borderRadius: '10px', cursor: 'pointer',
-                    border: selectedEmpId === emp.id ? `2px solid ${emp.color}` : `1px solid ${theme.colors.border}`,
-                    background: selectedEmpId === emp.id ? `${emp.color}22` : theme.colors.surface,
-                    textAlign: 'left',
-                  }}>
+                  <button key={emp.id} onClick={() => setSelectedEmpId(emp.id)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', borderRadius: '10px', cursor: 'pointer', border: selectedEmpId === emp.id ? `2px solid ${emp.color}` : `1px solid ${theme.colors.border}`, background: selectedEmpId === emp.id ? `${emp.color}22` : theme.colors.surface, textAlign: 'left' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: emp.color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '14px' }}>{emp.name[0]}</div>
                     <div style={{ flex: 1 }}>
-                      <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: 700 }}>{emp.name} {emp.role === 'admin' ? '👑' : ''} 📋</p>
+                      <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: 700 }}>{emp.name} {emp.role === 'admin' ? '👑' : ''}</p>
                       <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{emp.businessName ? emp.businessName + ' · ' : ''}{t('Contracteur', 'Contractor')} · {emp.hourlyRate}$/{emp.workMode === 'surface' ? 'pi²' : emp.workMode === 'forfait' ? 'job' : 'h'}</p>
                     </div>
                     {selectedEmpId === emp.id && <span style={{ color: emp.color, fontSize: '16px' }}>✓</span>}
@@ -410,15 +370,12 @@ export default function PayePage() {
 
           {empInvoices.length > 0 && (
             <div className={cardClass} style={card}>
-              <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>
-                🧾 {t('MES INVOICES', 'MY INVOICES')} ({empInvoices.length})
-              </p>
+              <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>🧾 {t('MES INVOICES', 'MY INVOICES')} ({empInvoices.length})</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {empInvoices.map(inv => {
                   const sc = STATUS_CONFIG[inv.status]
                   return (
-                    <div key={inv.id} onClick={() => openInvoiceModal(inv.periodStart)}
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: theme.colors.surface, borderRadius: '10px', padding: '12px', borderLeft: `3px solid ${sc.color}`, cursor: 'pointer' }}>
+                    <div key={inv.id} onClick={() => openInvoiceModal(inv.periodStart)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: theme.colors.surface, borderRadius: '10px', padding: '12px', borderLeft: `3px solid ${sc.color}`, cursor: 'pointer' }}>
                       <div>
                         <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: 700 }}>{inv.number}</p>
                         <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{inv.periodStart} → {inv.periodEnd}</p>
@@ -445,8 +402,7 @@ export default function PayePage() {
               const weekRevenue = days.reduce((s, d) => s + d.totalRevenue, 0)
               const weekHours   = days.reduce((s, d) => s + d.totalHours, 0)
               const weekBreak   = days.reduce((s, d) => s + d.totalBreak, 0)
-              const weekEnd = new Date(weekStart + 'T12:00:00')
-              weekEnd.setDate(weekEnd.getDate() + 6)
+              const weekEnd = new Date(weekStart + 'T12:00:00'); weekEnd.setDate(weekEnd.getDate() + 6)
               const weekEndStr  = weekEnd.toISOString().split('T')[0]
               const existingInv = viewEmployee ? getByWeek(viewEmployee.id, weekStart) : undefined
               const sc          = existingInv ? STATUS_CONFIG[existingInv.status] : null
@@ -463,11 +419,7 @@ export default function PayePage() {
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                    {[
-                      { label: t('Jours', 'Days'), value: `${days.length}`, color: theme.colors.primary },
-                      { label: t('Heures', 'Hours'), value: `${weekHours.toFixed(1)}h`, color: theme.colors.primaryLight },
-                      { label: t('Pauses', 'Breaks'), value: formatTimer(weekBreak), color: '#f97316' },
-                    ].map(item => (
+                    {[{ label: t('Jours', 'Days'), value: `${days.length}`, color: theme.colors.primary }, { label: t('Heures', 'Hours'), value: `${weekHours.toFixed(1)}h`, color: theme.colors.primaryLight }, { label: t('Pauses', 'Breaks'), value: formatTimer(weekBreak), color: '#f97316' }].map(item => (
                       <div key={item.label} style={{ background: theme.colors.surface, borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
                         <p style={{ color: item.color, fontSize: '15px', fontWeight: 800 }}>{item.value}</p>
                         <p style={{ color: theme.colors.textMuted, fontSize: '10px' }}>{item.label}</p>
@@ -478,9 +430,7 @@ export default function PayePage() {
                     {days.map(detail => (
                       <div key={detail.date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${theme.colors.border}`, paddingBottom: '6px' }}>
                         <div>
-                          <p style={{ color: theme.colors.text, fontSize: '13px' }}>
-                            {new Date(detail.date + 'T12:00:00').toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { weekday: 'short', day: 'numeric', month: 'short' })}
-                          </p>
+                          <p style={{ color: theme.colors.text, fontSize: '13px' }}>{new Date(detail.date + 'T12:00:00').toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
                           <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{detail.sessions.length} session(s) · {detail.totalHours.toFixed(2)}h</p>
                         </div>
                         <p style={{ color: theme.colors.secondary, fontSize: '13px', fontWeight: 700 }}>{formatCurrency(detail.totalRevenue)}</p>
@@ -491,13 +441,7 @@ export default function PayePage() {
                     <p style={{ color: theme.colors.text, fontSize: '14px', fontWeight: 800 }}>TOTAL</p>
                     <p style={{ color: theme.colors.secondary, fontSize: '14px', fontWeight: 800 }}>{formatCurrency(weekRevenue)}</p>
                   </div>
-                  <button onClick={() => openInvoiceModal(weekStart)} style={{
-                    padding: '12px', borderRadius: '10px', cursor: 'pointer',
-                    border: existingInv ? `1px solid ${sc!.color}` : `1px solid ${theme.colors.primary}`,
-                    background: existingInv ? `${sc!.color}15` : `${theme.colors.primary}18`,
-                    color: existingInv ? sc!.color : theme.colors.primary,
-                    fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                  }}>
+                  <button onClick={() => openInvoiceModal(weekStart)} style={{ padding: '12px', borderRadius: '10px', cursor: 'pointer', border: existingInv ? `1px solid ${sc!.color}` : `1px solid ${theme.colors.primary}`, background: existingInv ? `${sc!.color}15` : `${theme.colors.primary}18`, color: existingInv ? sc!.color : theme.colors.primary, fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                     {existingInv ? `${sc!.emoji} ${existingInv.number} — ${sc!.label}` : `📄 ${t('Générer Invoice', 'Generate Invoice')}`}
                   </button>
                 </div>
@@ -507,7 +451,7 @@ export default function PayePage() {
         </>
       )}
 
-      {/* ══ ONGLET 2 — SALARIÉS ══ */}
+      {/* ══ ONGLET SALARIÉS ══ */}
       {showSalariedTab && activeTab === 'salaried' && (
         <>
           {salariedEmployees.length === 0 ? (
@@ -517,22 +461,12 @@ export default function PayePage() {
               <p style={{ color: theme.colors.textMuted, fontSize: '12px', marginTop: '6px' }}>{t('→ Réglages → Employés → Type : Salarié', '→ Settings → Employees → Type: Salaried')}</p>
             </div>
           ) : isAdmin ? (
-            /* Admin — liste complète de tous les salariés */
             <div className={cardClass} style={card}>
-              <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>
-                💼 {t('TALONS DE PAIE — EMPLOYÉS SALARIÉS', 'PAY STUBS — SALARIED EMPLOYEES')}
-              </p>
-              <p style={{ color: theme.colors.textMuted, fontSize: '12px' }}>
-                {t('Générez un talon de paie officiel avec toutes les déductions.', 'Generate an official pay stub with all deductions.')}
-              </p>
+              <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>💼 {t('TALONS DE PAIE — EMPLOYÉS SALARIÉS', 'PAY STUBS — SALARIED EMPLOYEES')}</p>
+              <p style={{ color: theme.colors.textMuted, fontSize: '12px' }}>{t('Générez un talon de paie officiel avec toutes les déductions.', 'Generate an official pay stub with all deductions.')}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {salariedEmployees.map(emp => (
-                  <button key={emp.id} onClick={() => openPayStubForEmployee(emp)} style={{
-                    display: 'flex', alignItems: 'center', gap: '12px', padding: '14px',
-                    borderRadius: '10px', cursor: 'pointer', textAlign: 'left',
-                    border: payStubEmpId === emp.id ? `2px solid ${emp.color}` : `1px solid ${theme.colors.border}`,
-                    background: payStubEmpId === emp.id ? `${emp.color}22` : theme.colors.surface,
-                  }}>
+                  <button key={emp.id} onClick={() => openPayStubForEmployee(emp)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px', borderRadius: '10px', cursor: 'pointer', textAlign: 'left', border: payStubEmpId === emp.id ? `2px solid ${emp.color}` : `1px solid ${theme.colors.border}`, background: payStubEmpId === emp.id ? `${emp.color}22` : theme.colors.surface }}>
                     <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: emp.color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '16px' }}>{emp.name[0]}</div>
                     <div style={{ flex: 1 }}>
                       <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: 700 }}>{emp.name}</p>
@@ -544,36 +478,21 @@ export default function PayePage() {
               </div>
             </div>
           ) : (
-            /* Non-admin salarié — SEULEMENT son propre talon */
             currentEmployee && (
               <div className={cardClass} style={card}>
-                <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>
-                  💼 {t('MON TALON DE PAIE', 'MY PAY STUB')}
-                </p>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', padding: '14px',
-                  borderRadius: '10px', background: theme.colors.surface,
-                  border: `1px solid ${currentEmployee.color}40`,
-                }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: currentEmployee.color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '16px' }}>
-                    {currentEmployee.name[0]}
-                  </div>
+                <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>💼 {t('MON TALON DE PAIE', 'MY PAY STUB')}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px', borderRadius: '10px', background: theme.colors.surface, border: `1px solid ${currentEmployee.color}40` }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: currentEmployee.color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '16px' }}>{currentEmployee.name[0]}</div>
                   <div style={{ flex: 1 }}>
                     <p style={{ color: theme.colors.text, fontSize: '14px', fontWeight: 800 }}>{currentEmployee.name}</p>
-                    <p style={{ color: theme.colors.textMuted, fontSize: '12px' }}>
-                      {currentEmployee.hourlyRate}$/h · {currentEmployee.employeeProvince || 'AB'} · {currentEmployee.payFrequency || 'weekly'}
-                    </p>
+                    <p style={{ color: theme.colors.textMuted, fontSize: '12px' }}>{currentEmployee.hourlyRate}$/h · {currentEmployee.employeeProvince || 'AB'} · {currentEmployee.payFrequency || 'weekly'}</p>
                   </div>
                 </div>
-                <button onClick={() => openPayStubForEmployee(currentEmployee)} style={{
-                  padding: '14px', borderRadius: '12px', cursor: 'pointer', border: 'none',
-                  background: currentEmployee.color, color: 'white',
-                  fontSize: '14px', fontWeight: 800, width: '100%',
-                }}>
-                  🧾 {t('Générer mon talon de paie', 'Generate My Pay Stub')}
+                <button onClick={() => openPayStubForEmployee(currentEmployee)} style={{ padding: '14px', borderRadius: '12px', cursor: 'pointer', border: 'none', background: currentEmployee.color, color: 'white', fontSize: '14px', fontWeight: 800, width: '100%' }}>
+                  🧾 {t('Voir mon talon de paie', 'View My Pay Stub')}
                 </button>
                 <p style={{ color: theme.colors.textMuted, fontSize: '11px', textAlign: 'center' }}>
-                  {t('Période courante : semaine en cours', 'Current period: current week')}
+                  🔒 {t('Lecture seule — configuré par votre employeur', 'Read-only — configured by your employer')}
                 </p>
               </div>
             )
@@ -581,35 +500,21 @@ export default function PayePage() {
         </>
       )}
 
-      {/* ── PIN CHANGE ── */}
+      {/* ── PIN ── */}
       <div className={cardClass} style={card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <p style={{ color: theme.colors.primary, fontSize: '11px', letterSpacing: '2px', fontWeight: 700 }}>🔐 {t('CHANGER MON PIN', 'CHANGE MY PIN')}</p>
-          <button onClick={() => { setShowPinChange(!showPinChange); setOldPin(''); setNewPin(''); setConfirmPin(''); setPinMsg(''); setPinError(false) }}
-            style={{ padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', border: `1px solid ${theme.colors.primary}`, background: 'transparent', color: theme.colors.primary, fontSize: '12px', fontWeight: 700 }}>
+          <button onClick={() => { setShowPinChange(!showPinChange); setOldPin(''); setNewPin(''); setConfirmPin(''); setPinMsg(''); setPinError(false) }} style={{ padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', border: `1px solid ${theme.colors.primary}`, background: 'transparent', color: theme.colors.primary, fontSize: '12px', fontWeight: 700 }}>
             {showPinChange ? t('Annuler', 'Cancel') : t('Modifier', 'Edit')}
           </button>
         </div>
         {showPinChange && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {!isAdmin && (
-              <div>
-                <label style={{ color: theme.colors.textMuted, fontSize: '11px', fontWeight: 600 }}>{t('Ancien PIN', 'Old PIN')}</label>
-                <input type="password" maxLength={4} value={oldPin} onChange={e => setOldPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="****" style={pinInputStyle} />
-              </div>
-            )}
-            <div>
-              <label style={{ color: theme.colors.textMuted, fontSize: '11px', fontWeight: 600 }}>{t('Nouveau PIN', 'New PIN')}</label>
-              <input type="password" maxLength={4} value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="****" style={pinInputStyle} />
-            </div>
-            <div>
-              <label style={{ color: theme.colors.textMuted, fontSize: '11px', fontWeight: 600 }}>{t('Confirmer nouveau PIN', 'Confirm new PIN')}</label>
-              <input type="password" maxLength={4} value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="****" style={pinInputStyle} />
-            </div>
+            {!isAdmin && (<div><label style={{ color: theme.colors.textMuted, fontSize: '11px', fontWeight: 600 }}>{t('Ancien PIN', 'Old PIN')}</label><input type="password" maxLength={4} value={oldPin} onChange={e => setOldPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="****" style={pinInputStyle} /></div>)}
+            <div><label style={{ color: theme.colors.textMuted, fontSize: '11px', fontWeight: 600 }}>{t('Nouveau PIN', 'New PIN')}</label><input type="password" maxLength={4} value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="****" style={pinInputStyle} /></div>
+            <div><label style={{ color: theme.colors.textMuted, fontSize: '11px', fontWeight: 600 }}>{t('Confirmer nouveau PIN', 'Confirm new PIN')}</label><input type="password" maxLength={4} value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="****" style={pinInputStyle} /></div>
             {pinMsg && <p style={{ color: pinError ? '#ef4444' : '#22c55e', fontSize: '13px', textAlign: 'center', fontWeight: 700 }}>{pinMsg}</p>}
-            <button onClick={handlePinChange} style={{ padding: '14px', borderRadius: '12px', cursor: 'pointer', background: theme.colors.primary, border: 'none', color: 'white', fontSize: '14px', fontWeight: 700 }}>
-              ✅ {t('Changer le PIN', 'Change PIN')}
-            </button>
+            <button onClick={handlePinChange} style={{ padding: '14px', borderRadius: '12px', cursor: 'pointer', background: theme.colors.primary, border: 'none', color: 'white', fontSize: '14px', fontWeight: 700 }}>✅ {t('Changer le PIN', 'Change PIN')}</button>
           </div>
         )}
       </div>
@@ -622,28 +527,39 @@ export default function PayePage() {
             <div key={emp.id} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: theme.colors.surface, borderRadius: '10px', padding: '12px' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: emp.color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '12px' }}>{emp.name[0]}</div>
               <p style={{ color: theme.colors.text, fontSize: '13px', fontWeight: 700, flex: 1 }}>{emp.name}</p>
-              <input type="password" maxLength={4} value={adminResetPins[emp.id] || ''} onChange={e => setAdminResetPins(prev => ({ ...prev, [emp.id]: e.target.value.replace(/\D/g, '').slice(0, 4) }))} placeholder="****"
-                style={{ width: '80px', background: theme.colors.card, border: `1px solid ${theme.colors.border}`, borderRadius: '8px', padding: '8px', color: theme.colors.text, fontSize: '14px', textAlign: 'center', letterSpacing: '4px', outline: 'none' }} />
+              <input type="password" maxLength={4} value={adminResetPins[emp.id] || ''} onChange={e => setAdminResetPins(prev => ({ ...prev, [emp.id]: e.target.value.replace(/\D/g, '').slice(0, 4) }))} placeholder="****" style={{ width: '80px', background: theme.colors.card, border: `1px solid ${theme.colors.border}`, borderRadius: '8px', padding: '8px', color: theme.colors.text, fontSize: '14px', textAlign: 'center', letterSpacing: '4px', outline: 'none' }} />
               <button onClick={() => handleAdminResetPin(emp.id)} style={{ padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', background: theme.colors.primary, border: 'none', color: 'white', fontSize: '12px', fontWeight: 700 }}>✓</button>
             </div>
           ))}
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════
-           MODAL TALON DE PAIE
-          ════════════════════════════════════════════════════════════════════ */}
+      {/* ════ MODAL TALON DE PAIE ════ */}
       {payStubEmpId && payStubEmployee && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
           <div style={{ background: theme.colors.surface, borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '95vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
+            {/* Header */}
             <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${theme.colors.border}`, position: 'sticky', top: 0, background: theme.colors.surface, zIndex: 10 }}>
               <div>
-                <p style={{ color: theme.colors.primary, fontSize: '15px', fontWeight: 800 }}>💼 {t('Talon de paie', 'Pay Stub')} — {payStubEmployee.name}</p>
+                <p style={{ color: theme.colors.primary, fontSize: '15px', fontWeight: 800 }}>
+                  💼 {t('Talon de paie', 'Pay Stub')} — {payStubEmployee.name}
+                  {isReadOnlyPayStub && <span style={{ marginLeft: '8px', fontSize: '11px', color: theme.colors.textMuted, fontWeight: 400 }}>🔒 {t('Lecture seule', 'Read only')}</span>}
+                </p>
                 <p style={{ color: theme.colors.textMuted, fontSize: '11px', marginTop: '2px' }}>{payStubEmployee.employeeProvince} · {payStubEmployee.payFrequency} · {payStubEmployee.hourlyRate}$/h</p>
               </div>
               <button onClick={() => setPayStubEmpId(null)} style={{ background: theme.colors.card, border: `1px solid ${theme.colors.border}`, borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', color: theme.colors.textMuted, fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
+
+            {/* Bannière lecture seule */}
+            {isReadOnlyPayStub && (
+              <div style={{ background: '#1e3a5f', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: `1px solid ${theme.colors.border}` }}>
+                <span style={{ fontSize: '16px' }}>🔒</span>
+                <p style={{ color: '#60a5fa', fontSize: '12px', fontWeight: 600 }}>
+                  {t('Votre talon de paie est en lecture seule. Les paramètres sont configurés par votre employeur.', 'Your pay stub is read-only. Parameters are configured by your employer.')}
+                </p>
+              </div>
+            )}
 
             <div style={{ padding: '16px 20px 80px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
@@ -653,43 +569,61 @@ export default function PayePage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ color: theme.colors.textMuted, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>{t('Début', 'Start')}</label>
-                    <input type="date" value={payStubStartDate} onChange={e => setPayStubStartDate(e.target.value)} style={{ ...inputStyle, marginTop: '4px' }} />
+                    <input type="date" value={payStubStartDate} onChange={e => !isReadOnlyPayStub && setPayStubStartDate(e.target.value)} readOnly={isReadOnlyPayStub} style={{ ...inputStyle, marginTop: '4px', opacity: isReadOnlyPayStub ? 0.7 : 1 }} />
                   </div>
                   <div>
                     <label style={{ color: theme.colors.textMuted, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>{t('Fin', 'End')}</label>
-                    <input type="date" value={payStubEndDate} onChange={e => setPayStubEndDate(e.target.value)} style={{ ...inputStyle, marginTop: '4px' }} />
+                    <input type="date" value={payStubEndDate} onChange={e => !isReadOnlyPayStub && setPayStubEndDate(e.target.value)} readOnly={isReadOnlyPayStub} style={{ ...inputStyle, marginTop: '4px', opacity: isReadOnlyPayStub ? 0.7 : 1 }} />
                   </div>
                 </div>
               </div>
 
-              {/* Vacances */}
+              {/* ══ VACANCES — ADMIN: boutons modifiables / EMPLOYÉ: affichage fixe ══ */}
               <div style={{ background: theme.colors.card, borderRadius: '12px', padding: '14px', border: `1px solid ${theme.colors.border}` }}>
                 <p style={{ color: theme.colors.primary, fontSize: '11px', fontWeight: 800, letterSpacing: '1.5px', marginBottom: '4px' }}>🏖️ {t('PAIE DE VACANCES', 'VACATION PAY')}</p>
-                <p style={{ color: theme.colors.textMuted, fontSize: '11px', marginBottom: '10px' }}>
-                  {t('6% minimum en construction Alberta (loi)', '6% minimum in Alberta construction (law)')}
-                  {company.payrollVacationRate !== 6 ? ` · ${t('Configuré', 'Set')}: ${company.payrollVacationRate}%` : ''}
-                </p>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {[4, 6, 8, 10].map(pct => (
-                    <button key={pct} onClick={() => setPayStubVacRate(pct)} style={{
-                      flex: 1, padding: '10px', borderRadius: '10px', cursor: 'pointer', fontWeight: 700, fontSize: '13px',
-                      border: payStubVacRate === pct ? 'none' : `1px solid ${theme.colors.border}`,
-                      background: payStubVacRate === pct ? theme.colors.primary : theme.colors.surface,
-                      color: payStubVacRate === pct ? 'white' : theme.colors.textMuted,
-                    }}>{pct}%{pct === 6 ? ' ⚖️' : ''}</button>
-                  ))}
-                </div>
+
+                {isReadOnlyPayStub ? (
+                  /* Employé — lecture seule */
+                  <div>
+                    <p style={{ color: theme.colors.textMuted, fontSize: '11px', marginBottom: '10px' }}>
+                      ⚖️ {t('Taux fixé par votre employeur', 'Rate set by your employer')}
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: theme.colors.surface, borderRadius: '10px', padding: '14px 16px' }}>
+                      <div>
+                        <p style={{ color: theme.colors.textMuted, fontSize: '12px' }}>{t('Taux applicable', 'Applicable rate')}</p>
+                        <p style={{ color: theme.colors.textMuted, fontSize: '10px', marginTop: '2px' }}>
+                          {payStubVacRate >= 6
+                            ? `✅ ${t('Conforme — min. 6% construction AB', 'Compliant — min. 6% AB construction')}`
+                            : `⚠️ ${t('Sous le minimum légal Alberta', 'Below Alberta legal minimum')}`}
+                        </p>
+                      </div>
+                      <p style={{ color: '#f59e0b', fontSize: '28px', fontWeight: 900 }}>{payStubVacRate}%</p>
+                    </div>
+                  </div>
+                ) : (
+                  /* Admin — boutons modifiables */
+                  <div>
+                    <p style={{ color: theme.colors.textMuted, fontSize: '11px', marginBottom: '10px' }}>
+                      {t('6% minimum en construction Alberta (loi)', '6% minimum in Alberta construction (law)')}
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {[4, 6, 8, 10].map(pct => (
+                        <button key={pct} onClick={() => setPayStubVacRate(pct)} style={{ flex: 1, padding: '10px', borderRadius: '10px', cursor: 'pointer', fontWeight: 700, fontSize: '13px', border: payStubVacRate === pct ? 'none' : `1px solid ${theme.colors.border}`, background: payStubVacRate === pct ? theme.colors.primary : theme.colors.surface, color: payStubVacRate === pct ? 'white' : theme.colors.textMuted }}>
+                          {pct}%{pct === 6 ? ' ⚖️' : ''}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Déductions légales calculées */}
+              {/* Déductions légales */}
               {payStubResult ? (
                 <div style={{ background: theme.colors.card, borderRadius: '12px', padding: '14px', border: `1px solid ${theme.colors.border}` }}>
                   <p style={{ color: theme.colors.primary, fontSize: '11px', fontWeight: 800, letterSpacing: '1.5px', marginBottom: '12px' }}>📊 {t('DÉDUCTIONS LÉGALES', 'STATUTORY DEDUCTIONS')}</p>
                   {payStubRows.filter(r => r.label !== '─────').map((row, i) => {
-                    const pct = payStubResult && row.type === 'deduction' && row.amount !== 0
-                      ? (Math.abs(row.amount) / payStubResult.grossPay * 100).toFixed(1) + '%' : null
-                    const employerPct = payStubResult && row.isEmployer && row.amount !== 0
-                      ? (row.amount / payStubResult.grossPay * 100).toFixed(1) + '%' : null
+                    const pct = payStubResult && row.type === 'deduction' && row.amount !== 0 ? (Math.abs(row.amount) / payStubResult.grossPay * 100).toFixed(1) + '%' : null
+                    const employerPct = payStubResult && row.isEmployer && row.amount !== 0 ? (row.amount / payStubResult.grossPay * 100).toFixed(1) + '%' : null
                     return (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: i < payStubRows.filter(r => r.label !== '─────').length - 1 ? `1px solid ${theme.colors.border}` : 'none' }}>
                         <p style={{ color: row.type === 'net' ? '#22c55e' : row.type === 'total' ? theme.colors.primary : row.isEmployer ? '#f97316' : theme.colors.textMuted, fontSize: row.type === 'net' || row.type === 'total' ? '14px' : '13px', fontWeight: row.type === 'net' || row.type === 'total' ? 800 : 400 }}>{row.label}</p>
@@ -704,22 +638,17 @@ export default function PayePage() {
               ) : (
                 <div style={{ background: theme.colors.card, borderRadius: '12px', padding: '20px', textAlign: 'center', border: `1px solid ${theme.colors.border}` }}>
                   <p style={{ color: theme.colors.textMuted, fontSize: '13px' }}>⚠️ {t('Province ou fréquence de paie non configurée.', 'Province or pay frequency not configured.')}</p>
-                  <p style={{ color: theme.colors.textMuted, fontSize: '11px', marginTop: '8px' }}>{t('→ Réglages → Employés → Modifier', '→ Settings → Employees → Edit')}</p>
                 </div>
               )}
 
-              {/* Avantages sociaux compagnie */}
+              {/* Avantages sociaux */}
               {payStubResult && companyBenefits.length > 0 && (
                 <div style={{ background: theme.colors.card, borderRadius: '12px', padding: '14px', border: `1px solid ${theme.colors.border}` }}>
-                  <p style={{ color: theme.colors.primary, fontSize: '11px', fontWeight: 800, letterSpacing: '1.5px', marginBottom: '10px' }}>
-                    🏢 {t('AVANTAGES SOCIAUX COMPAGNIE', 'COMPANY BENEFITS')}
-                  </p>
+                  <p style={{ color: theme.colors.primary, fontSize: '11px', fontWeight: 800, letterSpacing: '1.5px', marginBottom: '10px' }}>🏢 {t('AVANTAGES SOCIAUX COMPAGNIE', 'COMPANY BENEFITS')}</p>
                   {companyBenefits.map((b, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < companyBenefits.length - 1 ? `1px solid ${theme.colors.border}` : 'none' }}>
                       <p style={{ color: theme.colors.textMuted, fontSize: '12px' }}>{b.label}</p>
-                      <p style={{ color: b.amount >= 0 ? '#f59e0b' : '#ef4444', fontSize: '13px', fontWeight: 600 }}>
-                        {b.amount >= 0 ? '+' : ''}{formatCurrency(b.amount)}
-                      </p>
+                      <p style={{ color: b.amount >= 0 ? '#f59e0b' : '#ef4444', fontSize: '13px', fontWeight: 600 }}>{b.amount >= 0 ? '+' : ''}{formatCurrency(b.amount)}</p>
                     </div>
                   ))}
                 </div>
@@ -729,26 +658,24 @@ export default function PayePage() {
               {payStubResult && (
                 <div style={{ background: payStubEmployee.color, borderRadius: '14px', padding: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>{t('NET À PAYER', 'NET PAY')}</p>
-                    <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginTop: '2px' }}>
-                      {t('(après vacances et avantages)', '(after vacation & benefits)')}
-                    </p>
+                    <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>💵 {t('NET À PAYER', 'NET PAY')}</p>
+                    <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginTop: '2px' }}>{t('vacances + avantages inclus', 'vacation & benefits included')}</p>
                   </div>
                   <p style={{ fontSize: '26px', fontWeight: 900, color: 'white' }}>{formatCurrency(finalNetPay)}</p>
                 </div>
               )}
 
-              {/* Notes */}
-              <div style={{ background: theme.colors.card, borderRadius: '12px', padding: '14px', border: `1px solid ${theme.colors.border}` }}>
-                <label style={{ color: theme.colors.textMuted, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Notes</label>
-                <textarea value={payStubNotes} onChange={e => setPayStubNotes(e.target.value)}
-                  placeholder={t('Notes additionnelles...', 'Additional notes...')}
-                  rows={2} style={{ ...inputStyle, marginTop: '4px', resize: 'vertical' as const }} />
-              </div>
+              {/* Notes — ADMIN seulement */}
+              {!isReadOnlyPayStub && (
+                <div style={{ background: theme.colors.card, borderRadius: '12px', padding: '14px', border: `1px solid ${theme.colors.border}` }}>
+                  <label style={{ color: theme.colors.textMuted, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Notes</label>
+                  <textarea value={payStubNotes} onChange={e => setPayStubNotes(e.target.value)} placeholder={t('Notes additionnelles...', 'Additional notes...')} rows={2} style={{ ...inputStyle, marginTop: '4px', resize: 'vertical' as const }} />
+                </div>
+              )}
 
               {/* Boutons */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <button onClick={handlePrintPayStub} style={{ padding: '14px', borderRadius: '12px', cursor: 'pointer', border: 'none', background: payStubEmployee.color, color: 'white', fontSize: '14px', fontWeight: 800 }}>
+                <button onClick={() => { setPayStubPrinting(true); setTimeout(() => { window.print(); setPayStubPrinting(false) }, 300) }} style={{ padding: '14px', borderRadius: '12px', cursor: 'pointer', border: 'none', background: payStubEmployee.color, color: 'white', fontSize: '14px', fontWeight: 800 }}>
                   🖨️ {t('Imprimer / PDF', 'Print / PDF')}
                 </button>
                 <button onClick={() => setPayStubEmpId(null)} style={{ padding: '14px', borderRadius: '12px', cursor: 'pointer', border: `1px solid ${theme.colors.border}`, background: 'transparent', color: theme.colors.text, fontSize: '14px', fontWeight: 700 }}>
@@ -765,27 +692,22 @@ export default function PayePage() {
                   t('✅ Construction : 6% vacances minimum', '✅ Construction: 6% vacation minimum'),
                   t('✅ 9 jours fériés payés en Alberta', '✅ 9 statutory holidays paid in Alberta'),
                   t('✅ Overtime après 8h/jour ou 44h/semaine', '✅ Overtime after 8h/day or 44h/week'),
-                ].map((item, i) => (
-                  <p key={i} style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{item}</p>
-                ))}
+                ].map((item, i) => <p key={i} style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{item}</p>)}
               </div>
+
             </div>
           </div>
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════
-           MODAL INVOICE CONTRACTEUR
-          ════════════════════════════════════════════════════════════════════ */}
+      {/* ════ MODAL INVOICE CONTRACTEUR ════ */}
       {invoiceModalWeek && viewEmployee && (() => {
         const days    = weekGroups[invoiceModalWeek] || []
         const calc    = calcInvoice(days, viewEmployee.hourlyRate)
-        const weekEnd = new Date(invoiceModalWeek + 'T12:00:00')
-        weekEnd.setDate(weekEnd.getDate() + 6)
+        const weekEnd = new Date(invoiceModalWeek + 'T12:00:00'); weekEnd.setDate(weekEnd.getDate() + 6)
         const periodEnd   = weekEnd.toISOString().split('T')[0]
         const initials    = viewEmployee.name.split(' ').map(n => n[0]).join('').toUpperCase()
         const existingInv = getByWeek(viewEmployee.id, invoiceModalWeek)
-
         return (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
             <div style={{ background: theme.colors.surface, borderRadius: '20px 20px 0 0', padding: '0 0 80px', width: '100%', maxHeight: '95vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
@@ -809,11 +731,8 @@ export default function PayePage() {
                     <div style={{ background: theme.colors.card, borderRadius: '12px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px', border: `1px solid ${theme.colors.border}` }}>
                       <p style={{ color: theme.colors.primary, fontSize: '11px', fontWeight: 800, letterSpacing: '1.5px' }}>👤 {t('VOS INFORMATIONS', 'YOUR INFORMATION')}</p>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                        {[['Adresse', empAddress, setEmpAddress, '123 rue...'], ['Ville', empCity, setEmpCity, 'Calgary AB'], ['Téléphone', empPhone, setEmpPhone, '780-555-0000'], ['Courriel', empEmail, setEmpEmail, 'moi@email.com']].map(([label, val, setter, ph]) => (
-                          <div key={label as string}>
-                            <label style={{ color: theme.colors.textMuted, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>{label as string}</label>
-                            <input value={val as string} onChange={e => (setter as any)(e.target.value)} placeholder={ph as string} style={inputStyle} />
-                          </div>
+                        {([['Adresse', empAddress, setEmpAddress, '123 rue...'], ['Ville', empCity, setEmpCity, 'Calgary AB'], ['Téléphone', empPhone, setEmpPhone, '780-555-0000'], ['Courriel', empEmail, setEmpEmail, 'moi@email.com']] as const).map(([label, val, setter, ph]: any) => (
+                          <div key={label}><label style={{ color: theme.colors.textMuted, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>{label}</label><input value={val} onChange={e => setter(e.target.value)} placeholder={ph} style={inputStyle} /></div>
                         ))}
                       </div>
                     </div>
@@ -823,16 +742,9 @@ export default function PayePage() {
                         <button onClick={() => setGstEnabled(!gstEnabled)} style={{ padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', border: `2px solid ${gstEnabled ? '#22c55e' : theme.colors.border}`, background: gstEnabled ? '#22c55e20' : 'transparent', color: gstEnabled ? '#22c55e' : theme.colors.textMuted, fontSize: '13px', fontWeight: 700 }}>
                           {gstEnabled ? '✅ TPS Activée (5%)' : '○ Sans TPS'}
                         </button>
-                        <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>
-                          {gstEnabled ? '(+' + formatCurrency(calc.gstAmount) + ')' : t('Si enregistré >30 000$/an', 'If registered >$30,000/yr')}
-                        </p>
+                        <p style={{ color: theme.colors.textMuted, fontSize: '11px' }}>{gstEnabled ? '(+' + formatCurrency(calc.gstAmount) + ')' : t('Si enregistré >30 000$/an', 'If registered >$30,000/yr')}</p>
                       </div>
-                      {gstEnabled && (
-                        <div>
-                          <label style={{ color: theme.colors.textMuted, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Numéro TPS</label>
-                          <input value={gstNumber} onChange={e => setGstNumber(e.target.value)} placeholder="123456789 RT 0001" style={{ ...inputStyle, marginTop: '4px' }} />
-                        </div>
-                      )}
+                      {gstEnabled && (<div><label style={{ color: theme.colors.textMuted, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Numéro TPS</label><input value={gstNumber} onChange={e => setGstNumber(e.target.value)} placeholder="123456789 RT 0001" style={{ ...inputStyle, marginTop: '4px' }} /></div>)}
                     </div>
                     <div style={{ background: theme.colors.card, borderRadius: '12px', padding: '14px', border: `1px solid ${theme.colors.border}` }}>
                       <p style={{ color: theme.colors.primary, fontSize: '11px', fontWeight: 800, letterSpacing: '1.5px', marginBottom: '10px' }}>🏷️ {t('REMISE %', 'DISCOUNT %')}</p>
@@ -867,8 +779,8 @@ export default function PayePage() {
                     <div style={{ position: 'relative', zIndex: 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                         <div>
-                          <p style={{ fontSize: '22px', fontWeight: 900, color: '#1a1a1a', letterSpacing: '-0.5px' }}>{viewEmployee.name}</p>
-                          {viewEmployee.businessName && <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>🏢 {viewEmployee.businessName}</p>}
+                          <p style={{ fontSize: '22px', fontWeight: 900, color: '#1a1a1a' }}>{viewEmployee.name}</p>
+                          {viewEmployee.businessName && <p style={{ fontSize: '12px', color: '#6b7280' }}>🏢 {viewEmployee.businessName}</p>}
                           {empAddress && <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>{empAddress}</p>}
                           {empCity && <p style={{ fontSize: '12px', color: '#6b7280' }}>{empCity}</p>}
                           {empPhone && <p style={{ fontSize: '12px', color: '#6b7280' }}>📞 {empPhone}</p>}
@@ -886,17 +798,6 @@ export default function PayePage() {
                         <p style={{ fontSize: '14px', fontWeight: 800, color: '#1a1a1a' }}>{company.name || 'Hailite Xteriors'}</p>
                         {company.address && <p style={{ fontSize: '12px', color: '#6b7280' }}>{company.address}</p>}
                         {company.city && <p style={{ fontSize: '12px', color: '#6b7280' }}>{company.city} {company.province}</p>}
-                        {company.gstNumber && <p style={{ fontSize: '11px', color: '#9ca3af' }}>TPS: {company.gstNumber}</p>}
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', background: `${viewEmployee.color}15`, borderRadius: '8px', padding: '10px 14px' }}>
-                        <div>
-                          <p style={{ fontSize: '10px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('Période', 'Period')}</p>
-                          <p style={{ fontSize: '13px', fontWeight: 700, color: '#374151', marginTop: '2px' }}>{invoiceModalWeek} → {periodEnd}</p>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <p style={{ fontSize: '10px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px' }}>Taux</p>
-                          <p style={{ fontSize: '13px', fontWeight: 700, color: '#374151', marginTop: '2px' }}>{viewEmployee.hourlyRate}$/{viewEmployee.workMode === 'surface' ? 'pi²' : viewEmployee.workMode === 'forfait' ? 'job' : 'h'}</p>
-                        </div>
                       </div>
                       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '16px', fontSize: '12px' }}>
                         <thead>
@@ -917,11 +818,7 @@ export default function PayePage() {
                         </tbody>
                       </table>
                       <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '12px' }}>
-                        {[
-                          { label: t('Sous-total', 'Subtotal'), value: formatCurrency(calc.subtotal) },
-                          ...(remisePercent > 0 ? [{ label: `Remise -${remisePercent}%`, value: `-${formatCurrency(calc.remiseAmount)}` }] : []),
-                          ...(gstEnabled ? [{ label: 'TPS 5%', value: formatCurrency(calc.gstAmount) }] : []),
-                        ].map(row => (
+                        {[{ label: t('Sous-total', 'Subtotal'), value: formatCurrency(calc.subtotal) }, ...(remisePercent > 0 ? [{ label: `Remise -${remisePercent}%`, value: `-${formatCurrency(calc.remiseAmount)}` }] : []), ...(gstEnabled ? [{ label: 'TPS 5%', value: formatCurrency(calc.gstAmount) }] : [])].map(row => (
                           <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
                             <p style={{ fontSize: '12px', color: '#6b7280' }}>{row.label}</p>
                             <p style={{ fontSize: '12px', color: '#374151' }}>{row.value}</p>
@@ -932,12 +829,6 @@ export default function PayePage() {
                           <p style={{ fontSize: '18px', fontWeight: 900, color: 'white' }}>{formatCurrency(calc.total)}</p>
                         </div>
                       </div>
-                      {invoiceNotes && (
-                        <div style={{ marginTop: '12px', padding: '10px', background: '#f9fafb', borderRadius: '8px', borderLeft: `3px solid ${viewEmployee.color}` }}>
-                          <p style={{ fontSize: '10px', fontWeight: 700, color: '#9ca3af', marginBottom: '4px', textTransform: 'uppercase' }}>Notes</p>
-                          <p style={{ fontSize: '12px', color: '#374151' }}>{invoiceNotes}</p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -947,11 +838,7 @@ export default function PayePage() {
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       {(['brouillon', 'envoyee', 'payee'] as EmployeeInvoiceStatus[]).map(s => {
                         const sc = STATUS_CONFIG[s]
-                        return (
-                          <button key={s} onClick={() => updateStatus(existingInv.id, s)} style={{ padding: '8px 14px', borderRadius: '20px', cursor: 'pointer', border: `2px solid ${existingInv.status === s ? sc.color : theme.colors.border}`, background: existingInv.status === s ? `${sc.color}20` : 'transparent', color: existingInv.status === s ? sc.color : theme.colors.textMuted, fontSize: '12px', fontWeight: 700 }}>
-                            {sc.emoji} {sc.label}
-                          </button>
-                        )
+                        return <button key={s} onClick={() => updateStatus(existingInv.id, s)} style={{ padding: '8px 14px', borderRadius: '20px', cursor: 'pointer', border: `2px solid ${existingInv.status === s ? sc.color : theme.colors.border}`, background: existingInv.status === s ? `${sc.color}20` : 'transparent', color: existingInv.status === s ? sc.color : theme.colors.textMuted, fontSize: '12px', fontWeight: 700 }}>{sc.emoji} {sc.label}</button>
                       })}
                     </div>
                   </div>
@@ -960,11 +847,7 @@ export default function PayePage() {
                   <button onClick={() => handleSaveInvoice(invoiceModalWeek, days)} style={{ padding: '14px', borderRadius: '12px', cursor: 'pointer', border: 'none', background: saved ? '#22c55e' : theme.colors.primary, color: 'white', fontSize: '14px', fontWeight: 800 }}>
                     {saved ? '✅ Sauvegardée!' : `💾 ${existingInv ? t('Mettre à jour', 'Update') : t('Sauvegarder', 'Save')}`}
                   </button>
-                  <button onClick={() => {
-                    const subject = encodeURIComponent(`Invoice ${existingInv?.number || 'DRAFT'} — ${viewEmployee.name}`)
-                    const body = encodeURIComponent(`Bonjour,\n\nVeuillez trouver ci-joint mon invoice pour la semaine du ${invoiceModalWeek} au ${periodEnd}.\n\nTotal: ${formatCurrency(calc.total)}\n\n${viewEmployee.name}`)
-                    window.open(`mailto:${company.email || ''}?subject=${subject}&body=${body}`)
-                  }} style={{ padding: '14px', borderRadius: '12px', cursor: 'pointer', border: `1px solid ${theme.colors.border}`, background: 'transparent', color: theme.colors.text, fontSize: '14px', fontWeight: 700 }}>
+                  <button onClick={() => { const subject = encodeURIComponent(`Invoice ${existingInv?.number || 'DRAFT'} — ${viewEmployee.name}`); const body = encodeURIComponent(`Bonjour,\n\nVeuillez trouver ci-joint mon invoice pour la semaine du ${invoiceModalWeek} au ${periodEnd}.\n\nTotal: ${formatCurrency(calc.total)}\n\n${viewEmployee.name}`); window.open(`mailto:${company.email || ''}?subject=${subject}&body=${body}`) }} style={{ padding: '14px', borderRadius: '12px', cursor: 'pointer', border: `1px solid ${theme.colors.border}`, background: 'transparent', color: theme.colors.text, fontSize: '14px', fontWeight: 700 }}>
                     📧 {t('Envoyer', 'Send')}
                   </button>
                 </div>
