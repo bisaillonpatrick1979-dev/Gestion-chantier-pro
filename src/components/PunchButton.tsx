@@ -12,6 +12,7 @@ interface PunchButtonProps {
   onPunch: () => void
   elapsed?: number
   revenue?: number
+  disabled?: boolean
 }
 
 // ─── SVGs thématiques ────────────────────────────────────────────────────────
@@ -86,7 +87,6 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
     paddingTop?: number
   }> = {
 
-    // ── Quantum Glass ───────────────────────────────────────────────────────
     quantum: {
       wrapperClass: '',
       wrapperStyle: {
@@ -125,7 +125,6 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
       textColor: 'white',
     },
 
-    // ── Gamification XP ────────────────────────────────────────────────────
     xp: {
       wrapperClass: '',
       wrapperStyle: {
@@ -170,9 +169,6 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
       textColor: 'white',
     },
 
-    // ── Art Déco Prestige ───────────────────────────────────────────────────
-    // La bordure wrapper est animée via .deco-punch-wrapper dans themes.ts
-    // (animation: decoPunchWrapperGlow — pulse doré 3s infinite)
     deco: {
       wrapperClass: 'deco-punch-wrapper',
       wrapperStyle: {
@@ -228,7 +224,6 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
       textColor: '#0A0A06',
     },
 
-    // ── Aventure Chantiers ──────────────────────────────────────────────────
     aventure: {
       wrapperClass: '',
       wrapperStyle: {
@@ -264,7 +259,6 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
       textColor: 'white',
     },
 
-    // ── Zen Organique ───────────────────────────────────────────────────────
     zen: {
       wrapperClass: '',
       wrapperStyle: {
@@ -296,7 +290,6 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
       textColor: 'white',
     },
 
-    // ── Ludique Premium ─────────────────────────────────────────────────────
     ludique: {
       wrapperClass: '',
       wrapperStyle: {
@@ -348,25 +341,21 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
 
 // ─── Composant principal ─────────────────────────────────────────────────────
 
-export default function PunchButton({ isRunning, isOnBreak, onPunch }: PunchButtonProps) {
+export default function PunchButton({ isRunning, isOnBreak, onPunch, disabled }: PunchButtonProps) {
   const { themeId } = useThemeStore()
   const { lang } = useLangStore()
   const isFr = lang === 'fr'
   const cfg = getConfig(themeId, isRunning, isFr)
   const isDeco = themeId === 'deco'
+  const isDisabled = isOnBreak || (disabled ?? false)
 
   return (
-    // ⚡ Fix: toujours appliquer wrapperStyle (margin) même quand wrapperClass est défini
-    // Pour deco: className='deco-punch-wrapper' + style={{ margin: '0 0 8px' }}
-    // Pour autres: style contient tout (background, border, etc.)
     <div
       className={cfg.wrapperClass || undefined}
       style={{ ...cfg.wrapperStyle, margin: '0 0 8px' }}
     >
-      {/* Couches décoratives */}
       {cfg.decorLayers}
 
-      {/* Contenu centré */}
       <div style={{
         position: 'relative', zIndex: 2,
         display: 'flex', flexDirection: 'column',
@@ -376,11 +365,12 @@ export default function PunchButton({ isRunning, isOnBreak, onPunch }: PunchButt
         {/* Bouton principal */}
         <button
           onClick={onPunch}
-          disabled={isOnBreak}
+          disabled={isDisabled}
           className={cfg.buttonClass}
           style={{
             ...cfg.buttonStyle,
-            opacity: isOnBreak ? 0.45 : 1,
+            opacity: isDisabled ? 0.45 : 1,
+            cursor: isDisabled ? 'not-allowed' : 'pointer',
           }}
         >
           {cfg.icon}
@@ -451,7 +441,23 @@ export default function PunchButton({ isRunning, isOnBreak, onPunch }: PunchButt
             </p>
           </div>
         )}
+
+        {/* Message géofencing */}
+        {!isOnBreak && disabled && (
+          <div style={{
+            background: 'rgba(239,68,68,0.12)',
+            border: '1px solid rgba(239,68,68,0.35)',
+            borderRadius: 12, padding: '8px 18px',
+          }}>
+            <p style={{
+              color: '#ef4444', fontSize: 12, fontWeight: 700,
+              margin: 0, textAlign: 'center',
+            }}>
+              📍 {isFr ? 'Hors zone — rapprochez-vous du chantier' : 'Out of range — get closer to jobsite'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )
-}
+      }
