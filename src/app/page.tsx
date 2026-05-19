@@ -20,32 +20,20 @@ import {
 
 type Screen = 'select' | 'pin' | 'dashboard'
 
-// ── Calculs paie Alberta ──────────────────────────────────────────────────────
 function calcPayslip(grossPay: number, province: string = 'AB') {
-  // CPP 2024 : 5.95% jusqu'à 68 500$ annuel, exemption 3 500$
-  // EI 2024  : 1.66% jusqu'à 63 200$ annuel
-  // Fédéral  : tranches simplifiées 2024
-  // Alberta  : pas d'impôt provincial sur le revenu (flat 10% au-dessus de 148 269$, simplifié ici)
-
   const cpp = Math.min(grossPay * 0.0595, (68500 - 3500) / 52 * 0.0595)
   const ei  = Math.min(grossPay * 0.0166, 63200 / 52 * 0.0166)
-
-  // Impôt fédéral approximé (sur la paie hebdomadaire annualisée)
   const annualized = grossPay * 52
   let fedRate = 0
   if (annualized <= 55867)      fedRate = 0.15
   else if (annualized <= 111733) fedRate = 0.205
   else if (annualized <= 154906) fedRate = 0.26
   else                           fedRate = 0.29
-  const fedTax = (grossPay * fedRate) - (15705 / 52 * fedRate) // crédit personnel de base
+  const fedTax = (grossPay * fedRate) - (15705 / 52 * fedRate)
   const fedTaxFinal = Math.max(0, fedTax)
-
-  // Alberta : pas d'imposition sur la paie pour les bas salaires, ~10% annualisé
   const abTax = province === 'AB' ? Math.max(0, (grossPay * 52 > 21003 ? grossPay * 0.10 - (21003 / 52 * 0.10) : 0)) : 0
-
   const totalDeductions = cpp + ei + fedTaxFinal + abTax
   const netPay = grossPay - totalDeductions
-
   return {
     grossPay,
     cpp: Math.max(0, cpp),
@@ -57,7 +45,6 @@ function calcPayslip(grossPay: number, province: string = 'AB') {
   }
 }
 
-// ── Modal Slip de paye ────────────────────────────────────────────────────────
 function PayslipModal({
   employee, dayDetails, isXP, isDeco, onClose, t
 }: {
@@ -74,7 +61,6 @@ function PayslipModal({
   const textMain    = isXP ? '#e9d5ff' : isDeco ? '#D6B25E' : '#f1f5f9'
   const textMuted   = isXP ? '#6b21a8' : isDeco ? 'rgba(214,178,94,0.6)' : '#94a3b8'
 
-  // Calculer la paie pour la semaine courante
   const today    = new Date()
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today)
@@ -93,103 +79,43 @@ function PayslipModal({
     }
   })
 
-  // Paie brute selon type
   const isSalaried   = employee.workerType === 'salaried'
   const freqLabel    = employee.payFrequency === 'biweekly' ? t('aux 2 sem.', 'bi-weekly') : t('hebdo', 'weekly')
   const weeksPerYear = employee.payFrequency === 'biweekly' ? 26 : 52
-  const grossPay     = isSalaried
-    ? (employee.annualSalary || 0) / weeksPerYear
-    : totalRevenue
-
+  const grossPay     = isSalaried ? (employee.annualSalary || 0) / weeksPerYear : totalRevenue
   const slip = calcPayslip(grossPay, employee.employeeProvince || 'AB')
-
-  const fmt2 = (n: number) =>
-    new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(n)
-
+  const fmt2 = (n: number) => new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(n)
   const weekLabel = `${weekDays[0]} → ${weekDays[6]}`
 
   const Row = ({ label, value, bold, red, green, big }: {
     label: string; value: string
     bold?: boolean; red?: boolean; green?: boolean; big?: boolean
   }) => (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: big ? '10px 0' : '7px 0',
-      borderBottom: `1px solid ${borderColor}`,
-    }}>
-      <span style={{
-        fontSize: big ? '13px' : '11px',
-        fontWeight: bold || big ? 800 : 500,
-        color: big ? textMain : textMuted,
-      }}>{label}</span>
-      <span style={{
-        fontSize: big ? '16px' : '12px',
-        fontWeight: bold || big ? 900 : 600,
-        color: red ? '#ef4444' : green ? '#22c55e' : big ? accentColor : textMain,
-      }}>{value}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: big ? '10px 0' : '7px 0', borderBottom: `1px solid ${borderColor}` }}>
+      <span style={{ fontSize: big ? '13px' : '11px', fontWeight: bold || big ? 800 : 500, color: big ? textMain : textMuted }}>{label}</span>
+      <span style={{ fontSize: big ? '16px' : '12px', fontWeight: bold || big ? 900 : 600, color: red ? '#ef4444' : green ? '#22c55e' : big ? accentColor : textMain }}>{value}</span>
     </div>
   )
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)',
-      zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-      fontFamily: 'system-ui, sans-serif',
-    }}>
-      <div style={{
-        background: bgCard, border: `1px solid ${borderColor}`,
-        borderRadius: '20px 20px 0 0', width: '100%', maxWidth: '480px',
-        maxHeight: '92vh', overflowY: 'auto',
-        padding: '0 0 32px',
-      }}>
-        {/* En-tête */}
-        <div style={{
-          position: 'sticky', top: 0, background: bgCard,
-          borderRadius: '20px 20px 0 0', padding: '20px 20px 14px',
-          borderBottom: `1px solid ${borderColor}`, zIndex: 10,
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ background: bgCard, border: `1px solid ${borderColor}`, borderRadius: '20px 20px 0 0', width: '100%', maxWidth: '480px', maxHeight: '92vh', overflowY: 'auto', padding: '0 0 32px' }}>
+        <div style={{ position: 'sticky', top: 0, background: bgCard, borderRadius: '20px 20px 0 0', padding: '20px 20px 14px', borderBottom: `1px solid ${borderColor}`, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <p style={{ color: accentColor, fontSize: '16px', fontWeight: 900, letterSpacing: '1px' }}>
-              💵 {t('SLIP DE PAYE', 'PAY STUB')}
-            </p>
+            <p style={{ color: accentColor, fontSize: '16px', fontWeight: 900, letterSpacing: '1px' }}>💵 {t('SLIP DE PAYE', 'PAY STUB')}</p>
             <p style={{ color: textMuted, fontSize: '11px', marginTop: '3px' }}>{employee.name}</p>
           </div>
-          <button onClick={onClose} style={{
-            background: 'rgba(255,255,255,0.08)', border: 'none',
-            borderRadius: '50%', width: '36px', height: '36px',
-            color: textMuted, fontSize: '18px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>✕</button>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', color: textMuted, fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
         </div>
-
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-          {/* Badge type + période */}
-          <div style={{
-            display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap',
-          }}>
-            <span style={{
-              padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: 800,
-              background: isSalaried ? 'rgba(34,197,94,0.15)' : 'rgba(251,146,60,0.15)',
-              color: isSalaried ? '#22c55e' : '#fb923c',
-              border: `1px solid ${isSalaried ? 'rgba(34,197,94,0.3)' : 'rgba(251,146,60,0.3)'}`,
-            }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: 800, background: isSalaried ? 'rgba(34,197,94,0.15)' : 'rgba(251,146,60,0.15)', color: isSalaried ? '#22c55e' : '#fb923c', border: `1px solid ${isSalaried ? 'rgba(34,197,94,0.3)' : 'rgba(251,146,60,0.3)'}` }}>
               {isSalaried ? `💼 ${t('Salarié', 'Salaried')}` : `🔧 ${t('Sous-traitant', 'Contractor')}`}
             </span>
-            <span style={{ color: textMuted, fontSize: '11px' }}>
-              📅 {weekLabel}
-            </span>
+            <span style={{ color: textMuted, fontSize: '11px' }}>📅 {weekLabel}</span>
           </div>
-
-          {/* Infos employé */}
-          <div style={{
-            background: `${accentColor}0f`, borderRadius: '12px',
-            padding: '12px 14px', border: `1px solid ${borderColor}`,
-          }}>
-            <p style={{ color: textMuted, fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '8px' }}>
-              {t('Informations', 'Employee Info')}
-            </p>
+          <div style={{ background: `${accentColor}0f`, borderRadius: '12px', padding: '12px 14px', border: `1px solid ${borderColor}` }}>
+            <p style={{ color: textMuted, fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '8px' }}>{t('Informations', 'Employee Info')}</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
               {[
                 { label: t('Taux horaire', 'Hourly Rate'), value: `${fmt2(employee.hourlyRate || 0)}/h` },
@@ -204,15 +130,8 @@ function PayslipModal({
               ))}
             </div>
           </div>
-
-          {/* Heures travaillées cette semaine */}
-          <div style={{
-            background: `${accentColor}0f`, borderRadius: '12px',
-            padding: '12px 14px', border: `1px solid ${borderColor}`,
-          }}>
-            <p style={{ color: textMuted, fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '8px' }}>
-              ⏱ {t('Heures — semaine courante', 'Hours — current week')}
-            </p>
+          <div style={{ background: `${accentColor}0f`, borderRadius: '12px', padding: '12px 14px', border: `1px solid ${borderColor}` }}>
+            <p style={{ color: textMuted, fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '8px' }}>⏱ {t('Heures — semaine courante', 'Hours — current week')}</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
               <div>
                 <p style={{ color: textMuted, fontSize: '9px', marginBottom: '2px' }}>{t('Heures travaillées', 'Hours worked')}</p>
@@ -224,92 +143,31 @@ function PayslipModal({
               </div>
             </div>
           </div>
-
-          {/* Détail de la paie */}
-          <div style={{
-            background: `${accentColor}0f`, borderRadius: '12px',
-            padding: '12px 14px', border: `1px solid ${borderColor}`,
-          }}>
-            <p style={{ color: textMuted, fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '10px' }}>
-              🇨🇦 {t('Détail de la paie — Alberta', 'Pay Detail — Alberta')}
-            </p>
-
+          <div style={{ background: `${accentColor}0f`, borderRadius: '12px', padding: '12px 14px', border: `1px solid ${borderColor}` }}>
+            <p style={{ color: textMuted, fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '10px' }}>🇨🇦 {t('Détail de la paie — Alberta', 'Pay Detail — Alberta')}</p>
             <Row label={t('💰 Paie brute', '💰 Gross Pay')} value={fmt2(slip.grossPay)} bold />
-
             <div style={{ margin: '6px 0 2px' }}>
-              <p style={{ color: textMuted, fontSize: '9px', fontWeight: 700, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                {t('Déductions', 'Deductions')}
-              </p>
+              <p style={{ color: textMuted, fontSize: '9px', fontWeight: 700, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('Déductions', 'Deductions')}</p>
             </div>
-
-            <Row
-              label={`RPC/CPP (5.95%)`}
-              value={`-${fmt2(slip.cpp)}`}
-              red
-            />
-            <Row
-              label={`AE/EI (1.66%)`}
-              value={`-${fmt2(slip.ei)}`}
-              red
-            />
-            <Row
-              label={t('Impôt fédéral (approx.)', 'Federal Tax (approx.)')}
-              value={`-${fmt2(slip.fedTax)}`}
-              red
-            />
-            {slip.abTax > 0 && (
-              <Row
-                label={t('Impôt provincial AB (10%)', 'AB Provincial Tax (10%)')}
-                value={`-${fmt2(slip.abTax)}`}
-                red
-              />
-            )}
-
+            <Row label={`RPC/CPP (5.95%)`} value={`-${fmt2(slip.cpp)}`} red />
+            <Row label={`AE/EI (1.66%)`} value={`-${fmt2(slip.ei)}`} red />
+            <Row label={t('Impôt fédéral (approx.)', 'Federal Tax (approx.)')} value={`-${fmt2(slip.fedTax)}`} red />
+            {slip.abTax > 0 && <Row label={t('Impôt provincial AB (10%)', 'AB Provincial Tax (10%)')} value={`-${fmt2(slip.abTax)}`} red />}
             <div style={{ height: '6px' }} />
-            <Row
-              label={t('Total déductions', 'Total Deductions')}
-              value={`-${fmt2(slip.totalDeductions)}`}
-              bold red
-            />
-
-            {/* Net */}
-            <div style={{
-              marginTop: '10px',
-              background: 'rgba(34,197,94,0.12)',
-              border: '1px solid rgba(34,197,94,0.3)',
-              borderRadius: '10px', padding: '12px 14px',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            }}>
-              <p style={{ color: '#22c55e', fontSize: '13px', fontWeight: 800 }}>
-                ✅ {t('PAIE NETTE', 'NET PAY')}
-              </p>
-              <p style={{ color: '#22c55e', fontSize: '24px', fontWeight: 900 }}>
-                {fmt2(slip.netPay)}
-              </p>
+            <Row label={t('Total déductions', 'Total Deductions')} value={`-${fmt2(slip.totalDeductions)}`} bold red />
+            <div style={{ marginTop: '10px', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '10px', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <p style={{ color: '#22c55e', fontSize: '13px', fontWeight: 800 }}>✅ {t('PAIE NETTE', 'NET PAY')}</p>
+              <p style={{ color: '#22c55e', fontSize: '24px', fontWeight: 900 }}>{fmt2(slip.netPay)}</p>
             </div>
-
             <p style={{ color: textMuted, fontSize: '9px', marginTop: '10px', lineHeight: 1.5 }}>
-              ⚠️ {t(
-                'Calculs approximatifs basés sur les tranches fédérales 2024 et le crédit personnel de base. Consultez un comptable pour la production officielle.',
-                'Approximate calculations based on 2024 federal brackets and basic personal amount. Consult an accountant for official payroll.'
-              )}
+              ⚠️ {t('Calculs approximatifs basés sur les tranches fédérales 2024 et le crédit personnel de base. Consultez un comptable pour la production officielle.', 'Approximate calculations based on 2024 federal brackets and basic personal amount. Consult an accountant for official payroll.')}
             </p>
           </div>
-
-          {/* Sous-traitant — pas de déductions */}
           {!isSalaried && (
-            <div style={{
-              background: 'rgba(251,146,60,0.08)', borderRadius: '12px',
-              padding: '12px 14px', border: '1px solid rgba(251,146,60,0.2)',
-            }}>
-              <p style={{ color: '#fb923c', fontSize: '12px', fontWeight: 800, marginBottom: '6px' }}>
-                🔧 {t('Sous-traitant autonome', 'Self-employed Contractor')}
-              </p>
+            <div style={{ background: 'rgba(251,146,60,0.08)', borderRadius: '12px', padding: '12px 14px', border: '1px solid rgba(251,146,60,0.2)' }}>
+              <p style={{ color: '#fb923c', fontSize: '12px', fontWeight: 800, marginBottom: '6px' }}>🔧 {t('Sous-traitant autonome', 'Self-employed Contractor')}</p>
               <p style={{ color: textMuted, fontSize: '11px', lineHeight: 1.6 }}>
-                {t(
-                  'Aucune déduction à la source. Ce travailleur facture Hailite Xteriors et est responsable de ses propres remises fiscales, TPS (si inscrit), et cotisations.',
-                  'No source deductions. This worker invoices Hailite Xteriors and is responsible for their own tax remittances, GST (if registered), and contributions.'
-                )}
+                {t('Aucune déduction à la source. Ce travailleur facture Hailite Xteriors et est responsable de ses propres remises fiscales, TPS (si inscrit), et cotisations.', 'No source deductions. This worker invoices Hailite Xteriors and is responsible for their own tax remittances, GST (if registered), and contributions.')}
               </p>
               <div style={{ marginTop: '10px', background: 'rgba(251,146,60,0.12)', borderRadius: '8px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between' }}>
                 <p style={{ color: '#fb923c', fontSize: '13px', fontWeight: 800 }}>{t('Montant à facturer', 'Amount to Invoice')}</p>
@@ -317,14 +175,7 @@ function PayslipModal({
               </div>
             </div>
           )}
-
-          {/* Bouton fermer */}
-          <button onClick={onClose} style={{
-            width: '100%', padding: '16px', borderRadius: '14px',
-            background: accentColor, border: 'none', color: 'white',
-            fontSize: '15px', fontWeight: 900, cursor: 'pointer',
-            marginTop: '4px',
-          }}>
+          <button onClick={onClose} style={{ width: '100%', padding: '16px', borderRadius: '14px', background: accentColor, border: 'none', color: 'white', fontSize: '15px', fontWeight: 900, cursor: 'pointer', marginTop: '4px' }}>
             {t('Fermer', 'Close')}
           </button>
         </div>
@@ -333,7 +184,6 @@ function PayslipModal({
   )
 }
 
-// ── Badge type de travailleur ─────────────────────────────────────────────────
 function WorkerTypeBadge({ workerType, isXP, isDeco }: {
   workerType?: 'salaried' | 'contractor'
   isXP: boolean
@@ -342,26 +192,11 @@ function WorkerTypeBadge({ workerType, isXP, isDeco }: {
   if (!workerType) return null
   const isSalaried = workerType === 'salaried'
   return (
-    <span style={{
-      display: 'inline-block',
-      padding: '1px 7px',
-      borderRadius: '6px',
-      fontSize: '9px',
-      fontWeight: 800,
-      marginLeft: '6px',
-      background: isSalaried
-        ? 'rgba(34,197,94,0.18)'
-        : 'rgba(251,146,60,0.18)',
-      color: isSalaried ? '#22c55e' : '#fb923c',
-      border: `1px solid ${isSalaried ? 'rgba(34,197,94,0.35)' : 'rgba(251,146,60,0.35)'}`,
-      verticalAlign: 'middle',
-    }}>
+    <span style={{ display: 'inline-block', padding: '1px 7px', borderRadius: '6px', fontSize: '9px', fontWeight: 800, marginLeft: '6px', background: isSalaried ? 'rgba(34,197,94,0.18)' : 'rgba(251,146,60,0.18)', color: isSalaried ? '#22c55e' : '#fb923c', border: `1px solid ${isSalaried ? 'rgba(34,197,94,0.35)' : 'rgba(251,146,60,0.35)'}`, verticalAlign: 'middle' }}>
       {isSalaried ? '💼 Salarié' : '🔧 S-traitant'}
     </span>
   )
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 function XPRobot({ percent, message }: { percent: number; message: string }) {
   const happy = percent >= 80; const ok = percent >= 40
@@ -475,7 +310,6 @@ function getLevelTitle(level: number): string {
   return 'Nouvelle Recrue'
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 export default function HomePage() {
   const { employees, currentEmployeeId, activeSessions, dayDetails, setCurrentEmployee, verifyPin, punchIn, punchOut, startBreak, endBreak, updateEmployee } = useEmployeeStore()
   const { themeId } = useThemeStore()
@@ -483,7 +317,6 @@ export default function HomePage() {
   const { getActiveLogForEmployee } = useProjectStore()
   const { getGoal, setGoalTarget, updateProgress, updateStreak, addXP } = useGoalStore()
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
-  // ── Alertes RH — admin seulement ─────────────────────────────────────────
   const { getActiveAlerts } = usePayrollRulesStore()
   const { hrStatuses } = useHREngine()
 
@@ -509,8 +342,6 @@ export default function HomePage() {
   const [editingGoal, setEditingGoal]     = useState(false)
   const [tempGoal, setTempGoal]           = useState('')
   const [showCelebration, setShowCelebration] = useState(false)
-
-  // ── Nouveau : slip de paye ────────────────────────────────────────────────
   const [payslipEmployeeId, setPayslipEmployeeId] = useState<string | null>(null)
 
   const prevRevenueRef = useRef(0)
@@ -626,7 +457,6 @@ export default function HomePage() {
           <><DecoOrnament opacity={0.12}/><div style={{ textAlign: 'center' }}><h1 className="metal-text" style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '4px' }}>HAILITE XTERIORS</h1><DecoDiamondRow count={5} opacity={0.3}/></div></>
         )}
         <DecoSeparator opacity={isXP ? 0.1 : 0.25}/>
-
         <div style={{ display: 'grid', gridTemplateColumns: employees.filter(e => e.active).length > 3 ? '1fr 1fr' : '1fr', gap: '10px' }}>
           {employees.filter(e => e.active).map((emp, idx) => {
             const empGoal = getGoal(emp.id)
@@ -636,20 +466,12 @@ export default function HomePage() {
                 style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', borderRadius: '16px', cursor: 'pointer', border: isXP ? '1px solid rgba(168,85,247,0.35)' : '1px solid var(--border)', background: isXP ? 'rgba(17,7,40,0.9)' : 'var(--card)', textAlign: 'left' as const, position: 'relative', overflow: 'hidden', animation: `fUp 0.4s ease ${idx * 0.1}s both` }}>
                 {!isXP && <DecoBackground/>}{!isXP && <DecoCorners opacity={0.3}/>}
                 {isXP && <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 30% 50%, rgba(168,85,247,0.08), transparent 60%)', pointerEvents: 'none' }}/>}
-
-                {/* Avatar */}
                 <div style={{ width: '48px', height: '48px', borderRadius: isXP ? '12px' : '50%', flexShrink: 0, background: isXP ? `linear-gradient(135deg, ${emp.color}, #a855f7)` : `radial-gradient(circle at 40% 35%, ${emp.color}99, ${emp.color})`, boxShadow: isXP ? `0 0 18px ${emp.color}66` : `0 0 18px ${emp.color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 800, color: 'white', position: 'relative', zIndex: 1 }}>{emp.name[0].toUpperCase()}</div>
-
-                {/* Nom + badge type */}
                 <div style={{ flex: 1, position: 'relative', zIndex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '2px' }}>
                     <p style={{ color: isXP ? '#e9d5ff' : 'var(--text)', fontSize: '15px', fontWeight: 700, lineHeight: 1.2 }}>{emp.name}</p>
-                    {/* ── BADGE SALARIÉ / SOUS-TRAITANT ── */}
-                    {emp.workerType && (
-                      <WorkerTypeBadge workerType={emp.workerType} isXP={isXP} isDeco={isDeco} />
-                    )}
+                    {emp.workerType && <WorkerTypeBadge workerType={emp.workerType} isXP={isXP} isDeco={isDeco} />}
                   </div>
-
                   {isXP ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
                       <span style={{ fontSize: '10px', background: 'rgba(168,85,247,0.3)', color: '#a855f7', padding: '2px 7px', borderRadius: '5px', fontWeight: 800 }}>Nv.{empGoal.level}</span>
@@ -657,13 +479,9 @@ export default function HomePage() {
                       {empGoal.streak > 0 && <span style={{ fontSize: '10px', color: '#f59e0b' }}>🔥{empGoal.streak}j</span>}
                     </div>
                   ) : (
-                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '2px' }}>
-                      {emp.role === 'admin' ? '👑 Admin' : `⏱ ${emp.workMode}`}
-                    </p>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '2px' }}>{emp.role === 'admin' ? '👑 Admin' : `⏱ ${emp.workMode}`}</p>
                   )}
                 </div>
-
-                {/* Point de statut uniquement — pas de bouton Paye ici, personne n'est authentifié */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', position: 'relative', zIndex: 1, flexShrink: 0 }}>
                   <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: activeSessions[emp.id] ? activeSessions[emp.id].isOnBreak ? '#f59e0b' : '#22c55e' : '#ef4444', boxShadow: activeSessions[emp.id] ? activeSessions[emp.id].isOnBreak ? '0 0 8px #f59e0b' : '0 0 8px #22c55e' : '0 0 8px #ef4444' }}/>
                 </div>
@@ -671,7 +489,6 @@ export default function HomePage() {
             )
           })}
         </div>
-
         {isXP ? (
           <p style={{ textAlign: 'center', fontSize: '10px', letterSpacing: '2px', color: '#4c1d95', fontWeight: 700 }}>🎮 CHOISISSEZ VOTRE PERSONNAGE</p>
         ) : (
@@ -743,10 +560,7 @@ export default function HomePage() {
               <p style={{ fontSize: '13px', fontWeight: 800, color: isXP ? '#e9d5ff' : 'var(--text)' }}>
                 {currentEmployee?.name}{currentEmployee?.role === 'admin' && ' 👑'}
               </p>
-              {/* Badge dans le dashboard aussi */}
-              {currentEmployee?.workerType && (
-                <WorkerTypeBadge workerType={currentEmployee.workerType} isXP={isXP} isDeco={isDeco} />
-              )}
+              {currentEmployee?.workerType && <WorkerTypeBadge workerType={currentEmployee.workerType} isXP={isXP} isDeco={isDeco} />}
             </div>
             {isXP && goal ? (
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
@@ -762,24 +576,12 @@ export default function HomePage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px', position: 'relative', zIndex: 1 }}>
-          {/* Bouton slip de paye — gros, facile à tapper */}
-          <button
-            onClick={() => setPayslipEmployeeId(currentEmployeeId)}
-            style={{
-              padding: '10px 14px', borderRadius: '12px', cursor: 'pointer',
-              border: isXP ? '1px solid rgba(168,85,247,0.4)' : '1px solid var(--border)',
-              background: isXP ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.08)',
-              color: isXP ? '#a855f7' : 'var(--text)',
-              fontSize: '18px', fontWeight: 700,
-              minWidth: '44px', minHeight: '44px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >💵</button>
+          <button onClick={() => setPayslipEmployeeId(currentEmployeeId)} style={{ padding: '10px 14px', borderRadius: '12px', cursor: 'pointer', border: isXP ? '1px solid rgba(168,85,247,0.4)' : '1px solid var(--border)', background: isXP ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.08)', color: isXP ? '#a855f7' : 'var(--text)', fontSize: '18px', fontWeight: 700, minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>💵</button>
           <button onClick={handleLogout} style={{ padding: '10px 14px', borderRadius: '12px', cursor: 'pointer', border: isXP ? '1px solid rgba(168,85,247,0.3)' : '1px solid var(--border)', background: 'transparent', color: isXP ? '#a855f7' : 'var(--text-muted)', fontSize: '11px', fontWeight: 700, minHeight: '44px' }}>{t('SORTIR', 'LOGOUT')}</button>
         </div>
       </div>
 
-      {/* ══ SECTION PAIE ADMIN — liste tous les employés ══ */}
+      {/* ══ SECTION PAIE ADMIN ══ */}
       {currentEmployee?.role === 'admin' && (
         <div className={cardClass} style={{ ...card }}>
           {!isXP && <DecoBackground/>}{!isXP && <DecoCorners opacity={0.2}/>}
@@ -790,68 +592,39 @@ export default function HomePage() {
             {employees.filter(e => e.active).map(emp => {
               const isSalaried = emp.workerType === 'salaried'
               const isActive   = !!activeSessions[emp.id]
-              return (
-                <button
-                  key={emp.id}
-                  onClick={() => setPayslipEmployeeId(emp.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '12px',
-                    padding: '12px 14px', borderRadius: '14px', cursor: 'pointer',
-                    border: isXP ? '1px solid rgba(168,85,247,0.2)' : '1px solid var(--border)',
-                    background: isXP ? 'rgba(168,85,247,0.06)' : 'var(--surface)',
-                    textAlign: 'left' as const, width: '100%',
-                  }}
-                >
-                  {/* Avatar */}
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0, background: `radial-gradient(circle at 40% 35%, ${emp.color}99, ${emp.color})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 800, color: 'white' }}>
-                    {emp.name[0].toUpperCase()}
-                  </div>
-                  {/* Info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ color: isXP ? '#e9d5ff' : 'var(--text)', fontSize: '13px', fontWeight: 700 }}>{emp.name}</p>
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '9px', fontWeight: 800, padding: '1px 6px', borderRadius: '5px', background: isSalaried ? 'rgba(34,197,94,0.15)' : 'rgba(251,146,60,0.15)', color: isSalaried ? '#22c55e' : '#fb923c' }}>
-                        {isSalaried ? '💼 Salarié' : '🔧 S-traitant'}
-                      </span>
-                      <span style={{ fontSize: '9px', color: isXP ? '#6b7280' : 'var(--text-muted)' }}>
-                        ${emp.hourlyRate || 0}/h
-                      </span>
-                      {isActive && <span style={{ fontSize: '9px', color: '#22c55e', fontWeight: 700 }}>● {t('En service', 'Working')}</span>}
-                    </div>
-                  </div>
-                  {/* Flèche */}
-                  <span style={{ fontSize: '16px', color: isXP ? '#a855f7' : 'var(--primary)', flexShrink: 0 }}>💵</span>
-                </button>
+              const empAlerts  = getActiveAlerts().filter(a => a.employeeId === emp.id)
+              const hasCritical = empAlerts.some(a => a.severity === 'critical')
+              const topAlert   = empAlerts.find(a => a.severity === 'critical') || empAlerts[0]
 
-                {/* ── Banner alertes RH pour cet employé ── */}
-                {(() => {
-                  const empAlerts = getActiveAlerts().filter(a => a.employeeId === emp.id)
-                  if (empAlerts.length === 0) return null
-                  const hasCritical = empAlerts.some(a => a.severity === 'critical')
-                  const topAlert = empAlerts.find(a => a.severity === 'critical') || empAlerts[0]
-                  return (
-                    <div style={{
-                      marginTop: '6px',
-                      padding: '8px 12px',
-                      borderRadius: '10px',
-                      background: hasCritical
-                        ? 'rgba(239,68,68,0.12)'
-                        : 'rgba(251,146,60,0.10)',
-                      border: `1px solid ${hasCritical ? 'rgba(239,68,68,0.4)' : 'rgba(251,146,60,0.3)'}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}>
-                      <span style={{ fontSize: '14px', flexShrink: 0 }}>
-                        {hasCritical ? '🚨' : '⚠️'}
-                      </span>
+              return (
+                // ✅ FIX : wrapper div pour grouper bouton + banner (JSX = 1 élément racine par map)
+                <div key={emp.id}>
+                  <button
+                    onClick={() => setPayslipEmployeeId(emp.id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '14px', cursor: 'pointer', border: isXP ? '1px solid rgba(168,85,247,0.2)' : '1px solid var(--border)', background: isXP ? 'rgba(168,85,247,0.06)' : 'var(--surface)', textAlign: 'left' as const, width: '100%' }}
+                  >
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0, background: `radial-gradient(circle at 40% 35%, ${emp.color}99, ${emp.color})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 800, color: 'white' }}>
+                      {emp.name[0].toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ color: isXP ? '#e9d5ff' : 'var(--text)', fontSize: '13px', fontWeight: 700 }}>{emp.name}</p>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '9px', fontWeight: 800, padding: '1px 6px', borderRadius: '5px', background: isSalaried ? 'rgba(34,197,94,0.15)' : 'rgba(251,146,60,0.15)', color: isSalaried ? '#22c55e' : '#fb923c' }}>
+                          {isSalaried ? '💼 Salarié' : '🔧 S-traitant'}
+                        </span>
+                        <span style={{ fontSize: '9px', color: isXP ? '#6b7280' : 'var(--text-muted)' }}>${emp.hourlyRate || 0}/h</span>
+                        {isActive && <span style={{ fontSize: '9px', color: '#22c55e', fontWeight: 700 }}>● {t('En service', 'Working')}</span>}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '16px', color: isXP ? '#a855f7' : 'var(--primary)', flexShrink: 0 }}>💵</span>
+                  </button>
+
+                  {/* Banner alertes RH */}
+                  {empAlerts.length > 0 && (
+                    <div style={{ marginTop: '6px', padding: '8px 12px', borderRadius: '10px', background: hasCritical ? 'rgba(239,68,68,0.12)' : 'rgba(251,146,60,0.10)', border: `1px solid ${hasCritical ? 'rgba(239,68,68,0.4)' : 'rgba(251,146,60,0.3)'}`, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '14px', flexShrink: 0 }}>{hasCritical ? '🚨' : '⚠️'}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{
-                          fontSize: '11px',
-                          fontWeight: 800,
-                          color: hasCritical ? '#ef4444' : '#fb923c',
-                          lineHeight: 1.3,
-                        }}>
+                        <p style={{ fontSize: '11px', fontWeight: 800, color: hasCritical ? '#ef4444' : '#fb923c', lineHeight: 1.3 }}>
                           {topAlert.messageFR}
                         </p>
                         {empAlerts.length > 1 && (
@@ -860,26 +633,17 @@ export default function HomePage() {
                           </p>
                         )}
                       </div>
-                      <div style={{
-                        flexShrink: 0,
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                        background: hasCritical ? 'rgba(239,68,68,0.2)' : 'rgba(251,146,60,0.2)',
-                        fontSize: '9px',
-                        fontWeight: 900,
-                        color: hasCritical ? '#ef4444' : '#fb923c',
-                      }}>
+                      <div style={{ flexShrink: 0, padding: '2px 8px', borderRadius: '6px', background: hasCritical ? 'rgba(239,68,68,0.2)' : 'rgba(251,146,60,0.2)', fontSize: '9px', fontWeight: 900, color: hasCritical ? '#ef4444' : '#fb923c' }}>
                         {empAlerts.length}
                       </div>
                     </div>
-                  )
-                })()}
+                  )}
+                </div>
               )
             })}
           </div>
         </div>
       )}
-
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
         <div className={cardClass} style={{ ...card }}>
@@ -1136,11 +900,9 @@ export default function HomePage() {
         )
       })()}
 
-      {/* ── Modal slip de paye — sécurisé ── */}
       {payslipEmployeeId && (() => {
         const emp = employees.find(e => e.id === payslipEmployeeId)
         if (!emp) return null
-        // Admin voit tout. Employé voit seulement le sien.
         const isAdmin = currentEmployee?.role === 'admin'
         const isOwn   = payslipEmployeeId === currentEmployeeId
         if (!isAdmin && !isOwn) { return null }
