@@ -822,6 +822,58 @@ export default function HomePage() {
                   {/* Flèche */}
                   <span style={{ fontSize: '16px', color: isXP ? '#a855f7' : 'var(--primary)', flexShrink: 0 }}>💵</span>
                 </button>
+
+                {/* ── Banner alertes RH pour cet employé ── */}
+                {(() => {
+                  const empAlerts = getActiveAlerts().filter(a => a.employeeId === emp.id)
+                  if (empAlerts.length === 0) return null
+                  const hasCritical = empAlerts.some(a => a.severity === 'critical')
+                  const topAlert = empAlerts.find(a => a.severity === 'critical') || empAlerts[0]
+                  return (
+                    <div style={{
+                      marginTop: '6px',
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      background: hasCritical
+                        ? 'rgba(239,68,68,0.12)'
+                        : 'rgba(251,146,60,0.10)',
+                      border: `1px solid ${hasCritical ? 'rgba(239,68,68,0.4)' : 'rgba(251,146,60,0.3)'}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}>
+                      <span style={{ fontSize: '14px', flexShrink: 0 }}>
+                        {hasCritical ? '🚨' : '⚠️'}
+                      </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          color: hasCritical ? '#ef4444' : '#fb923c',
+                          lineHeight: 1.3,
+                        }}>
+                          {topAlert.messageFR}
+                        </p>
+                        {empAlerts.length > 1 && (
+                          <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>
+                            +{empAlerts.length - 1} {t('autre(s) alerte(s)', 'other alert(s)')}
+                          </p>
+                        )}
+                      </div>
+                      <div style={{
+                        flexShrink: 0,
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        background: hasCritical ? 'rgba(239,68,68,0.2)' : 'rgba(251,146,60,0.2)',
+                        fontSize: '9px',
+                        fontWeight: 900,
+                        color: hasCritical ? '#ef4444' : '#fb923c',
+                      }}>
+                        {empAlerts.length}
+                      </div>
+                    </div>
+                  )
+                })()}
               )
             })}
           </div>
