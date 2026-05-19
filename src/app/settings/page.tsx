@@ -26,8 +26,8 @@ const THEMES = [
   { id: 'ludique',  label: '🎮 Ludique',  colors: 'from-orange-500 to-pink-500' },
 ]
 
-const TABS_FR = ['🏢 Compagnie','👤 Employés','🎨 Thème','🌐 Langue','💳 Paiement','🔔 Rappels','📋 Conditions','👥 Clients','📦 Catalogue','📊 Comptab.','⚙️ Avancé','🚨 RH']
-const TABS_EN = ['🏢 Company','👤 Employees','🎨 Theme','🌐 Language','💳 Payment','🔔 Reminders','📋 Terms','👥 Clients','📦 Catalog','📊 Accounting','⚙️ Advanced','🚨 HR']
+const TABS_FR = ['🏢 Compagnie','👤 Employés','🎨 Thème','🌐 Langue','💳 Paiement','🔔 Rappels','📋 Conditions','👥 Clients','📦 Catalogue','📊 Comptab.','⚙️ Geofenc','🚨 RH']
+const TABS_EN = ['🏢 Company','👤 Employees','🎨 Theme','🌐 Language','💳 Payment','🔔 Reminders','📋 Terms','👥 Clients','📦 Catalog','📊 Accounting','⚙️ Geofenc','🚨 HR']
 
 export default function SettingsPage() {
   const router = useRouter()
