@@ -11,7 +11,8 @@ import PunchInModal from '@/components/PunchInModal'
 import PunchButton from '@/components/PunchButton'
 import PunchOutConfirmModal from '@/components/PunchOutConfirmModal'
 import { useVoiceReminder } from '@/hooks/useVoiceReminder'
-import { usePayrollRulesStore } from '@/store/usePayrollRulesStore'
+import { useVoiceReminder } from '@/hooks/useVoiceReminder'
+import { useGeofencing } from '@/hooks/useGeofencing'
 import { useHREngine } from '@/hooks/useHREngine'
 import {
   DecoSeparator, DecoCorners, DecoTitle, DecoOrnament,
@@ -319,6 +320,7 @@ export default function HomePage() {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
   const { getActiveAlerts } = usePayrollRulesStore()
   const { hrStatuses } = useHREngine()
+  const geofence = useGeofencing()
 
   const isXP       = themeId === 'xp'
   const isDeco     = themeId === 'deco'
