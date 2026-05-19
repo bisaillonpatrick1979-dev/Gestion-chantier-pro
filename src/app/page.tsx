@@ -326,7 +326,9 @@ export default function HomePage() {
   const isAventure = themeId === 'aventure'
   const cardClass  = isDeco ? 'deco-card-sweep' : isQuantum ? 'quantum-card-glow' : isAventure ? 'aventure-card-glow' : ''
 
-  const [screen, setScreen]               = useState<Screen>('select')
+  const [screen, setScreen]               = useState<Screen>(() =>
+    useEmployeeStore.getState().currentEmployeeId ? 'dashboard' : 'select'
+  )
   const [selectedId, setSelectedId]       = useState('')
   const [pin, setPin]                     = useState('')
   const [pinError, setPinError]           = useState(false)
