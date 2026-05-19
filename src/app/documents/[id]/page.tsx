@@ -151,8 +151,6 @@ export default function DocumentDetailPage() {
   setCompGST(company.gstNumber)
   setCompWCB(company.wcbNumber)
   setCompBN((company as any).bnNumber ?? '')
-}, [company])
-    }
   }, [company])
 
   // ── Calculs ────────────────────────────────────────────────────────────────
