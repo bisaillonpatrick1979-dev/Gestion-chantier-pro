@@ -598,9 +598,6 @@ const artDecoPrestige: Theme = {
 }
 
 // ─── 4. INFERNO ──────────────────────────────────────────────────────────────
-// REMPLACE le const inferno existant dans src/lib/themes.ts
-// Garde tout pareil — ajoute seulement les keyframes flammes dans globalCSS
-
 const inferno: Theme = {
   id: 'inferno',
   name: 'Inferno',
@@ -647,7 +644,6 @@ const inferno: Theme = {
       inherits: false;
     }
 
-    /* ── Rotation bordure conic existante ── */
     @keyframes infernoBorderRotate { to { --inferno-angle: 360deg; } }
     @keyframes infernoFlicker {
       0%,100% { opacity: 1; }
@@ -692,126 +688,6 @@ const inferno: Theme = {
       100% { background-position: 40px 0; }
     }
 
-    /* ══════════════════════════════════════════════════════
-       NOUVEAUX — Vraies flammes CSS 5 couches
-    ══════════════════════════════════════════════════════ */
-    @keyframes ifl1 {
-      0%   { transform:scaleY(1)    scaleX(1)    translateY(0px)  rotate(-1deg);  opacity:.95; }
-      20%  { transform:scaleY(1.13) scaleX(.90)  translateY(-5px) rotate(2.5deg); opacity:1; }
-      45%  { transform:scaleY(.92)  scaleX(1.07) translateY(-2px) rotate(-2deg);  opacity:.88; }
-      70%  { transform:scaleY(1.10) scaleX(.93)  translateY(-6px) rotate(1.5deg); opacity:1; }
-      100% { transform:scaleY(1)    scaleX(1)    translateY(0px)  rotate(-1deg);  opacity:.95; }
-    }
-    @keyframes ifl2 {
-      0%   { transform:scaleY(.88) scaleX(1.12) translateY(0px)  rotate(2deg);   opacity:.82; }
-      28%  { transform:scaleY(1.2) scaleX(.88)  translateY(-7px) rotate(-3deg);  opacity:1; }
-      55%  { transform:scaleY(1)   scaleX(1.04) translateY(-3px) rotate(2.5deg); opacity:.90; }
-      100% { transform:scaleY(.88) scaleX(1.12) translateY(0px)  rotate(2deg);   opacity:.82; }
-    }
-    @keyframes ifl3 {
-      0%   { transform:scaleY(1.07) scaleX(.93) translateY(-1px) rotate(0deg);    opacity:.76; }
-      38%  { transform:scaleY(.82)  scaleX(1.10) translateY(-5px) rotate(-2.5deg); opacity:.94; }
-      68%  { transform:scaleY(1.14) scaleX(.90)  translateY(-7px) rotate(3deg);    opacity:1; }
-      100% { transform:scaleY(1.07) scaleX(.93) translateY(-1px) rotate(0deg);    opacity:.76; }
-    }
-    @keyframes ifl4 {
-      0%   { transform:scaleY(1)    scaleX(1)   translateY(0px)  rotate(1deg);    opacity:.65; }
-      48%  { transform:scaleY(1.24) scaleX(.86) translateY(-8px) rotate(-1.5deg); opacity:1; }
-      100% { transform:scaleY(1)    scaleX(1)   translateY(0px)  rotate(1deg);    opacity:.65; }
-    }
-    @keyframes ifl5 {
-      0%   { transform:scaleY(.90) scaleX(1.08) translateY(0)    rotate(-1.5deg); opacity:.50; }
-      35%  { transform:scaleY(1.18) scaleX(.90) translateY(-6px) rotate(2deg);    opacity:.85; }
-      65%  { transform:scaleY(1)   scaleX(1)   translateY(-3px)  rotate(-1deg);   opacity:.70; }
-      100% { transform:scaleY(.90) scaleX(1.08) translateY(0)    rotate(-1.5deg); opacity:.50; }
-    }
-
-    /* Embers du bouton */
-    @keyframes iEmber0 { 0%{transform:translate(0,0)scale(1)rotate(0);opacity:1}  100%{transform:translate(-18px,-65px)scale(0)rotate(30deg);opacity:0} }
-    @keyframes iEmber1 { 0%{transform:translate(0,0)scale(1);opacity:1}            100%{transform:translate(12px,-80px)scale(0);opacity:0} }
-    @keyframes iEmber2 { 0%{transform:translate(0,0)scale(1);opacity:1}            100%{transform:translate(-8px,-55px)scale(0)rotate(-20deg);opacity:0} }
-    @keyframes iEmber3 { 0%{transform:translate(0,0)scale(1);opacity:1}            100%{transform:translate(22px,-70px)scale(0);opacity:0} }
-    @keyframes iEmber4 { 0%{transform:translate(0,0)scale(1);opacity:1}            100%{transform:translate(-25px,-90px)scale(0)rotate(45deg);opacity:0} }
-    @keyframes iEmber5 { 0%{transform:translate(0,0)scale(1);opacity:1}            100%{transform:translate(15px,-60px)scale(0);opacity:0} }
-    @keyframes iEmber6 { 0%{transform:translate(0,0)scale(1);opacity:1}            100%{transform:translate(-5px,-75px)scale(0)rotate(-15deg);opacity:0} }
-    @keyframes iEmber7 { 0%{transform:translate(0,0)scale(1);opacity:.90}          100%{transform:translate(30px,-85px)scale(0);opacity:0} }
-    @keyframes iEmber8 { 0%{transform:translate(0,0)scale(1);opacity:.80}          100%{transform:translate(-20px,-50px)scale(0)rotate(60deg);opacity:0} }
-
-    /* Embers ambiants qui flottent dans toute la page */
-    @keyframes iAmbEmber {
-      0%   { transform:translateY(100vh) translateX(0) rotate(0deg);   opacity:0; }
-      5%   { opacity:1; }
-      95%  { opacity:.80; }
-      100% { transform:translateY(-10vh) translateX(var(--drift,20px)) rotate(720deg); opacity:0; }
-    }
-
-    /* Bouton lava flow */
-    @keyframes infernoLavaFlow {
-      0%   { background-position: 0% 50%; }
-      50%  { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-    @keyframes infernoBtnGlow {
-      0%,100% {
-        box-shadow:
-          0 0 35px rgba(255,68,0,.70),
-          0 0 80px rgba(255,68,0,.40),
-          0 0 150px rgba(255,50,0,.18),
-          inset 0 2px 0 rgba(255,200,100,.18),
-          inset 0 0 50px rgba(200,40,0,.22);
-      }
-      40% {
-        box-shadow:
-          0 0 55px rgba(255,120,0,.85),
-          0 0 120px rgba(255,80,0,.55),
-          0 0 200px rgba(255,50,0,.28),
-          inset 0 2px 0 rgba(255,220,120,.28),
-          inset 0 0 70px rgba(220,60,0,.30);
-      }
-      75% {
-        box-shadow:
-          0 0 45px rgba(255,200,0,.72),
-          0 0 100px rgba(255,100,0,.48),
-          0 0 170px rgba(255,60,0,.20),
-          inset 0 2px 0 rgba(255,230,140,.22),
-          inset 0 0 60px rgba(210,80,0,.26);
-      }
-    }
-    @keyframes infernoRingFire {
-      0%,100% {
-        box-shadow:
-          0 0 0 2.5px rgba(255,80,0,.80),
-          0 0 20px rgba(255,80,0,.50),
-          0 0 50px rgba(255,60,0,.22);
-      }
-      50% {
-        box-shadow:
-          0 0 0 2.5px rgba(255,200,0,1),
-          0 0 35px rgba(255,150,0,.70),
-          0 0 80px rgba(255,80,0,.35);
-      }
-    }
-    @keyframes infernoExpandRing  { 0%{transform:scale(1);opacity:.85} 100%{transform:scale(2.6);opacity:0} }
-    @keyframes infernoExpandRing2 { 0%{transform:scale(1);opacity:.55} 100%{transform:scale(2.1);opacity:0} }
-    @keyframes infernoBtnPulse    { 0%,100%{transform:scale(1);}50%{transform:scale(1.025);} }
-    @keyframes infernoIconGlow {
-      0%,100%{ filter:drop-shadow(0 0 5px rgba(255,120,0,.80)) drop-shadow(0 0 12px rgba(255,68,0,.50)); }
-      50%    { filter:drop-shadow(0 0 12px rgba(255,200,0,1))  drop-shadow(0 0 25px rgba(255,100,0,.80)); }
-    }
-    @keyframes infernoTimerGlow {
-      0%,100%{ text-shadow:0 0 12px rgba(255,120,0,.60),0 0 30px rgba(255,68,0,.35); }
-      50%    { text-shadow:0 0 22px rgba(255,200,0,.90),0 0 55px rgba(255,100,0,.55); }
-    }
-    @keyframes infernoAtmFog {
-      0%,100%{ opacity:.70; transform:scaleX(1) translateY(0); }
-      50%    { opacity:.95; transform:scaleX(1.06) translateY(-3px); }
-    }
-    @keyframes infernoAtmFog2 {
-      0%,100%{ opacity:.50; transform:scaleX(1.04); }
-      50%    { opacity:.75; transform:scaleX(.96); }
-    }
-
-    /* ── Classes existantes (inchangées) ── */
     .inferno-card-glow {
       position: relative;
       border-radius: 16px;
@@ -894,7 +770,6 @@ const inferno: Theme = {
     }
   `,
 }
-
 
 // ─── 5. ARCTIC ───────────────────────────────────────────────────────────────
 const arctic: Theme = {
