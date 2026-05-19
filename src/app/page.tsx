@@ -483,6 +483,9 @@ export default function HomePage() {
   const { getActiveLogForEmployee } = useProjectStore()
   const { getGoal, setGoalTarget, updateProgress, updateStreak, addXP } = useGoalStore()
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
+  // ── Alertes RH — admin seulement ─────────────────────────────────────────
+  const { getActiveAlerts } = usePayrollRulesStore()
+  const { hrStatuses } = useHREngine()
 
   const isXP       = themeId === 'xp'
   const isDeco     = themeId === 'deco'
