@@ -18,6 +18,7 @@ import {
   DecoSeparator, DecoCorners, DecoTitle, DecoOrnament,
   DecoBackground, DecoDiamondRow, DecoFlower, DecoStarRow,
 } from '@/components/DecoElements'
+import { AmbientEmbers, InfernoPunchWrapper } from '@/components/ui/InfernoEffects'
 
 type Screen = 'select' | 'pin' | 'dashboard'
 
@@ -326,7 +327,8 @@ export default function HomePage() {
   const isDeco     = themeId === 'deco'
   const isQuantum  = themeId === 'quantum'
   const isAventure = themeId === 'aventure'
-  const cardClass  = isDeco ? 'deco-card-sweep' : isQuantum ? 'quantum-card-glow' : isAventure ? 'aventure-card-glow' : ''
+  const isInferno  = themeId === 'inferno'
+  const cardClass  = isDeco ? 'deco-card-sweep' : isQuantum ? 'quantum-card-glow' : isAventure ? 'aventure-card-glow' : isInferno ? 'inferno-card-glow' : ''
 
   const [screen, setScreen]               = useState<Screen>(() =>
     useEmployeeStore.getState().currentEmployeeId ? 'dashboard' : 'select'
@@ -601,7 +603,6 @@ export default function HomePage() {
               const topAlert   = empAlerts.find(a => a.severity === 'critical') || empAlerts[0]
 
               return (
-                // ✅ FIX : wrapper div pour grouper bouton + banner (JSX = 1 élément racine par map)
                 <div key={emp.id}>
                   <button
                     onClick={() => setPayslipEmployeeId(emp.id)}
@@ -623,7 +624,6 @@ export default function HomePage() {
                     <span style={{ fontSize: '16px', color: isXP ? '#a855f7' : 'var(--primary)', flexShrink: 0 }}>💵</span>
                   </button>
 
-                  {/* Banner alertes RH */}
                   {empAlerts.length > 0 && (
                     <div style={{ marginTop: '6px', padding: '8px 12px', borderRadius: '10px', background: hasCritical ? 'rgba(239,68,68,0.12)' : 'rgba(251,146,60,0.10)', border: `1px solid ${hasCritical ? 'rgba(239,68,68,0.4)' : 'rgba(251,146,60,0.3)'}`, display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '14px', flexShrink: 0 }}>{hasCritical ? '🚨' : '⚠️'}</span>
@@ -807,7 +807,18 @@ export default function HomePage() {
               </p>
             </div>
           )}
-          <PunchButton isRunning={isRunning} isOnBreak={isOnBreak} onPunch={isRunning ? handlePunchOut : handlePunchIn} elapsed={activeSession?.elapsed || 0} revenue={activeSession?.revenue || 0} disabled={!isRunning && !geofence.canPunchIn}/>
+          {/* ── INFERNO: embers ambiants + wrapper atmosphérique ── */}
+          <AmbientEmbers />
+          <InfernoPunchWrapper active={isRunning}>
+            <PunchButton
+              isRunning={isRunning}
+              isOnBreak={isOnBreak}
+              onPunch={isRunning ? handlePunchOut : handlePunchIn}
+              elapsed={activeSession?.elapsed || 0}
+              revenue={activeSession?.revenue || 0}
+              disabled={!isRunning && !geofence.canPunchIn}
+            />
+          </InfernoPunchWrapper>
           {!isRunning && <div style={{ padding: '4px 0' }}><DecoSeparator opacity={0.2}/><DecoStarRow count={5}/></div>}
           {isRunning && !isOnBreak && currentEmployeeId && (<div style={{ display: 'flex', justifyContent: 'center' }}><button onClick={() => startBreak(currentEmployeeId)} style={{ borderRadius: '999px', border: '2px solid var(--warning)', color: 'var(--warning)', background: 'transparent', padding: '12px 32px', fontSize: '13px', cursor: 'pointer', fontWeight: 800, letterSpacing: '2px' }}>{t('☕ PAUSE', '☕ BREAK')}</button></div>)}
           {isRunning && isOnBreak && currentEmployeeId && (<div style={{ display: 'flex', justifyContent: 'center' }}><button onClick={() => endBreak(currentEmployeeId)} style={{ borderRadius: '999px', border: '2px solid var(--success)', color: 'var(--success)', background: 'transparent', padding: '12px 32px', fontSize: '13px', cursor: 'pointer', fontWeight: 800, letterSpacing: '2px' }}>{t('▶ REPRENDRE', '▶ RESUME')}</button></div>)}
