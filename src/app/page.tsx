@@ -783,7 +783,31 @@ export default function HomePage() {
         </div>
       ) : (
         <>
-          <PunchButton isRunning={isRunning} isOnBreak={isOnBreak} onPunch={isRunning ? handlePunchOut : handlePunchIn} elapsed={activeSession?.elapsed || 0} revenue={activeSession?.revenue || 0}/>
+          {!isRunning && !geofence.canPunchIn && (
+            <div style={{ padding: '12px 16px', borderRadius: '14px', background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.35)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '20px', flexShrink: 0 }}>📍</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 800, margin: 0 }}>
+                  {geofence.distance !== null
+                    ? `${geofence.distance}m ${t('du chantier', 'from jobsite')} (max ${geofence.radius}m)`
+                    : t('Hors zone de chantier', 'Outside jobsite zone')}
+                </p>
+                <p style={{ color: '#6b7280', fontSize: '10px', margin: '2px 0 0' }}>
+                  {t('Rapprochez-vous pour pointer', 'Get closer to punch in')}
+                </p>
+              </div>
+              <button onClick={geofence.refresh} style={{ flexShrink: 0, padding: '6px 12px', borderRadius: '8px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>🔄</button>
+            </div>
+          )}
+          {!isRunning && geofence.isChecking && (
+            <div style={{ padding: '10px 16px', borderRadius: '14px', background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '16px' }}>📡</span>
+              <p style={{ color: '#a855f7', fontSize: '12px', fontWeight: 700, margin: 0 }}>
+                {t('Vérification de votre position...', 'Checking your position...')}
+              </p>
+            </div>
+          )}
+          <PunchButton isRunning={isRunning} isOnBreak={isOnBreak} onPunch={isRunning ? handlePunchOut : handlePunchIn} elapsed={activeSession?.elapsed || 0} revenue={activeSession?.revenue || 0} disabled={!isRunning && !geofence.canPunchIn}/>
           {!isRunning && <div style={{ padding: '4px 0' }}><DecoSeparator opacity={0.2}/><DecoStarRow count={5}/></div>}
           {isRunning && !isOnBreak && currentEmployeeId && (<div style={{ display: 'flex', justifyContent: 'center' }}><button onClick={() => startBreak(currentEmployeeId)} style={{ borderRadius: '999px', border: '2px solid var(--warning)', color: 'var(--warning)', background: 'transparent', padding: '12px 32px', fontSize: '13px', cursor: 'pointer', fontWeight: 800, letterSpacing: '2px' }}>{t('☕ PAUSE', '☕ BREAK')}</button></div>)}
           {isRunning && isOnBreak && currentEmployeeId && (<div style={{ display: 'flex', justifyContent: 'center' }}><button onClick={() => endBreak(currentEmployeeId)} style={{ borderRadius: '999px', border: '2px solid var(--success)', color: 'var(--success)', background: 'transparent', padding: '12px 32px', fontSize: '13px', cursor: 'pointer', fontWeight: 800, letterSpacing: '2px' }}>{t('▶ REPRENDRE', '▶ RESUME')}</button></div>)}
