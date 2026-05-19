@@ -54,6 +54,10 @@ export default function SettingsPage() {
   const TABS = lang === 'fr' ? TABS_FR : TABS_EN
   const [activeTab, setActiveTab] = useState(0)
 
+  // ── Géofencing UI state ───────────────────────────────────────────────────
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [geoErrorMsg, setGeoErrorMsg] = useState('')
+
   // ── Formulaire nouvel employé ─────────────────────────────────────────────
   const [newName, setNewName]                     = useState('')
   const [newPin, setNewPin]                       = useState('')
@@ -150,6 +154,58 @@ export default function SettingsPage() {
     addClient({ name: newClientName.trim(), phone: newClientPhone, email: newClientEmail, city: newClientCity, address: '', province: 'AB', postalCode: '', notes: '' })
     setNewClientName(''); setNewClientPhone(''); setNewClientEmail(''); setNewClientCity('')
   }
+
+  // ── Géofencing : utiliser ma position actuelle ────────────────────────────
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoStatus('error')
+      setGeoErrorMsg(t('GPS non supporté par ce navigateur.', 'GPS not supported by this browser.'))
+      return
+    }
+    setGeoStatus('loading')
+    setGeoErrorMsg('')
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude.toFixed(6)
+        const lng = pos.coords.longitude.toFixed(6)
+        setCompany({ jobsiteLatLng: `${lat},${lng}` })
+        setGeoStatus('success')
+        setTimeout(() => setGeoStatus('idle'), 3000)
+      },
+      (err) => {
+        setGeoStatus('error')
+        switch (err.code) {
+          case err.PERMISSION_DENIED:
+            setGeoErrorMsg(t('Permission GPS refusée. Activez la localisation dans les réglages du téléphone.', 'GPS permission denied. Enable location in phone settings.'))
+            break
+          case err.POSITION_UNAVAILABLE:
+            setGeoErrorMsg(t('Position GPS indisponible.', 'GPS position unavailable.'))
+            break
+          case err.TIMEOUT:
+            setGeoErrorMsg(t('Délai GPS dépassé. Réessayez.', 'GPS timeout. Try again.'))
+            break
+          default:
+            setGeoErrorMsg(t('Erreur GPS inconnue.', 'Unknown GPS error.'))
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    )
+  }
+
+  // ── Utilitaires coordonnées ───────────────────────────────────────────────
+  const parsedCoords = (() => {
+    if (!company.jobsiteLatLng) return null
+    const parts = company.jobsiteLatLng.split(',')
+    if (parts.length !== 2) return null
+    const lat = parseFloat(parts[0])
+    const lng = parseFloat(parts[1])
+    if (isNaN(lat) || isNaN(lng)) return null
+    return { lat, lng }
+  })()
+
+  const googleMapsUrl = parsedCoords
+    ? `https://maps.google.com/?q=${parsedCoords.lat},${parsedCoords.lng}`
+    : null
 
   const inputClass = `w-full rounded-xl px-4 py-3 text-sm font-medium outline-none border transition-all
     ${isDeco ? 'bg-[#1a1500]/80 border-[#D6B25E]/30 text-[#D6B25E] placeholder-[#D6B25E]/40 focus:border-[#D6B25E]'
@@ -415,7 +471,6 @@ export default function SettingsPage() {
                       </div>
                     )}
 
-                    {/* ── Date d'embauche RH ── */}
                     {subHeader(`🗓 ${t('Infos RH', 'HR Info')}`)}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="col-span-2">
@@ -891,25 +946,209 @@ export default function SettingsPage() {
 
         {/* ─── TAB 10 : AVANCÉ ─── */}
         {activeTab === 10 && (
-          <div className={`${cardStyle} space-y-4`}>
-            {isDeco && <DecoCorners />}
-            {sectionTitle(t('⚙️ Options avancées', '⚙️ Advanced Options'))}
-            <div className={`p-4 rounded-xl ${isDeco ? 'bg-[#D6B25E]/10 border border-[#D6B25E]/20' : 'bg-white/5 border border-white/10'}`}>
-              <div className={`font-semibold mb-1 ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>{t('🗑️ Vider le cache local', '🗑️ Clear Local Cache')}</div>
-              <div className="text-white/50 text-xs mb-3">{t('Efface toutes les données. Action irréversible.', 'Clears all data. Cannot be undone.')}</div>
-              <button onClick={() => { if (confirm(t('Certain?', 'Sure?'))) { localStorage.clear(); window.location.reload() } }}
-                className="w-full py-2 rounded-xl text-xs font-bold bg-red-500/20 text-red-400">
-                🗑️ {t('Vider le cache', 'Clear Cache')}
+          <div className="space-y-4">
+
+            {/* ══ GÉOFENCING ══ */}
+            <div className={cardStyle}>
+              {isDeco && <DecoCorners />}
+              {sectionTitle(t('📍 Géofencing Chantier', '📍 Jobsite Geofencing'))}
+
+              {/* Toggle activer/désactiver */}
+              <div className={`flex items-center justify-between p-4 rounded-xl mb-4 ${isDeco ? 'bg-[#D6B25E]/10 border border-[#D6B25E]/20' : 'bg-white/5 border border-white/10'}`}>
+                <div>
+                  <div className={`font-semibold text-sm ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>
+                    {t('Activer le géofencing', 'Enable Geofencing')}
+                  </div>
+                  <div className="text-white/40 text-xs mt-0.5">
+                    {t('Punch In seulement sur le chantier', 'Punch In only on jobsite')}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setCompany({ geofencingEnabled: !company.geofencingEnabled })}
+                  className={`relative w-14 h-7 rounded-full transition-all duration-300 flex-shrink-0 ${
+                    company.geofencingEnabled
+                      ? isDeco ? 'bg-[#D6B25E]' : isQuantum ? 'bg-violet-500' : 'bg-emerald-500'
+                      : 'bg-white/20'
+                  }`}
+                >
+                  <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all duration-300 ${company.geofencingEnabled ? 'left-8' : 'left-1'}`} />
+                </button>
+              </div>
+
+              {/* Statut actuel */}
+              {company.geofencingEnabled && (
+                <div className={`rounded-xl p-3 mb-4 flex items-center gap-2 ${
+                  company.jobsiteLatLng
+                    ? 'bg-emerald-500/10 border border-emerald-500/30'
+                    : 'bg-orange-500/10 border border-orange-500/30'
+                }`}>
+                  <span className="text-lg">{company.jobsiteLatLng ? '✅' : '⚠️'}</span>
+                  <p className={`text-xs font-semibold ${company.jobsiteLatLng ? 'text-emerald-400' : 'text-orange-400'}`}>
+                    {company.jobsiteLatLng
+                      ? t('Chantier configuré — Géofencing actif', 'Jobsite configured — Geofencing active')
+                      : t('Aucun chantier configuré — Entrez les coordonnées ci-dessous', 'No jobsite set — Enter coordinates below')}
+                  </p>
+                </div>
+              )}
+
+              {/* Rayon */}
+              <div className="mb-4">
+                <label className={labelClass}>
+                  🎯 {t('Rayon autorisé', 'Allowed Radius')} — {company.geofencingRadius}m
+                </label>
+                <input
+                  type="range"
+                  min="25"
+                  max="500"
+                  step="25"
+                  value={company.geofencingRadius}
+                  onChange={e => setCompany({ geofencingRadius: parseInt(e.target.value) })}
+                  className={`w-full mt-1 ${isDeco ? 'accent-[#D6B25E]' : isQuantum ? 'accent-violet-500' : 'accent-emerald-500'}`}
+                />
+                <div className="flex justify-between text-xs text-white/30 mt-1">
+                  <span>25m</span>
+                  <span className={`font-bold ${isDeco ? 'text-[#D6B25E]/60' : 'text-white/50'}`}>
+                    {company.geofencingRadius}m
+                  </span>
+                  <span>500m</span>
+                </div>
+                <p className={`text-xs mt-2 ${isDeco ? 'text-[#D6B25E]/40' : 'text-white/30'}`}>
+                  {t(
+                    company.geofencingRadius <= 50 ? '🎯 Très précis — idéal pour un seul chantier'
+                      : company.geofencingRadius <= 150 ? '✅ Recommandé — bon équilibre précision/tolérance'
+                      : '⚠️ Large — couvre une grande zone',
+                    company.geofencingRadius <= 50 ? '🎯 Very precise — ideal for a single jobsite'
+                      : company.geofencingRadius <= 150 ? '✅ Recommended — good balance precision/tolerance'
+                      : '⚠️ Wide — covers a large area'
+                  )}
+                </p>
+              </div>
+
+              {/* Coordonnées GPS */}
+              {subHeader(`🗺️ ${t('Coordonnées GPS du chantier', 'Jobsite GPS Coordinates')}`)}
+
+              {/* Option A — Ma position actuelle */}
+              <button
+                onClick={handleUseMyLocation}
+                disabled={geoStatus === 'loading'}
+                className={`w-full py-3 rounded-xl font-bold text-sm mb-3 flex items-center justify-center gap-2 transition-all ${
+                  geoStatus === 'loading'
+                    ? 'opacity-60 cursor-not-allowed bg-white/10 text-white/40'
+                    : geoStatus === 'success'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                    : isDeco ? 'bg-[#D6B25E]/20 text-[#D6B25E] border border-[#D6B25E]/30 active:scale-95'
+                    : isQuantum ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30 active:scale-95'
+                    : 'bg-white/10 text-white border border-white/20 active:scale-95'
+                }`}
+              >
+                {geoStatus === 'loading' && (
+                  <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                )}
+                {geoStatus === 'success' ? '✅' : '📍'}
+                {geoStatus === 'loading'
+                  ? t('Localisation en cours...', 'Getting location...')
+                  : geoStatus === 'success'
+                  ? t('Position sauvegardée!', 'Position saved!')
+                  : t('📍 Utiliser ma position actuelle', '📍 Use my current location')}
               </button>
+
+              {/* Message erreur GPS */}
+              {geoStatus === 'error' && (
+                <div className="mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <p className="text-red-400 text-xs font-semibold">🚫 {geoErrorMsg}</p>
+                </div>
+              )}
+
+              {/* Option C — Copier depuis Google Maps */}
+              <div className={`rounded-xl p-3 mb-3 ${isDeco ? 'bg-[#D6B25E]/5 border border-[#D6B25E]/15' : 'bg-white/5 border border-white/10'}`}>
+                <p className={`text-xs font-bold mb-1 ${isDeco ? 'text-[#D6B25E]/70' : 'text-white/50'}`}>
+                  🗺️ {t('Depuis Google Maps :', 'From Google Maps:')}
+                </p>
+                <p className={`text-xs ${isDeco ? 'text-[#D6B25E]/50' : 'text-white/30'}`}>
+                  {t(
+                    '1. Ouvre Google Maps  2. Appui long sur le chantier  3. Copie les chiffres qui apparaissent  4. Colle-les ici',
+                    '1. Open Google Maps  2. Long press on jobsite  3. Copy the numbers that appear  4. Paste them here'
+                  )}
+                </p>
+              </div>
+
+              {/* Champ coordonnées manuel */}
+              <div className="mb-2">
+                <label className={labelClass}>
+                  {t('Latitude, Longitude', 'Latitude, Longitude')}
+                </label>
+                <input
+                  className={inputClass}
+                  value={company.jobsiteLatLng}
+                  onChange={e => {
+                    setCompany({ jobsiteLatLng: e.target.value })
+                    setGeoStatus('idle')
+                  }}
+                  placeholder="51.044733, -114.071883"
+                  inputMode="decimal"
+                />
+              </div>
+
+              {/* Aperçu coordonnées parsées */}
+              {parsedCoords && (
+                <div className={`rounded-xl p-3 mt-2 ${isDeco ? 'bg-[#D6B25E]/10 border border-[#D6B25E]/20' : 'bg-white/5 border border-white/10'}`}>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <p className={`text-xs font-bold ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>
+                        📌 {t('Chantier enregistré', 'Jobsite saved')}
+                      </p>
+                      <p className={`text-xs mt-0.5 font-mono ${isDeco ? 'text-[#D6B25E]/60' : 'text-white/40'}`}>
+                        {parsedCoords.lat.toFixed(5)}, {parsedCoords.lng.toFixed(5)}
+                      </p>
+                    </div>
+                    {googleMapsUrl && (
+                      <a
+                        href={googleMapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          isDeco ? 'bg-[#D6B25E]/20 text-[#D6B25E]' : 'bg-white/10 text-white/60'
+                        }`}
+                      >
+                        🗺️ {t('Vérifier', 'Verify')}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Bouton effacer coordonnées */}
+              {company.jobsiteLatLng && (
+                <button
+                  onClick={() => { setCompany({ jobsiteLatLng: '' }); setGeoStatus('idle') }}
+                  className="w-full mt-3 py-2 rounded-xl text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20"
+                >
+                  🗑️ {t('Effacer les coordonnées', 'Clear coordinates')}
+                </button>
+              )}
             </div>
-            <div className={`p-4 rounded-xl ${isDeco ? 'bg-[#D6B25E]/10 border border-[#D6B25E]/20' : 'bg-white/5 border border-white/10'}`}>
-              <div className={`font-semibold mb-1 ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>📱 PWA</div>
-              <div className="text-white/50 text-xs">{t("Navigateur → Partager → Ajouter à l'écran d'accueil", 'Browser → Share → Add to Home Screen')}</div>
+
+            {/* ══ CACHE ══ */}
+            <div className={cardStyle}>
+              {isDeco && <DecoCorners />}
+              {sectionTitle(t('⚙️ Options avancées', '⚙️ Advanced Options'))}
+              <div className={`p-4 rounded-xl ${isDeco ? 'bg-[#D6B25E]/10 border border-[#D6B25E]/20' : 'bg-white/5 border border-white/10'}`}>
+                <div className={`font-semibold mb-1 ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>{t('🗑️ Vider le cache local', '🗑️ Clear Local Cache')}</div>
+                <div className="text-white/50 text-xs mb-3">{t('Efface toutes les données. Action irréversible.', 'Clears all data. Cannot be undone.')}</div>
+                <button onClick={() => { if (confirm(t('Certain?', 'Sure?'))) { localStorage.clear(); window.location.reload() } }}
+                  className="w-full py-2 rounded-xl text-xs font-bold bg-red-500/20 text-red-400">
+                  🗑️ {t('Vider le cache', 'Clear Cache')}
+                </button>
+              </div>
+              <div className={`p-4 rounded-xl mt-3 ${isDeco ? 'bg-[#D6B25E]/10 border border-[#D6B25E]/20' : 'bg-white/5 border border-white/10'}`}>
+                <div className={`font-semibold mb-1 ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>📱 PWA</div>
+                <div className="text-white/50 text-xs">{t("Navigateur → Partager → Ajouter à l'écran d'accueil", 'Browser → Share → Add to Home Screen')}</div>
+              </div>
+              <div className={`p-4 rounded-xl text-center mt-3 ${isDeco ? 'bg-[#D6B25E]/5 border border-[#D6B25E]/10' : 'bg-white/5 border border-white/10'}`}>
+                <div className="text-white/30 text-xs">Gestion Chantier Pro — Hailite Xteriors<br />v2.0 • Alberta GST 5% • Made with ❤️</div>
+              </div>
+              {isDeco && <DecoDiamondRow />}
             </div>
-            <div className={`p-4 rounded-xl text-center ${isDeco ? 'bg-[#D6B25E]/5 border border-[#D6B25E]/10' : 'bg-white/5 border border-white/10'}`}>
-              <div className="text-white/30 text-xs">Gestion Chantier Pro — Hailite Xteriors<br />v2.0 • Alberta GST 5% • Made with ❤️</div>
-            </div>
-            {isDeco && <DecoDiamondRow />}
           </div>
         )}
 
@@ -920,7 +1159,6 @@ export default function SettingsPage() {
               {isDeco && <DecoCorners />}
               {sectionTitle(`🚨 ${t('Alertes RH', 'HR Alerts')}`)}
 
-              {/* Stats globales */}
               <div className="grid grid-cols-3 gap-3 mb-4">
                 {[
                   { label: t('Salariés', 'Salaried'), value: summary.totalSalaried, color: isQuantum ? 'text-violet-400' : 'text-white' },
@@ -934,7 +1172,6 @@ export default function SettingsPage() {
                 ))}
               </div>
 
-              {/* Alertes actives */}
               {summary.activeAlerts === 0 ? (
                 <div className={`rounded-xl p-6 text-center ${isDeco ? 'bg-[#D6B25E]/5 border border-[#D6B25E]/10' : 'bg-white/5 border border-white/10'}`}>
                   <p className="text-3xl mb-2">✅</p>
@@ -1016,7 +1253,6 @@ export default function SettingsPage() {
               )}
             </div>
 
-            {/* Détail ancienneté par employé */}
             {hrStatuses.length > 0 && (
               <div className={cardStyle}>
                 {isDeco && <DecoCorners />}
@@ -1097,3 +1333,4 @@ export default function SettingsPage() {
     </div>
   )
 }
+
