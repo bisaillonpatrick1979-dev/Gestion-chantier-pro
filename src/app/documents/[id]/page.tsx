@@ -141,12 +141,17 @@ export default function DocumentDetailPage() {
 
   // Sync compagnie si nouveau doc
   useEffect(() => {
-    if (!existing) {
-      setCompName(company.name); setCompAddress(company.address)
-      setCompCity(company.city); setCompProvince(company.province)
-      setCompPostal(company.postalCode); setCompPhone(company.phone)
-      setCompEmail(company.email); setCompGST(company.gstNumber)
-      setCompWCB(company.wcbNumber); setCompBN((company as any).bnNumber ?? '')
+  setCompName(company.name)
+  setCompAddress(company.address)
+  setCompCity(company.city)
+  setCompProvince(company.province)
+  setCompPostal(company.postalCode)
+  setCompPhone(company.phone)
+  setCompEmail(company.email)
+  setCompGST(company.gstNumber)
+  setCompWCB(company.wcbNumber)
+  setCompBN((company as any).bnNumber ?? '')
+}, [company])
     }
   }, [company])
 
