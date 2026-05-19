@@ -6,7 +6,6 @@ import OnboardingGuard from '@/components/OnboardingGuard'
 import PWARegister from '@/components/PWARegister'
 import ThemeInjector from '@/components/ThemeInjector'
 import DevTools from '@/components/DevTools'
-import SyncManager from '@/components/SyncManager'
 
 export const metadata: Metadata = {
   title: 'Gestion Chantier Pro',
@@ -59,7 +58,6 @@ export default function RootLayout({
         </main>
         <BottomNav />
         <DevTools />
-        <SyncManager />
       </body>
     </html>
   )
