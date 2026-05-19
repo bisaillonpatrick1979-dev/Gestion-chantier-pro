@@ -11,7 +11,6 @@ import PunchInModal from '@/components/PunchInModal'
 import PunchButton from '@/components/PunchButton'
 import PunchOutConfirmModal from '@/components/PunchOutConfirmModal'
 import { useVoiceReminder } from '@/hooks/useVoiceReminder'
-import { useVoiceReminder } from '@/hooks/useVoiceReminder'
 import { useGeofencing } from '@/hooks/useGeofencing'
 import { useHREngine } from '@/hooks/useHREngine'
 import {
