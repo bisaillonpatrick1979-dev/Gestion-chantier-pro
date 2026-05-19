@@ -18,12 +18,12 @@ import {
 } from '@/components/DecoElements'
 
 const THEMES = [
-  { id: 'quantum',  label: '⚡ Quantum',  colors: 'from-violet-600 to-cyan-500' },
-  { id: 'xp',       label: '🟣 XP',       colors: 'from-purple-600 to-cyan-400' },
-  { id: 'aventure', label: '🌿 Aventure', colors: 'from-emerald-600 to-lime-400' },
-  { id: 'deco',     label: '✨ Deco',     colors: 'from-yellow-600 to-amber-400' },
-  { id: 'zen',      label: '🌸 Zen',      colors: 'from-pink-400 to-rose-300' },
-  { id: 'ludique',  label: '🎮 Ludique',  colors: 'from-orange-500 to-pink-500' },
+  { id: 'quantum', label: '⚡ Quantum', colors: 'from-blue-700 to-cyan-500' },
+  { id: 'xp',      label: '🎮 XP',      colors: 'from-purple-700 to-cyan-400' },
+  { id: 'deco',    label: '✨ Deco',    colors: 'from-yellow-700 to-amber-400' },
+  { id: 'inferno', label: '🔥 Inferno', colors: 'from-red-700 to-orange-500' },
+  { id: 'arctic',  label: '🧊 Arctic',  colors: 'from-cyan-600 to-blue-400' },
+  { id: 'carbon',  label: '🪙 Carbon',  colors: 'from-zinc-600 to-zinc-400' },
 ]
 
 const TABS_FR = ['🏢 Compagnie','👤 Employés','🎨 Thème','🌐 Langue','💳 Paiement','🔔 Rappels','📋 Conditions','👥 Clients','📦 Catalogue','📊 Comptab.','📍 Géofenc.','🚨 RH']
@@ -41,7 +41,10 @@ export default function SettingsPage() {
   const isXP       = themeId === 'xp'
   const isZen      = themeId === 'zen'
   const isLudique  = themeId === 'ludique'
-  const cardClass  = isDeco ? 'deco-card-sweep' : isQuantum ? 'quantum-card-glow' : isAventure ? 'aventure-card-glow' : ''
+  const isInferno  = themeId === 'inferno'
+  const isArctic   = themeId === 'arctic'
+  const isCarbon   = themeId === 'carbon'
+  const cardClass  = isDeco ? 'deco-card-sweep' : isQuantum ? 'quantum-card-glow' : isAventure ? 'aventure-card-glow' : isInferno ? 'inferno-card-glow' : isArctic ? 'arctic-card-glow' : isCarbon ? 'carbon-card-glow' : ''
 
   const { employees, addEmployee, updateEmployee, deleteEmployee } = useEmployeeStore()
   const { company, setCompany } = useCompanyStore()
