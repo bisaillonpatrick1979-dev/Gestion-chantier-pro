@@ -428,7 +428,7 @@ export default function HomePage() {
     return days
   }
 
-  const monthLabel = new Date(currentMonth + '-01').toLocaleDateString('fr-CA', { month: 'long', year: 'numeric' })
+  const monthLabel = new Date(currentMonth + '-01').toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { month: 'long', year: 'numeric' })
   const revenue          = activeSession?.revenue || 0
   const formattedRevenue = new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(revenue)
 
