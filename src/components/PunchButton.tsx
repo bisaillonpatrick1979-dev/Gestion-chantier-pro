@@ -1,7 +1,7 @@
 'use client'
 // src/components/PunchButton.tsx
 // Bouton Punch In/Out — design unique par thème
-// Art Déco Prestige : médaillon doré avec rayons animés + bordure wrapper pulsante
+// ✅ quantum · xp · deco · inferno · arctic · carbon · aventure · zen · ludique
 
 import { useThemeStore } from '@/store/useThemeStore'
 import { useLangStore } from '@/store/useLangStore'
@@ -66,6 +66,274 @@ const LeafSVG = ({ color = 'white', size = 44 }: { color?: string; size?: number
   </svg>
 )
 
+/* 🔥 INFERNO flame icon */
+const FlameSVG = ({ color = '#ff8800', size = 48 }: { color?: string; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <path d="M24 4 C24 4 14 14 14 24 C14 28 16 31 18 33 C18 33 17 28 20 26 C20 26 19 32 23 35 C23 35 21 30 24 28 C24 28 22 33 26 36 C26 36 30 33 30 28 C30 28 33 30 33 34 C35 31 36 28 36 24 C36 14 24 4 24 4Z"
+      fill={color} opacity="0.9" filter="url(#flameShadow)"/>
+    <path d="M24 12 C24 12 18 20 18 26 C18 30 21 33 24 34 C24 34 22 30 24 28 C24 28 25 31 26 33 C28 31 29 29 29 26 C29 22 24 12 24 12Z"
+      fill="#ffee00" opacity="0.85"/>
+    <ellipse cx="24" cy="30" rx="3" ry="4" fill="rgba(255,255,255,0.7)" opacity="0.6"/>
+    <defs>
+      <filter id="flameShadow"><feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+        <feOffset dx="0" dy="2" result="offset"/>
+        <feComposite in="SourceGraphic" in2="offset" operator="over"/></filter>
+    </defs>
+  </svg>
+)
+
+/* ❄️ ARCTIC snowflake icon */
+const SnowflakeSVG = ({ color = '#80eeff', size = 48 }: { color?: string; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    {[0, 60, 120].map(angle => (
+      <g key={angle} transform={`rotate(${angle} 24 24)`}>
+        <line x1="24" y1="6" x2="24" y2="42" stroke={color} strokeWidth="2.5" strokeLinecap="round"/>
+        <line x1="16" y1="12" x2="24" y2="18" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+        <line x1="32" y1="12" x2="24" y2="18" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+        <line x1="16" y1="36" x2="24" y2="30" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+        <line x1="32" y1="36" x2="24" y2="30" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+      </g>
+    ))}
+    <circle cx="24" cy="24" r="3.5" fill={color}/>
+    <circle cx="24" cy="24" r="1.5" fill="white"/>
+  </svg>
+)
+
+/* 🪙 CARBON hexagon icon */
+const HexSVG = ({ color = '#c0c0c0', size = 48 }: { color?: string; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <polygon points="24,6 38,14 38,30 24,38 10,30 10,14" stroke={color} strokeWidth="2" fill="none"/>
+    <polygon points="24,12 33,17 33,27 24,32 15,27 15,17" stroke={color} strokeWidth="1.5" fill={`${color}22`} opacity="0.7"/>
+    <circle cx="24" cy="24" r="4" fill={color} opacity="0.8"/>
+    <circle cx="24" cy="24" r="1.8" fill="white" opacity="0.9"/>
+    {/* metallic shine */}
+    <path d="M16 14 L20 18" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+)
+
+// ─── INFERNO: composants de flammes CSS ────────────────────────────────────
+
+const InfernoFlameDecor = ({ isRunning }: { isRunning: boolean }) => (
+  <>
+    {/* Atmospheric volcanic background */}
+    <div style={{
+      position: 'absolute', inset: 0,
+      background: 'radial-gradient(ellipse 100% 60% at 50% 100%, rgba(180,35,0,0.55) 0%, rgba(80,10,0,0.3) 50%, transparent 75%)',
+      pointerEvents: 'none',
+    }}/>
+    <div style={{
+      position: 'absolute', inset: 0,
+      background: 'radial-gradient(ellipse 70% 40% at 50% 100%, rgba(255,60,0,0.25) 0%, transparent 60%)',
+      filter: 'blur(20px)',
+      pointerEvents: 'none',
+      animation: 'infernoLavaRise 7s ease-in-out infinite',
+    }}/>
+
+    {/* Horizon lava glow line */}
+    <div style={{
+      position: 'absolute', bottom: '22%', left: '50%', transform: 'translateX(-50%)',
+      width: '65%', height: 2,
+      background: 'linear-gradient(90deg, transparent, rgba(255,80,0,0.3), rgba(255,150,0,0.55), rgba(255,80,0,0.3), transparent)',
+      filter: 'blur(2px)',
+      pointerEvents: 'none',
+    }}/>
+
+    {/* Volcanic mountain silhouette */}
+    <svg style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '25%', opacity: 0.08, pointerEvents: 'none' }}
+      viewBox="0 0 360 60" preserveAspectRatio="none">
+      <path d="M0,60 L0,40 L40,15 L80,35 L120,5 L160,28 L200,2 L240,25 L280,10 L320,30 L360,18 L360,60Z" fill="#ff2200"/>
+    </svg>
+
+    {/* Star particles */}
+    {[{x:'10%',y:'12%',s:2,d:0},{x:'85%',y:'10%',s:2.5,d:.3},{x:'92%',y:'50%',s:1.5,d:.7},
+      {x:'6%',y:'62%',s:1.5,d:.5},{x:'94%',y:'68%',s:1,d:1},{x:'44%',y:'6%',s:1,d:.6},
+      {x:'75%',y:'80%',s:1,d:.2}].map((s, i) => (
+      <div key={i} style={{
+        position: 'absolute', top: s.y, left: s.x,
+        width: s.s, height: s.s, borderRadius: '50%',
+        background: i % 2 === 0 ? '#ff8800' : '#ffcc00',
+        animation: `infernoFlicker ${2 + i * 0.3}s ease-in-out ${s.d}s infinite`,
+        pointerEvents: 'none', zIndex: 1,
+      }}/>
+    ))}
+
+    {/* Corner brackets */}
+    {[
+      { top: 9, left: 9,   borderTop: '2px solid #ff6600', borderLeft:   '2px solid #ff6600' },
+      { top: 9, right: 9,  borderTop: '2px solid #ff6600', borderRight:  '2px solid #ff6600' },
+      { bottom: 9, left: 9,  borderBottom: '2px solid #ff6600', borderLeft:  '2px solid #ff6600' },
+      { bottom: 9, right: 9, borderBottom: '2px solid #ff6600', borderRight: '2px solid #ff6600' },
+    ].map((s, i) => (
+      <div key={i} style={{ position: 'absolute', width: 20, height: 20, opacity: 0.65, zIndex: 3, pointerEvents: 'none', ...s }}/>
+    ))}
+
+    {/* ═══ REAL CSS FLAMES ═══ */}
+    {/* Positioned from bottom=0, rising up through the button area */}
+    <div style={{
+      position: 'absolute', bottom: 0, left: '50%',
+      transform: 'translateX(-50%)',
+      width: 260, height: 280,
+      pointerEvents: 'none', zIndex: 1,
+      opacity: isRunning ? 1 : 0.35,
+      transition: 'opacity 0.8s ease',
+    }}>
+      {/* Layer 5 — outermost dark halo */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: 240, height: 200,
+        background: 'radial-gradient(ellipse 55% 100% at 50% 100%, rgba(90,0,0,0.7) 0%, rgba(50,0,0,0.4) 48%, transparent 100%)',
+        borderRadius: '55% 55% 0 0', filter: 'blur(14px)',
+        animation: 'ifl5 2.2s ease-in-out infinite', transformOrigin: '50% 100%',
+      }}/>
+      {/* Layer 4 — dark red */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: 200, height: 185,
+        background: 'radial-gradient(ellipse 52% 100% at 50% 100%, #aa0000 0%, #660000 48%, transparent 100%)',
+        borderRadius: '52% 52% 0 0', filter: 'blur(9px)',
+        animation: 'ifl4 1.9s ease-in-out infinite', transformOrigin: '50% 100%', opacity: 0.82,
+      }}/>
+      {/* Layer 3 — orange-red */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: 160, height: 215,
+        background: 'radial-gradient(ellipse 50% 100% at 50% 100%, #ff3300 0%, #cc1100 50%, transparent 100%)',
+        borderRadius: '50% 50% 0 0', filter: 'blur(5px)',
+        animation: 'ifl3 1.55s ease-in-out infinite', transformOrigin: '50% 100%', opacity: 0.9,
+      }}/>
+      {/* Layer 2 — bright orange */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: 110, height: 240,
+        background: 'radial-gradient(ellipse 50% 100% at 50% 100%, #ff8800 0%, #ff3300 55%, transparent 100%)',
+        borderRadius: '50% 50% 0 0', filter: 'blur(3px)',
+        animation: 'ifl2 1.2s ease-in-out infinite', transformOrigin: '50% 100%', opacity: 0.92,
+      }}/>
+      {/* Layer 1 — yellow core */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: 70, height: 255,
+        background: 'radial-gradient(ellipse 50% 100% at 50% 100%, #ffee00 0%, #ffaa00 38%, #ff5500 72%, transparent 100%)',
+        borderRadius: '50% 50% 0 0', filter: 'blur(2px)',
+        animation: 'ifl1 0.95s ease-in-out infinite', transformOrigin: '50% 100%',
+      }}/>
+      {/* White hot tip */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: 28, height: 270,
+        background: 'radial-gradient(ellipse 50% 100% at 50% 100%, rgba(255,255,240,0.98) 0%, #ffee00 50%, transparent 100%)',
+        borderRadius: '50% 50% 0 0', filter: 'blur(1px)',
+        animation: 'ifl1 0.72s ease-in-out infinite', transformOrigin: '50% 100%',
+      }}/>
+
+      {/* Embers */}
+      {isRunning && [
+        { l: 'calc(50% - 42px)', bg: '#ffee00', s: 3.5, a: 'iEmber0', d: 0.9, delay: 0 },
+        { l: 'calc(50% + 28px)', bg: '#ff8800', s: 3,   a: 'iEmber1', d: 1.1, delay: .15 },
+        { l: 'calc(50% - 18px)', bg: '#ff4400', s: 4,   a: 'iEmber2', d: .85, delay: .3 },
+        { l: 'calc(50% + 48px)', bg: '#ffcc00', s: 2.5, a: 'iEmber3', d: 1.2, delay: .08 },
+        { l: 'calc(50% - 32px)', bg: '#ff6600', s: 3,   a: 'iEmber4', d: 1.0, delay: .45 },
+        { l: 'calc(50% + 12px)', bg: '#ffaa00', s: 2.5, a: 'iEmber5', d: .95, delay: .22 },
+        { l: 'calc(50% - 8px)',  bg: '#ff3300', s: 3,   a: 'iEmber6', d: 1.15,delay: .55 },
+        { l: 'calc(50% + 36px)', bg: '#ffee00', s: 2.5, a: 'iEmber7', d: .8,  delay: .38 },
+        { l: 'calc(50% - 55px)', bg: '#ff8800', s: 2.5, a: 'iEmber8', d: 1.05,delay: .6 },
+      ].map((e, i) => (
+        <div key={i} style={{
+          position: 'absolute', bottom: 8, left: e.l,
+          width: e.s, height: e.s, borderRadius: '50%',
+          background: e.bg,
+          animation: `${e.a} ${e.d}s ease-out ${e.delay}s infinite`,
+          filter: 'blur(0.4px)',
+          boxShadow: `0 0 4px ${e.bg}`,
+        }}/>
+      ))}
+    </div>
+  </>
+)
+
+// ─── ARCTIC: décors glassmorphism ──────────────────────────────────────────
+
+const ArcticDecor = ({ isRunning }: { isRunning: boolean }) => (
+  <>
+    {/* Aurora background */}
+    <div style={{
+      position: 'absolute', inset: 0,
+      background: 'radial-gradient(ellipse 100% 60% at 50% 0%, rgba(0,180,255,0.18) 0%, transparent 65%)',
+      pointerEvents: 'none',
+    }}/>
+    <div style={{
+      position: 'absolute', inset: 0,
+      background: 'radial-gradient(ellipse 80% 50% at 50% 100%, rgba(0,120,200,0.15) 0%, transparent 60%)',
+      pointerEvents: 'none',
+    }}/>
+
+    {/* Ice crystal particles */}
+    {[{x:'12%',y:'15%',s:1.5},{x:'88%',y:'12%',s:2},{x:'5%',y:'55%',s:1.2},
+      {x:'93%',y:'60%',s:1.5},{x:'45%',y:'8%',s:1},{x:'20%',y:'78%',s:1.2},{x:'80%',y:'75%',s:1}
+    ].map((p, i) => (
+      <div key={i} style={{
+        position: 'absolute', top: p.y, left: p.x,
+        width: p.s, height: p.s, borderRadius: '50%',
+        background: i % 2 === 0 ? '#80eeff' : '#fff',
+        animation: `arcticCrystal ${3 + i * 0.4}s ease-in-out ${i * 0.3}s infinite`,
+        pointerEvents: 'none', zIndex: 1, opacity: 0.6,
+      }}/>
+    ))}
+
+    {/* Frost ring around button area */}
+    <div style={{
+      position: 'absolute', top: '50%', left: '50%',
+      transform: 'translate(-50%, -50%) translateY(-12px)',
+      width: 220, height: 220, borderRadius: '50%',
+      border: '1px solid rgba(0,212,255,0.15)',
+      pointerEvents: 'none', zIndex: 1,
+      animation: 'arcticPulse 4s ease-in-out infinite',
+    }}/>
+    <div style={{
+      position: 'absolute', top: '50%', left: '50%',
+      transform: 'translate(-50%, -50%) translateY(-12px)',
+      width: 240, height: 240, borderRadius: '50%',
+      border: '1px dashed rgba(0,212,255,0.08)',
+      pointerEvents: 'none', zIndex: 1,
+      animation: 'rotateCW 25s linear infinite',
+    }}/>
+  </>
+)
+
+// ─── CARBON: décors métal chrome ──────────────────────────────────────────
+
+const CarbonDecor = () => (
+  <>
+    {/* Carbon fiber texture overlay */}
+    <div style={{
+      position: 'absolute', inset: 0,
+      backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.012) 3px, rgba(255,255,255,0.012) 6px)',
+      pointerEvents: 'none', borderRadius: 20,
+    }}/>
+    {/* Subtle chrome reflection top */}
+    <div style={{
+      position: 'absolute', top: 0, left: '15%', right: '15%', height: 1,
+      background: 'linear-gradient(90deg, transparent, rgba(200,200,200,0.4), rgba(255,255,255,0.7), rgba(200,200,200,0.4), transparent)',
+      pointerEvents: 'none',
+    }}/>
+    {/* Chrome orbs subtle */}
+    <div style={{
+      position: 'absolute', top: '20%', right: '8%',
+      width: 40, height: 40, borderRadius: '50%',
+      background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.08), transparent 65%)',
+      border: '1px solid rgba(180,180,180,0.1)',
+      pointerEvents: 'none',
+    }}/>
+    <div style={{
+      position: 'absolute', bottom: '25%', left: '8%',
+      width: 28, height: 28, borderRadius: '50%',
+      background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.06), transparent 65%)',
+      border: '1px solid rgba(180,180,180,0.08)',
+      pointerEvents: 'none',
+    }}/>
+  </>
+)
+
 // ─── Config par thème ────────────────────────────────────────────────────────
 
 function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
@@ -87,6 +355,7 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
     paddingTop?: number
   }> = {
 
+    // ── QUANTUM ──────────────────────────────────────────────────────────────
     quantum: {
       wrapperClass: '',
       wrapperStyle: {
@@ -94,10 +363,8 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
         border: '1px solid rgba(60,130,255,0.28)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        borderRadius: 24,
-        padding: '32px 16px',
-        position: 'relative',
-        overflow: 'hidden',
+        borderRadius: 24, padding: '32px 16px',
+        position: 'relative', overflow: 'hidden',
       },
       buttonClass: '',
       buttonStyle: {
@@ -125,6 +392,7 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
       textColor: 'white',
     },
 
+    // ── XP ───────────────────────────────────────────────────────────────────
     xp: {
       wrapperClass: '',
       wrapperStyle: {
@@ -169,11 +437,10 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
       textColor: 'white',
     },
 
+    // ── DECO ─────────────────────────────────────────────────────────────────
     deco: {
       wrapperClass: 'deco-punch-wrapper',
-      wrapperStyle: {
-        margin: '0 0 8px',
-      },
+      wrapperStyle: { margin: '0 0 8px' },
       buttonClass: isRunning ? 'deco-punch-btn-out' : 'deco-punch-btn',
       buttonStyle: {
         width: 188, height: 188, borderRadius: '50%',
@@ -185,34 +452,10 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
         <>
           <div className="deco-rays-outer" />
           <div className="deco-rays-inner" />
-          <div style={{
-            position: 'absolute', top: '50%', left: '50%',
-            width: 218, height: 218, borderRadius: '50%',
-            border: '1px solid rgba(214,178,94,0.25)',
-            transform: 'translate(-50%,-50%)',
-            pointerEvents: 'none',
-          }} />
-          <div style={{
-            position: 'absolute', top: '50%', left: '50%',
-            width: 236, height: 236, borderRadius: '50%',
-            border: '1px solid rgba(214,178,94,0.12)',
-            transform: 'translate(-50%,-50%)',
-            pointerEvents: 'none',
-          }} />
-          <div style={{
-            position: 'absolute', top: 8, right: 8,
-            width: 28, height: 28,
-            borderTop: '2px solid rgba(214,178,94,0.75)',
-            borderRight: '2px solid rgba(214,178,94,0.75)',
-            pointerEvents: 'none', zIndex: 10,
-          }} />
-          <div style={{
-            position: 'absolute', bottom: 8, left: 8,
-            width: 28, height: 28,
-            borderBottom: '2px solid rgba(214,178,94,0.75)',
-            borderLeft: '2px solid rgba(214,178,94,0.75)',
-            pointerEvents: 'none', zIndex: 10,
-          }} />
+          <div style={{ position: 'absolute', top: '50%', left: '50%', width: 218, height: 218, borderRadius: '50%', border: '1px solid rgba(214,178,94,0.25)', transform: 'translate(-50%,-50%)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', top: '50%', left: '50%', width: 236, height: 236, borderRadius: '50%', border: '1px solid rgba(214,178,94,0.12)', transform: 'translate(-50%,-50%)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderTop: '2px solid rgba(214,178,94,0.75)', borderRight: '2px solid rgba(214,178,94,0.75)', pointerEvents: 'none', zIndex: 10 }} />
+          <div style={{ position: 'absolute', bottom: 8, left: 8, width: 28, height: 28, borderBottom: '2px solid rgba(214,178,94,0.75)', borderLeft: '2px solid rgba(214,178,94,0.75)', pointerEvents: 'none', zIndex: 10 }} />
         </>
       ),
       icon: <DecoDiamondSVG size={34} />,
@@ -224,6 +467,139 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
       textColor: '#0A0A06',
     },
 
+    // ══════════════════════════════════════════════════════════════════════════
+    // 🔥 INFERNO — Bouton lava avec vraies flammes CSS
+    // ══════════════════════════════════════════════════════════════════════════
+    inferno: {
+      wrapperClass: 'inferno-card-glow',
+      wrapperStyle: {
+        background: 'linear-gradient(180deg, rgba(10,2,0,0.98) 0%, rgba(16,4,0,0.99) 100%)',
+        borderRadius: 20,
+        padding: '28px 16px',
+        position: 'relative',
+        overflow: 'hidden',
+        minHeight: 340,
+      },
+      buttonClass: '',
+      buttonStyle: {
+        width: 192, height: 192, borderRadius: '50%',
+        background: isRunning
+          ? 'linear-gradient(160deg, #000000 0%, #2a0000 15%, #6a0000 32%, #bb2200 52%, #ee5500 70%, #ff9900 88%, #ffcc00 100%)'
+          : 'radial-gradient(circle at 38% 30%, rgba(100,15,0,0.25) 0%, rgba(50,5,0,0.45) 45%, rgba(6,0,0,0.98) 80%)',
+        backgroundSize: '300% 300%',
+        animation: isRunning
+          ? 'infernoLavaFlow 3s ease infinite, infernoBtnGlow 2.2s ease-in-out infinite'
+          : 'infernoGlow 4s ease-in-out infinite',
+        border: 'none', cursor: 'pointer',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 6, transition: 'background 0.6s ease',
+        position: 'relative', zIndex: 5,
+        // Glass sheen via box shadow
+        boxShadow: isRunning
+          ? '0 0 35px rgba(255,68,0,0.7), 0 0 80px rgba(255,68,0,0.35), inset 0 2px 0 rgba(255,200,80,0.18), inset 0 0 40px rgba(180,30,0,0.25)'
+          : '0 0 12px rgba(200,40,0,0.3), inset 0 1px 0 rgba(255,80,0,0.08)',
+      },
+      decorLayers: <InfernoFlameDecor isRunning={isRunning} />,
+      icon: <FlameSVG
+        color={isRunning ? '#ffcc00' : 'rgba(255,100,20,0.55)'}
+        size={50}
+      />,
+      labelLine1: t('POINÇONNER', 'PUNCH'),
+      labelLine2: isRunning ? t('LA SORTIE 🔴', 'OUT 🔴') : t("L'ENTRÉE 🔥", 'IN 🔥'),
+      statusText: isRunning ? t('🔥 CHRONO ACTIF', '🔥 ACTIVE') : t('● PRÊT À ALLUMER', '● READY TO IGNITE'),
+      statusColor: isRunning ? '#ff9900' : 'rgba(200,80,20,0.7)',
+      statusDotColor: isRunning ? '#ff6600' : 'rgba(180,50,10,0.6)',
+      textColor: isRunning ? '#ffe8c0' : 'rgba(255,140,60,0.6)',
+    },
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ❄️ ARCTIC — Glassmorphism cristal de glace
+    // ══════════════════════════════════════════════════════════════════════════
+    arctic: {
+      wrapperClass: 'arctic-card-glow',
+      wrapperStyle: {
+        background: 'rgba(3,14,30,0.75)',
+        borderRadius: 20,
+        padding: '32px 16px',
+        position: 'relative',
+        overflow: 'hidden',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(0,212,255,0.22)',
+      },
+      buttonClass: '',
+      buttonStyle: {
+        width: 188, height: 188, borderRadius: '50%',
+        background: isRunning
+          ? 'radial-gradient(circle at 38% 28%, rgba(80,200,255,0.35) 0%, rgba(0,120,200,0.55) 40%, rgba(0,30,80,0.95) 80%)'
+          : 'radial-gradient(circle at 38% 28%, rgba(0,180,255,0.12) 0%, rgba(0,80,160,0.25) 45%, rgba(0,15,45,0.97) 80%)',
+        boxShadow: isRunning
+          ? '0 0 0 2.5px rgba(80,200,255,0.85), 0 0 35px rgba(0,200,255,0.55), 0 0 80px rgba(0,180,240,0.28), inset 0 2px 0 rgba(150,240,255,0.25), inset 0 0 35px rgba(0,150,220,0.15)'
+          : '0 0 0 1.5px rgba(0,180,255,0.35), 0 0 20px rgba(0,180,255,0.15), inset 0 1px 0 rgba(100,220,255,0.12)',
+        animation: isRunning ? 'arcticPulse 2.5s ease-in-out infinite' : 'arcticPulse 4s ease-in-out infinite',
+        border: 'none', cursor: 'pointer',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 6, transition: 'all 0.4s',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        position: 'relative', zIndex: 5,
+      },
+      decorLayers: <ArcticDecor isRunning={isRunning} />,
+      icon: <SnowflakeSVG
+        color={isRunning ? '#80eeff' : 'rgba(0,180,255,0.5)'}
+        size={46}
+      />,
+      labelLine1: t('POINÇONNER', 'PUNCH'),
+      labelLine2: isRunning ? t('LA SORTIE ❄️', 'OUT ❄️') : t("L'ENTRÉE ❄️", 'IN ❄️'),
+      statusText: isRunning ? t('❄️ CHRONO ACTIF', '❄️ ACTIVE') : t('● PRÊT À POINTER', '● READY'),
+      statusColor: isRunning ? '#00d4ff' : 'rgba(0,150,200,0.7)',
+      statusDotColor: isRunning ? '#00d4ff' : 'rgba(0,130,180,0.5)',
+      textColor: isRunning ? '#c0f0ff' : 'rgba(80,170,210,0.6)',
+    },
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 🪙 CARBON — Chrome & acier brossé
+    // ══════════════════════════════════════════════════════════════════════════
+    carbon: {
+      wrapperClass: 'carbon-card-glow',
+      wrapperStyle: {
+        background: 'rgba(14,14,14,0.97)',
+        borderRadius: 20,
+        padding: '32px 16px',
+        position: 'relative',
+        overflow: 'hidden',
+        border: '1px solid rgba(160,160,160,0.18)',
+      },
+      buttonClass: '',
+      buttonStyle: {
+        width: 188, height: 188, borderRadius: '50%',
+        background: isRunning
+          ? 'radial-gradient(circle at 38% 28%, #E0E0E0 0%, #888 35%, #444 65%, #111 100%)'
+          : 'radial-gradient(circle at 38% 28%, rgba(140,140,140,0.18) 0%, rgba(80,80,80,0.3) 45%, rgba(10,10,10,0.97) 80%)',
+        backgroundSize: '200% 200%',
+        animation: isRunning ? 'carbonChrome 4s ease infinite, carbonPulse 2.5s ease-in-out infinite' : 'carbonPulse 4s ease-in-out infinite',
+        boxShadow: isRunning
+          ? '0 0 0 2px rgba(200,200,200,0.7), 0 0 30px rgba(180,180,180,0.35), 0 0 70px rgba(140,140,140,0.18), inset 0 2px 0 rgba(255,255,255,0.2), inset 0 0 40px rgba(100,100,100,0.12)'
+          : '0 0 0 1px rgba(140,140,140,0.25), 0 0 15px rgba(120,120,120,0.1), inset 0 1px 0 rgba(200,200,200,0.08)',
+        border: 'none', cursor: 'pointer',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 6, transition: 'all 0.4s',
+        position: 'relative', zIndex: 5,
+      },
+      decorLayers: <CarbonDecor />,
+      icon: <HexSVG
+        color={isRunning ? '#e8e8e8' : 'rgba(140,140,140,0.5)'}
+        size={46}
+      />,
+      labelLine1: t('POINÇONNER', 'PUNCH'),
+      labelLine2: isRunning ? t('LA SORTIE', 'OUT') : t("L'ENTRÉE", 'IN'),
+      statusText: isRunning ? t('⚙ CHRONO ACTIF', '⚙ ACTIVE') : t('● PRÊT À POINTER', '● READY'),
+      statusColor: isRunning ? '#c8c8c8' : 'rgba(120,120,120,0.6)',
+      statusDotColor: isRunning ? '#c0c0c0' : 'rgba(100,100,100,0.5)',
+      textColor: isRunning ? '#f0f0f0' : 'rgba(120,120,120,0.55)',
+    },
+
+    // ── AVENTURE ─────────────────────────────────────────────────────────────
     aventure: {
       wrapperClass: '',
       wrapperStyle: {
@@ -259,6 +635,7 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
       textColor: 'white',
     },
 
+    // ── ZEN ───────────────────────────────────────────────────────────────────
     zen: {
       wrapperClass: '',
       wrapperStyle: {
@@ -290,6 +667,7 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
       textColor: 'white',
     },
 
+    // ── LUDIQUE ───────────────────────────────────────────────────────────────
     ludique: {
       wrapperClass: '',
       wrapperStyle: {
@@ -357,7 +735,7 @@ export default function PunchButton({ isRunning, isOnBreak, onPunch, disabled }:
       {cfg.decorLayers}
 
       <div style={{
-        position: 'relative', zIndex: 2,
+        position: 'relative', zIndex: 6,
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', gap: 16,
       }}>
@@ -373,6 +751,13 @@ export default function PunchButton({ isRunning, isOnBreak, onPunch, disabled }:
             cursor: isDisabled ? 'not-allowed' : 'pointer',
           }}
         >
+          {/* Glass sheen interne */}
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: '50%',
+            background: 'radial-gradient(circle at 30% 22%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 35%, transparent 60%)',
+            pointerEvents: 'none',
+          }}/>
+
           {cfg.icon}
 
           <span style={{
@@ -384,6 +769,7 @@ export default function PunchButton({ isRunning, isOnBreak, onPunch, disabled }:
             color: cfg.textColor,
             textTransform: 'uppercase',
             maxWidth: 140,
+            position: 'relative', zIndex: 1,
           }}>
             {cfg.labelLine1}
           </span>
@@ -395,6 +781,7 @@ export default function PunchButton({ isRunning, isOnBreak, onPunch, disabled }:
               color: isDeco ? 'rgba(10,10,6,0.65)' : `${cfg.textColor}BB`,
               letterSpacing: isDeco ? '0.18em' : '0.04em',
               textTransform: 'uppercase',
+              position: 'relative', zIndex: 1,
             }}>
               {cfg.labelLine2}
             </span>
@@ -433,10 +820,7 @@ export default function PunchButton({ isRunning, isOnBreak, onPunch, disabled }:
             border: '1px solid rgba(249,115,22,0.35)',
             borderRadius: 12, padding: '8px 18px',
           }}>
-            <p style={{
-              color: '#F97316', fontSize: 13, fontWeight: 700,
-              margin: 0, textAlign: 'center',
-            }}>
+            <p style={{ color: '#F97316', fontSize: 13, fontWeight: 700, margin: 0, textAlign: 'center' }}>
               ☕ {isFr ? "En pause — reprenez d'abord" : 'On break — resume first'}
             </p>
           </div>
@@ -449,10 +833,7 @@ export default function PunchButton({ isRunning, isOnBreak, onPunch, disabled }:
             border: '1px solid rgba(239,68,68,0.35)',
             borderRadius: 12, padding: '8px 18px',
           }}>
-            <p style={{
-              color: '#ef4444', fontSize: 12, fontWeight: 700,
-              margin: 0, textAlign: 'center',
-            }}>
+            <p style={{ color: '#ef4444', fontSize: 12, fontWeight: 700, margin: 0, textAlign: 'center' }}>
               📍 {isFr ? 'Hors zone — rapprochez-vous du chantier' : 'Out of range — get closer to jobsite'}
             </p>
           </div>
@@ -460,4 +841,4 @@ export default function PunchButton({ isRunning, isOnBreak, onPunch, disabled }:
       </div>
     </div>
   )
-      }
+}
