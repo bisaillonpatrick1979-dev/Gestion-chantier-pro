@@ -28,17 +28,21 @@ export interface CompanyInfo {
   defaultPaymentTerms: string
   defaultDuedays: number
   // ── Paramètres paie salariés ─────────────────────────────────────────────
-  payrollVacationRate: number       // % vacances (6 = min construction AB)
-  payrollHealthInsurance: number    // Assurance santé $/période
-  payrollDentalInsurance: number    // Assurance dentaire $/période
-  payrollLifeInsurance: number      // Assurance vie $/période
-  payrollLTD: number                // Invalidité longue durée $/période
-  payrollRRSP: number               // REER collectif % du brut
-  payrollEAP: number                // PAE $/période
-  payrollCustom1Name: string        // Déduction personnalisée 1 — nom
-  payrollCustom1Amount: number      // Déduction personnalisée 1 — montant
-  payrollCustom2Name: string        // Déduction personnalisée 2 — nom
-  payrollCustom2Amount: number      // Déduction personnalisée 2 — montant
+  payrollVacationRate: number
+  payrollHealthInsurance: number
+  payrollDentalInsurance: number
+  payrollLifeInsurance: number
+  payrollLTD: number
+  payrollRRSP: number
+  payrollEAP: number
+  payrollCustom1Name: string
+  payrollCustom1Amount: number
+  payrollCustom2Name: string
+  payrollCustom2Amount: number
+  // ── Géofencing ────────────────────────────────────────────────────────────
+  geofencingEnabled: boolean        // Activer/désactiver le géofencing
+  geofencingRadius: number          // Distance max en mètres (défaut 50)
+  jobsiteLatLng: string             // "lat,lng" du chantier actif — ex: "51.0447,-114.0719"
 }
 
 interface CompanyStore {
@@ -82,6 +86,10 @@ const defaultCompany: CompanyInfo = {
   payrollCustom1Amount: 0,
   payrollCustom2Name: '',
   payrollCustom2Amount: 0,
+  // Géofencing defaults
+  geofencingEnabled: false,
+  geofencingRadius: 50,
+  jobsiteLatLng: '',
 }
 
 export const useCompanyStore = create<CompanyStore>()(
