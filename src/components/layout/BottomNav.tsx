@@ -75,29 +75,18 @@ function IcoXP({ active }: { active: boolean }) {
   </svg>
 }
 
-// ── Badge alerte RH ────────────────────────────────────────────────────────
 function HRAlertBadge({ count }: { count: number }) {
   if (count === 0) return null
   return (
     <div style={{
-      position: 'absolute',
-      top: '-2px',
-      right: '-2px',
-      minWidth: '16px',
-      height: '16px',
-      borderRadius: '8px',
+      position: 'absolute', top: '-2px', right: '-2px',
+      minWidth: '16px', height: '16px', borderRadius: '8px',
       background: 'linear-gradient(135deg, #ef4444, #dc2626)',
       border: '2px solid #0a0a0a',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '9px',
-      fontWeight: 900,
-      color: 'white',
-      padding: '0 3px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: '9px', fontWeight: 900, color: 'white', padding: '0 3px',
       boxShadow: '0 0 8px rgba(239,68,68,0.8), 0 0 16px rgba(239,68,68,0.4)',
-      zIndex: 10,
-      animation: 'hrBadgePulse 2s ease-in-out infinite',
+      zIndex: 10, animation: 'hrBadgePulse 2s ease-in-out infinite',
     }}>
       {count > 9 ? '9+' : count}
     </div>
@@ -115,28 +104,27 @@ export default function BottomNav() {
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
   const currentEmployee = employees.find(e => e.id === currentEmployeeId) ?? null
-  const isAdmin    = currentEmployee?.role === 'admin'
-  const isXP       = themeId === 'xp'
-  const isDeco     = themeId === 'deco'
-  const isQuantum  = themeId === 'quantum'
-  const goal       = currentEmployeeId ? getGoal(currentEmployeeId) : null
+  const isAdmin   = currentEmployee?.role === 'admin'
+  const isXP      = themeId === 'xp'
+  const isDeco    = themeId === 'deco'
+  const isQuantum = themeId === 'quantum'
+  const isInferno = themeId === 'inferno'
+  const isArctic  = themeId === 'arctic'
+  const isCarbon  = themeId === 'carbon'
+  const goal      = currentEmployeeId ? getGoal(currentEmployeeId) : null
 
-  // ── Alertes RH — admin seulement ──────────────────────────────────────────
   const criticalAlertCount = isAdmin ? getCriticalAlerts().length : 0
   const activeAlertCount   = isAdmin ? getActiveAlerts().length   : 0
-  // Badge = critiques en priorité, sinon toutes les actives
   const badgeCount = criticalAlertCount > 0 ? criticalAlertCount : activeAlertCount
 
-  const t2 = (fr: string, en: string) => lang === 'fr' ? fr : en
-
   const adminItems = [
-    { href: '/',          label: isXP ? 'Base'                       : t('Accueil',   'Home'),     Icon: IcoAccueil   },
-    { href: '/invoice',   label:                                        t('Factures',  'Invoices'), Icon: IcoFacture   },
-    { href: '/projects',  label: isXP ? t('Quêtes', 'Quests')        : t('Projets',  'Projects'), Icon: IcoProjet    },
-    { href: '/documents', label:                                        t('Docs',      'Docs'),     Icon: IcoDocument  },
-    { href: '/commandes', label: isXP ? 'PO'                          : t('Commandes','Orders'),   Icon: IcoCommandes },
-    { href: '/stats',     label: isXP ? t('Stats XP', 'XP Stats')    : 'Stats',                   Icon: IcoStats     },
-    { href: '/settings',  label: isXP ? t('Config',   'Config')      : t('Réglages', 'Settings'), Icon: IcoReglages, hasBadge: true },
+    { href: '/',          label: isXP ? 'Base'                    : t('Accueil',    'Home'),     Icon: IcoAccueil   },
+    { href: '/invoice',   label:                                    t('Factures',   'Invoices'), Icon: IcoFacture   },
+    { href: '/projects',  label: isXP ? t('Quêtes', 'Quests')     : t('Projets',   'Projects'), Icon: IcoProjet    },
+    { href: '/documents', label:                                    t('Docs',       'Docs'),     Icon: IcoDocument  },
+    { href: '/commandes', label: isXP ? 'PO'                       : t('Commandes', 'Orders'),  Icon: IcoCommandes },
+    { href: '/stats',     label: isXP ? t('Stats XP', 'XP Stats') : 'Stats',                   Icon: IcoStats     },
+    { href: '/settings',  label: isXP ? t('Config', 'Config')     : t('Réglages',  'Settings'), Icon: IcoReglages, hasBadge: true },
   ]
 
   const employeeItems = [
@@ -156,16 +144,62 @@ export default function BottomNav() {
   ]
   const displayItems = isXP && isAdmin ? xpAdminItems : items
 
-  const activeColor       = isXP ? '#a855f7' : isDeco ? '#D6B25E' : isQuantum ? '#2F80FF' : theme.colors.navActive
-  const inactiveColor     = isXP ? '#7c3aed' : isDeco ? '#A67C2D' : isQuantum ? '#4A6FA5' : theme.colors.navInactive
-  const inactiveGlowColor = isXP ? 'rgba(168,85,247,0.40)' : isDeco ? 'rgba(214,178,94,0.35)' : isQuantum ? 'rgba(47,128,255,0.35)' : theme.colors.glow1
-  const decoLineColor     = isXP
-    ? 'linear-gradient(90deg,transparent,#a855f7,#22d3ee,#a855f7,transparent)'
-    : isDeco
-    ? 'linear-gradient(90deg,transparent,#7A5A1A,#D6B25E,#FFE9A0,#D6B25E,#7A5A1A,transparent)'
-    : isQuantum
-    ? 'linear-gradient(90deg,transparent,#2F80FF,#38D9FF,#2F80FF,transparent)'
+  // ── Couleurs nav par thème ────────────────────────────────────────────────
+  const activeColor = isXP      ? '#a855f7'
+    : isDeco    ? '#D6B25E'
+    : isQuantum ? '#2B7FFF'
+    : isInferno ? '#FF6014'
+    : isArctic  ? '#00D4FF'
+    : isCarbon  ? '#C0C0C0'
+    : theme.colors.navActive
+
+  const inactiveColor = isXP      ? '#7c3aed'
+    : isDeco    ? '#A67C2D'
+    : isQuantum ? '#4A6080'
+    : isInferno ? '#7A4A2A'
+    : isArctic  ? '#3A6070'
+    : isCarbon  ? '#505050'
+    : theme.colors.navInactive
+
+  const inactiveGlowColor = isXP      ? 'rgba(168,85,247,0.40)'
+    : isDeco    ? 'rgba(214,178,94,0.35)'
+    : isQuantum ? 'rgba(43,127,255,0.35)'
+    : isInferno ? 'rgba(255,96,20,0.40)'
+    : isArctic  ? 'rgba(0,212,255,0.35)'
+    : isCarbon  ? 'rgba(192,192,192,0.30)'
+    : theme.colors.glow1
+
+  const navBg = isXP      ? 'rgba(6,3,24,0.98)'
+    : isDeco    ? '#050505'
+    : isQuantum ? 'rgba(2,8,24,0.98)'
+    : isInferno ? 'rgba(10,5,0,0.98)'
+    : isArctic  ? 'rgba(1,8,16,0.98)'
+    : isCarbon  ? 'rgba(8,8,8,0.98)'
+    : 'var(--nav-bg,#0a0a0a)'
+
+  const navBorderColor = isXP      ? 'rgba(168,85,247,0.25)'
+    : isDeco    ? 'rgba(214,178,94,0.20)'
+    : isQuantum ? 'rgba(43,127,255,0.18)'
+    : isInferno ? 'rgba(255,96,20,0.25)'
+    : isArctic  ? 'rgba(0,212,255,0.18)'
+    : isCarbon  ? 'rgba(180,180,180,0.12)'
+    : 'var(--nav-border,#222)'
+
+  const topLineGradient = isXP      ? 'linear-gradient(90deg,transparent,#a855f7,#22d3ee,#a855f7,transparent)'
+    : isDeco    ? 'linear-gradient(90deg,transparent,#7A5A1A,#D6B25E,#FFE9A0,#D6B25E,#7A5A1A,transparent)'
+    : isQuantum ? 'linear-gradient(90deg,transparent,#2B7FFF,#38D9FF,#2B7FFF,transparent)'
+    : isInferno ? 'linear-gradient(90deg,transparent,#FF3000,#FF9040,#FFD060,#FF9040,#FF3000,transparent)'
+    : isArctic  ? 'linear-gradient(90deg,transparent,#0088CC,#00D4FF,#80EEFF,#00D4FF,#0088CC,transparent)'
+    : isCarbon  ? 'linear-gradient(90deg,transparent,#606060,#C0C0C0,#F0F0F0,#C0C0C0,#606060,transparent)'
     : `linear-gradient(90deg,transparent,${theme.colors.primary},transparent)`
+
+  const indicatorGradient = isXP      ? 'linear-gradient(90deg,#a855f7,#22d3ee)'
+    : isDeco    ? 'linear-gradient(90deg,#A67C2D,#FFE9A0,#A67C2D)'
+    : isQuantum ? 'linear-gradient(90deg,#2B7FFF,#38D9FF,#2B7FFF)'
+    : isInferno ? 'linear-gradient(90deg,#FF3000,#FF9040,#FFD060,#FF9040,#FF3000)'
+    : isArctic  ? 'linear-gradient(90deg,#0088CC,#00D4FF,#80EEFF,#00D4FF,#0088CC)'
+    : isCarbon  ? 'linear-gradient(90deg,#404040,#C0C0C0,#F0F0F0,#C0C0C0,#404040)'
+    : activeColor
 
   return (
     <>
@@ -183,22 +217,27 @@ export default function BottomNav() {
         .nav-indicator{animation:indicatorPulse 2s ease-in-out infinite}
         .nav-link:active{opacity:0.6 !important}
         @keyframes hrBadgePulse{0%,100%{box-shadow:0 0 8px rgba(239,68,68,0.8),0 0 16px rgba(239,68,68,0.4)}50%{box-shadow:0 0 14px rgba(239,68,68,1),0 0 28px rgba(239,68,68,0.7)}}
+        @keyframes infernoNavFlicker{0%,100%{opacity:1}50%{opacity:0.85}}
+        ${isInferno ? '.nav-active-glow{animation:navActiveGlow 1.5s ease-in-out infinite,infernoNavFlicker 2s ease-in-out infinite}' : ''}
       `}</style>
 
       <nav style={{
-        position:'fixed', bottom:0, left:0, right:0, zIndex:50,
-        background: isXP ? 'rgba(10,5,20,0.97)' : 'var(--nav-bg,#0a0a0a)',
-        borderTop:`1px solid ${isXP ? 'rgba(168,85,247,0.3)' : 'var(--nav-border,#222)'}`,
-        paddingBottom:'env(safe-area-inset-bottom,0px)',
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+        background: navBg,
+        borderTop: `1px solid ${navBorderColor}`,
+        paddingBottom: 'env(safe-area-inset-bottom,0px)',
       }}>
+        {/* Ligne animée en haut */}
         <div className="nav-line-sweep" style={{
-          height:'1px', background:decoLineColor,
-          opacity: isDeco ? 0.7 : 0.5, position:'relative', overflow:'hidden',
-        }}/>
+          height: '1px',
+          background: topLineGradient,
+          opacity: isDeco ? 0.7 : isInferno ? 0.8 : 0.5,
+          position: 'relative', overflow: 'hidden',
+        }} />
 
         <div style={{
-          display:'flex', justifyContent:'space-around', alignItems:'flex-end',
-          height: isXP ? '68px' : '60px', padding:'0 2px',
+          display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end',
+          height: isXP ? '68px' : '60px', padding: '0 2px',
         }}>
           {displayItems.map((item: typeof displayItems[0]) => {
 
@@ -206,18 +245,18 @@ export default function BottomNav() {
               const isActive = pathname === '/stats'
               return (
                 <Link key="xp-center" href="/stats" className="nav-link" style={{
-                  display:'flex', flexDirection:'column', alignItems:'center',
-                  justifyContent:'flex-end', flex:1, padding:'0 2px 8px',
-                  textDecoration:'none', position:'relative',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  justifyContent: 'flex-end', flex: 1, padding: '0 2px 8px',
+                  textDecoration: 'none', position: 'relative',
                 }}>
                   <div className="xp-center-icon" style={{
-                    width:'52px', height:'52px', borderRadius:'14px',
-                    background:'linear-gradient(135deg,#7c3aed,#a855f7)',
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    position:'absolute', bottom:'8px',
-                    border:'2px solid rgba(196,181,253,0.4)',
+                    width: '52px', height: '52px', borderRadius: '14px',
+                    background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    position: 'absolute', bottom: '8px',
+                    border: '2px solid rgba(196,181,253,0.4)',
                   }}>
-                    <IcoXP active={isActive}/>
+                    <IcoXP active={isActive} />
                   </div>
                 </Link>
               )
@@ -229,37 +268,41 @@ export default function BottomNav() {
 
             return (
               <Link key={item.href} href={item.href} className="nav-link" style={{
-                display:'flex', flexDirection:'column', alignItems:'center',
-                justifyContent:'center', gap:'2px', flex:1,
-                padding:'5px 1px', textDecoration:'none',
-                opacity: isActive ? 1 : 0.85, position:'relative', transition:'opacity 0.2s',
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                justifyContent: 'center', gap: '2px', flex: 1,
+                padding: '5px 1px', textDecoration: 'none',
+                opacity: isActive ? 1 : 0.85, position: 'relative', transition: 'opacity 0.2s',
               }}>
+                {/* Indicateur actif en haut */}
                 {isActive && (
                   <div className="nav-indicator" style={{
-                    position:'absolute', top:0, left:'20%', right:'20%', height:'2px',
-                    background: isXP     ? 'linear-gradient(90deg,#a855f7,#22d3ee)'
-                      : isDeco   ? 'linear-gradient(90deg,#A67C2D,#FFE9A0,#A67C2D)'
-                      : isQuantum ? 'linear-gradient(90deg,#2F80FF,#38D9FF,#2F80FF)'
-                      : activeColor,
-                    borderRadius:'0 0 2px 2px', margin:'0 auto',
-                  }}/>
+                    position: 'absolute', top: 0, left: '20%', right: '20%', height: '2px',
+                    background: indicatorGradient,
+                    borderRadius: '0 0 2px 2px', margin: '0 auto',
+                  }} />
                 )}
-                {/* Icône avec badge RH */}
+
+                {/* Icône */}
                 <div style={{ position: 'relative', display: 'inline-flex' }}
                   className={isActive ? (isXP ? '' : 'nav-active-glow') : 'nav-inactive-glow'}>
-                  <item.Icon c={color} glow={isActive}/>
+                  <item.Icon c={color} glow={isActive} />
                   {showBadge && <HRAlertBadge count={badgeCount} />}
                 </div>
+
+                {/* Label */}
                 <span style={{
-                  fontSize:'7px', fontWeight: isActive ? 800 : 600, color,
-                  whiteSpace:'nowrap', letterSpacing: isXP ? '0.5px' : '0.04em',
-                  textTransform:'uppercase',
+                  fontSize: '7px', fontWeight: isActive ? 800 : 600, color,
+                  whiteSpace: 'nowrap', letterSpacing: isXP ? '0.5px' : '0.04em',
+                  textTransform: 'uppercase',
                   textShadow: isActive ? `0 0 8px ${activeColor}` : `0 0 4px ${inactiveGlowColor}`,
                 }}>
                   {item.label}
                 </span>
+
                 {isXP && isActive && goal && (
-                  <span style={{fontSize:'6px', color:'#22d3ee', fontWeight:700}}>Nv.{goal.level}</span>
+                  <span style={{ fontSize: '6px', color: '#22d3ee', fontWeight: 700 }}>
+                    Nv.{goal.level}
+                  </span>
                 )}
               </Link>
             )
@@ -268,4 +311,4 @@ export default function BottomNav() {
       </nav>
     </>
   )
-          }
+}
