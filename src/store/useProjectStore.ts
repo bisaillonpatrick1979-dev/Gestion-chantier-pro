@@ -23,9 +23,9 @@ export interface EmployeeWorkLog {
   materials?: MaterialEntry[];
   jobPay?: number;
   date: string;
-  // ✅ Nouveaux champs pour punch sans projet assigné
-  chantier?: string;          // adresse/nom du chantier entré par l'employé
-  payMode?: PayMode;          // mode choisi au punch in
+  // ✅ Champs pour punch sans projet assigné
+  chantier?: string;
+  payMode?: PayMode;
 }
 
 export interface ProjectExpense {
@@ -55,6 +55,8 @@ export interface Project {
   closedAt?: string;
   invoiceId?: string;
   notes?: string;
+  // ✅ Coordonnées GPS du chantier pour géofencing
+  jobsiteLatLng?: string;   // "lat,lng" ex: "51.044733,-114.071883"
   // ✅ Projet virtuel = créé automatiquement au punch in sans projet assigné
   isVirtual?: boolean;
 }
@@ -149,7 +151,9 @@ interface ProjectStore {
   getOpenProjects: () => Project[];
   getProjectsForEmployee: (employeeId: string) => Project[];
   getActiveLogForEmployee: (employeeId: string) => { project: Project; log: EmployeeWorkLog } | null;
-  // ✅ Nouveau — punch in sans projet assigné (crée un projet virtuel)
+  // ✅ Projets ouverts avec coordonnées GPS (pour géofencing)
+  getActiveJobsites: () => { projectId: string; name: string; latLng: string }[];
+  // ✅ Punch in sans projet assigné (crée un projet virtuel)
   punchInVirtual: (log: Omit<EmployeeWorkLog, 'punchOut' | 'hoursWorked'>) => string;
 }
 
@@ -195,10 +199,21 @@ export const useProjectStore = create<ProjectStore>()(
           ),
         })),
 
+      // ✅ Retourne tous les chantiers ouverts qui ont des coordonnées GPS
+      getActiveJobsites: () => {
+        return get().projects
+          .filter((p) => p.status === 'open' && p.jobsiteLatLng && p.jobsiteLatLng.includes(','))
+          .map((p) => ({
+            projectId: p.id,
+            name: p.name,
+            latLng: p.jobsiteLatLng!,
+          }));
+      },
+
       // ✅ Crée un projet virtuel automatiquement et punch in dedans
       punchInVirtual: (log) => {
-        const projectId = `virtual-${log.employeeId}-${Date.now()}`
-        const chantierName = log.chantier || 'Chantier sans nom'
+        const projectId = `virtual-${log.employeeId}-${Date.now()}`;
+        const chantierName = log.chantier || 'Chantier sans nom';
         set((state) => ({
           projects: [
             ...state.projects,
@@ -218,8 +233,8 @@ export const useProjectStore = create<ProjectStore>()(
               isVirtual: true,
             },
           ],
-        }))
-        return projectId
+        }));
+        return projectId;
       },
 
       punchOut: (projectId, employeeId, data) =>
