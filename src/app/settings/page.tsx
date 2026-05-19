@@ -8,6 +8,8 @@ import { useLangStore } from '@/store/useLangStore'
 import { useCompanyStore } from '@/store/useCompanyStore'
 import { useVoiceReminderStore } from '@/store/useVoiceReminderStore'
 import { useClientStore } from '@/store/useClientStore'
+import { usePayrollRulesStore } from '@/store/usePayrollRulesStore'
+import { useHREngine } from '@/hooks/useHREngine'
 import { useCatalogueStore } from '@/store/useCatalogueStore'
 import type { Category } from '@/store/useCatalogueStore'
 import {
@@ -22,10 +24,8 @@ const THEMES = [
   { id: 'deco',     label: '✨ Deco',     colors: 'from-yellow-600 to-amber-400' },
   { id: 'zen',      label: '🌸 Zen',      colors: 'from-pink-400 to-rose-300' },
   { id: 'ludique',  label: '🎮 Ludique',  colors: 'from-orange-500 to-pink-500' },
-]
-
-const TABS_FR = ['🏢 Compagnie','👤 Employés','🎨 Thème','🌐 Langue','💳 Paiement','🔔 Rappels','📋 Conditions','👥 Clients','📦 Catalogue','📊 Comptab.','⚙️ Avancé']
-const TABS_EN = ['🏢 Company','👤 Employees','🎨 Theme','🌐 Language','💳 Payment','🔔 Reminders','📋 Terms','👥 Clients','📦 Catalog','📊 Accounting','⚙️ Advanced']
+]const TABS_FR = ['🏢 Compagnie','👤 Employés','🎨 Thème','🌐 Langue','💳 Paiement','🔔 Rappels','📋 Conditions','👥 Clients','📦 Catalogue','📊 Comptab.','⚙️ Avancé','🚨 RH']
+const TABS_EN = ['🏢 Company','👤 Employees','🎨 Theme','🌐 Language','💳 Payment','🔔 Reminders','📋 Terms','👥 Clients','📦 Catalog','📊 Accounting','⚙️ Advanced','🚨 HR']
 
 export default function SettingsPage() {
   const router = useRouter()
