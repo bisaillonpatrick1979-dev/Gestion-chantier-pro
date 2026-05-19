@@ -270,6 +270,19 @@ function JobCardModal({ project, onClose }: { project: Project; onClose: () => v
                   🔒 {t('Fermer le projet → Générer facture', 'Close project → Generate invoice')}
                 </button>
               )}
+              {project.status === 'closed' && (
+                <button
+                  onClick={() => {
+                    if (confirm(t('Rouvrir ce projet ? Le géofencing se réactivera automatiquement si des coordonnées GPS sont configurées.', 'Reopen this project? Geofencing will reactivate automatically if GPS coordinates are set.'))) {
+                      updateProject(project.id, { status: 'open', closedAt: undefined })
+                      onClose()
+                    }
+                  }}
+                  style={{ width: '100%', padding: '14px', borderRadius: '12px', cursor: 'pointer', border: '1px solid rgba(34,197,94,0.5)', background: 'rgba(34,197,94,0.1)', color: '#22c55e', fontWeight: 700, fontSize: '14px' }}
+                >
+                  🔓 {t('Rouvrir le projet', 'Reopen project')}
+                </button>
+              )}
             </>
           )}
 
