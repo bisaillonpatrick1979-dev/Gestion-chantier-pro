@@ -24,7 +24,9 @@ const THEMES = [
   { id: 'deco',     label: '✨ Deco',     colors: 'from-yellow-600 to-amber-400' },
   { id: 'zen',      label: '🌸 Zen',      colors: 'from-pink-400 to-rose-300' },
   { id: 'ludique',  label: '🎮 Ludique',  colors: 'from-orange-500 to-pink-500' },
-]const TABS_FR = ['🏢 Compagnie','👤 Employés','🎨 Thème','🌐 Langue','💳 Paiement','🔔 Rappels','📋 Conditions','👥 Clients','📦 Catalogue','📊 Comptab.','⚙️ Avancé','🚨 RH']
+]
+
+const TABS_FR = ['🏢 Compagnie','👤 Employés','🎨 Thème','🌐 Langue','💳 Paiement','🔔 Rappels','📋 Conditions','👥 Clients','📦 Catalogue','📊 Comptab.','⚙️ Avancé','🚨 RH']
 const TABS_EN = ['🏢 Company','👤 Employees','🎨 Theme','🌐 Language','💳 Payment','🔔 Reminders','📋 Terms','👥 Clients','📦 Catalog','📊 Accounting','⚙️ Advanced','🚨 HR']
 
 export default function SettingsPage() {
@@ -46,6 +48,8 @@ export default function SettingsPage() {
   const { enabled: voiceEnabled, volume: voiceVolume, setEnabled: setVoiceEnabled, setVolume: setVoiceVolume } = useVoiceReminderStore()
   const { clients, addClient, deleteClient } = useClientStore()
   const { materials, deleteMaterial } = useCatalogueStore()
+  const { alerts, acknowledgeAlert, dismissAllAlerts } = usePayrollRulesStore()
+  const { hrStatuses, summary } = useHREngine()
 
   const TABS = lang === 'fr' ? TABS_FR : TABS_EN
   const [activeTab, setActiveTab] = useState(0)
@@ -57,23 +61,19 @@ export default function SettingsPage() {
   const [newRate, setNewRate]                     = useState('')
   const [newWorkerType, setNewWorkerType]         = useState<'contractor' | 'salaried'>('contractor')
   const [newWorkMode, setNewWorkMode]             = useState<'heure' | 'forfait' | 'surface'>('surface')
-  // Coordonnées — tous
   const [newPhone, setNewPhone]                   = useState('')
   const [newEmail, setNewEmail]                   = useState('')
   const [newAddress, setNewAddress]               = useState('')
   const [newCity, setNewCity]                     = useState('')
   const [newProvince, setNewProvince]             = useState('AB')
   const [newPostalCode, setNewPostalCode]         = useState('')
-  // Urgence — tous
   const [newEmergencyContact, setNewEmergencyContact]   = useState('')
   const [newEmergencyPhone, setNewEmergencyPhone]       = useState('')
   const [newEmergencyRelation, setNewEmergencyRelation] = useState('')
-  // Salarié
   const [newPayProvince, setNewPayProvince]       = useState('AB')
   const [newPayFrequency, setNewPayFrequency]     = useState<'weekly' | 'biweekly' | 'semimonthly' | 'monthly'>('biweekly')
   const [newPayPeriodStart, setNewPayPeriodStart] = useState<'monday'|'tuesday'|'wednesday'|'thursday'|'friday'|'saturday'|'sunday'>('monday')
   const [newAnnualSalary, setNewAnnualSalary]     = useState('')
-  // Contractor
   const [newBusinessName, setNewBusinessName]     = useState('')
   const [newGstNumber, setNewGstNumber]           = useState('')
   const [newSin, setNewSin]                       = useState('')
@@ -82,7 +82,6 @@ export default function SettingsPage() {
   const [editRate, setEditRate]   = useState('')
   const [editName, setEditName]   = useState('')
 
-  // Client form
   const [newClientName, setNewClientName]   = useState('')
   const [newClientPhone, setNewClientPhone] = useState('')
   const [newClientEmail, setNewClientEmail] = useState('')
@@ -90,7 +89,6 @@ export default function SettingsPage() {
 
   const logoRef = useRef<HTMLInputElement>(null)
 
-  // ── Label taux selon mode de travail ─────────────────────────────────────
   const getRateLabel = (mode: 'heure' | 'forfait' | 'surface') => {
     if (mode === 'surface') return t('Taux pi² ($/pi²)', 'Rate ($/sqft)')
     if (mode === 'forfait') return t('Montant forfait ($)', 'Flat Rate ($)')
@@ -119,23 +117,19 @@ export default function SettingsPage() {
       color: '#a855f7',
       active: true,
       workerType: newWorkerType,
-      // Coordonnées
       phone:      newPhone.trim()      || undefined,
       email:      newEmail.trim()      || undefined,
       address:    newAddress.trim()    || undefined,
       city:       newCity.trim()       || undefined,
       province:   newProvince          || undefined,
       postalCode: newPostalCode.trim() || undefined,
-      // Urgence
       emergencyContact:  newEmergencyContact.trim()  || undefined,
       emergencyPhone:    newEmergencyPhone.trim()    || undefined,
       emergencyRelation: newEmergencyRelation.trim() || undefined,
-      // Salarié
       employeeProvince: newWorkerType === 'salaried' ? newPayProvince : undefined,
       payFrequency:     newWorkerType === 'salaried' ? newPayFrequency : undefined,
       payPeriodStart:   newWorkerType === 'salaried' ? newPayPeriodStart : undefined,
       annualSalary:     newWorkerType === 'salaried' && newAnnualSalary ? parseFloat(newAnnualSalary) : undefined,
-      // Contractor
       businessName: newWorkerType === 'contractor' && newBusinessName.trim() ? newBusinessName.trim() : undefined,
       gstNumber:    newWorkerType === 'contractor' && newGstNumber.trim()    ? newGstNumber.trim()    : undefined,
       sin:          newWorkerType === 'contractor' && newSin.trim()          ? newSin.trim()          : undefined,
@@ -285,8 +279,6 @@ export default function SettingsPage() {
           <div className={cardStyle}>
             {isDeco && <DecoCorners />}
             {sectionTitle(t('Informations compagnie', 'Company Information'))}
-
-            {/* Logo */}
             <div>
               <label className={labelClass}>{t('Logo compagnie', 'Company Logo')}</label>
               <div className="flex items-center gap-4">
@@ -307,8 +299,6 @@ export default function SettingsPage() {
                 <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
               </div>
             </div>
-
-            {/* Infos de base */}
             <div className="grid grid-cols-2 gap-3 mt-4">
               <div className="col-span-2"><label className={labelClass}>{t('Nom compagnie', 'Company Name')}</label><input className={inputClass} value={company.name} onChange={e => setCompany({ name: e.target.value })} placeholder="Hailite Xteriors" /></div>
               <div className="col-span-2"><label className={labelClass}>{t('Nom propriétaire', "Owner's Name")}</label><input className={inputClass} value={company.ownerName} onChange={e => setCompany({ ownerName: e.target.value })} placeholder="Patrick Bisaillon" /></div>
@@ -328,15 +318,11 @@ export default function SettingsPage() {
               <div><label className={labelClass}>{t('N° TPS/GST', 'GST Number')}</label><input className={inputClass} value={company.gstNumber} onChange={e => setCompany({ gstNumber: e.target.value })} placeholder="123456789 RT0001" /></div>
               <div><label className={labelClass}>{t('N° WCB', 'WCB Number')}</label><input className={inputClass} value={company.wcbNumber} onChange={e => setCompany({ wcbNumber: e.target.value })} placeholder="WCB-XXXXXX" /></div>
             </div>
-
-            {/* ══ PARAMÈTRES PAIE SALARIÉS ══ */}
             {subHeader(`💼 ${t('Paramètres paie salariés', 'Salaried Payroll Settings')}`)}
             <p className={`text-xs mb-3 ${isDeco ? 'text-[#D6B25E]/50' : 'text-white/30'}`}>
               {t('Ces montants s\'appliquent automatiquement à tous les talons de paie.', 'These amounts apply automatically to all pay stubs.')}
             </p>
-
             <div className="grid grid-cols-2 gap-3">
-              {/* Vacances */}
               <div className="col-span-2">
                 <label className={labelClass}>🏖️ {t('% Vacances', 'Vacation %')}
                   <span className={`ml-1 text-xs normal-case font-normal ${isDeco ? 'text-[#D6B25E]/40' : 'text-white/30'}`}>
@@ -348,88 +334,47 @@ export default function SettingsPage() {
                   onChange={e => setCompany({ payrollVacationRate: parseFloat(e.target.value) || 0 })}
                   placeholder="6" />
               </div>
-
-              {/* Assurances */}
               <div>
                 <label className={labelClass}>🏥 {t('Assurance santé', 'Health Ins.')} $/période</label>
-                <input className={inputClass} type="number" min="0" step="0.01"
-                  value={company.payrollHealthInsurance || ''}
-                  onChange={e => setCompany({ payrollHealthInsurance: parseFloat(e.target.value) || 0 })}
-                  placeholder="0.00" />
+                <input className={inputClass} type="number" min="0" step="0.01" value={company.payrollHealthInsurance || ''} onChange={e => setCompany({ payrollHealthInsurance: parseFloat(e.target.value) || 0 })} placeholder="0.00" />
               </div>
               <div>
                 <label className={labelClass}>🦷 {t('Assurance dentaire', 'Dental Ins.')} $/période</label>
-                <input className={inputClass} type="number" min="0" step="0.01"
-                  value={company.payrollDentalInsurance || ''}
-                  onChange={e => setCompany({ payrollDentalInsurance: parseFloat(e.target.value) || 0 })}
-                  placeholder="0.00" />
+                <input className={inputClass} type="number" min="0" step="0.01" value={company.payrollDentalInsurance || ''} onChange={e => setCompany({ payrollDentalInsurance: parseFloat(e.target.value) || 0 })} placeholder="0.00" />
               </div>
               <div>
                 <label className={labelClass}>💛 {t('Assurance vie', 'Life Ins.')} $/période</label>
-                <input className={inputClass} type="number" min="0" step="0.01"
-                  value={company.payrollLifeInsurance || ''}
-                  onChange={e => setCompany({ payrollLifeInsurance: parseFloat(e.target.value) || 0 })}
-                  placeholder="0.00" />
+                <input className={inputClass} type="number" min="0" step="0.01" value={company.payrollLifeInsurance || ''} onChange={e => setCompany({ payrollLifeInsurance: parseFloat(e.target.value) || 0 })} placeholder="0.00" />
               </div>
               <div>
                 <label className={labelClass}>♿ {t('Invalidité LT', 'LTD')} $/période</label>
-                <input className={inputClass} type="number" min="0" step="0.01"
-                  value={company.payrollLTD || ''}
-                  onChange={e => setCompany({ payrollLTD: parseFloat(e.target.value) || 0 })}
-                  placeholder="0.00" />
+                <input className={inputClass} type="number" min="0" step="0.01" value={company.payrollLTD || ''} onChange={e => setCompany({ payrollLTD: parseFloat(e.target.value) || 0 })} placeholder="0.00" />
               </div>
-
-              {/* REER */}
               <div>
                 <label className={labelClass}>💰 REER {t('collectif', 'Group')} % {t('du brut', 'of gross')}</label>
-                <input className={inputClass} type="number" min="0" max="18" step="0.1"
-                  value={company.payrollRRSP || ''}
-                  onChange={e => setCompany({ payrollRRSP: parseFloat(e.target.value) || 0 })}
-                  placeholder="0" />
+                <input className={inputClass} type="number" min="0" max="18" step="0.1" value={company.payrollRRSP || ''} onChange={e => setCompany({ payrollRRSP: parseFloat(e.target.value) || 0 })} placeholder="0" />
               </div>
-
-              {/* PAE */}
               <div>
                 <label className={labelClass}>🧠 PAE $/période</label>
-                <input className={inputClass} type="number" min="0" step="0.01"
-                  value={company.payrollEAP || ''}
-                  onChange={e => setCompany({ payrollEAP: parseFloat(e.target.value) || 0 })}
-                  placeholder="0.00" />
+                <input className={inputClass} type="number" min="0" step="0.01" value={company.payrollEAP || ''} onChange={e => setCompany({ payrollEAP: parseFloat(e.target.value) || 0 })} placeholder="0.00" />
               </div>
-
-              {/* Custom 1 */}
               <div>
                 <label className={labelClass}>➕ {t('Déduction custom 1 — Nom', 'Custom Deduction 1 — Name')}</label>
-                <input className={inputClass}
-                  value={company.payrollCustom1Name}
-                  onChange={e => setCompany({ payrollCustom1Name: e.target.value })}
-                  placeholder={t('Ex: Stationnement', 'Ex: Parking')} />
+                <input className={inputClass} value={company.payrollCustom1Name} onChange={e => setCompany({ payrollCustom1Name: e.target.value })} placeholder={t('Ex: Stationnement', 'Ex: Parking')} />
               </div>
               <div>
                 <label className={labelClass}>{t('Montant', 'Amount')} $/période</label>
-                <input className={inputClass} type="number" min="0" step="0.01"
-                  value={company.payrollCustom1Amount || ''}
-                  onChange={e => setCompany({ payrollCustom1Amount: parseFloat(e.target.value) || 0 })}
-                  placeholder="0.00" />
+                <input className={inputClass} type="number" min="0" step="0.01" value={company.payrollCustom1Amount || ''} onChange={e => setCompany({ payrollCustom1Amount: parseFloat(e.target.value) || 0 })} placeholder="0.00" />
               </div>
-
-              {/* Custom 2 */}
               <div>
                 <label className={labelClass}>➕ {t('Déduction custom 2 — Nom', 'Custom Deduction 2 — Name')}</label>
-                <input className={inputClass}
-                  value={company.payrollCustom2Name}
-                  onChange={e => setCompany({ payrollCustom2Name: e.target.value })}
-                  placeholder={t('Ex: Uniforme', 'Ex: Uniform')} />
+                <input className={inputClass} value={company.payrollCustom2Name} onChange={e => setCompany({ payrollCustom2Name: e.target.value })} placeholder={t('Ex: Uniforme', 'Ex: Uniform')} />
               </div>
               <div>
                 <label className={labelClass}>{t('Montant', 'Amount')} $/période</label>
-                <input className={inputClass} type="number" min="0" step="0.01"
-                  value={company.payrollCustom2Amount || ''}
-                  onChange={e => setCompany({ payrollCustom2Amount: parseFloat(e.target.value) || 0 })}
-                  placeholder="0.00" />
+                <input className={inputClass} type="number" min="0" step="0.01" value={company.payrollCustom2Amount || ''} onChange={e => setCompany({ payrollCustom2Amount: parseFloat(e.target.value) || 0 })} placeholder="0.00" />
               </div>
             </div>
-
             {isDeco && <DecoDiamondRow />}
           </div>
         )}
@@ -437,8 +382,6 @@ export default function SettingsPage() {
         {/* ─── TAB 1 : EMPLOYÉS ─── */}
         {activeTab === 1 && (
           <div className="space-y-4">
-
-            {/* Liste employés existants */}
             {employees.map(emp => (
               <div key={emp.id} className={cardStyle}>
                 {isDeco && <DecoCorners />}
@@ -454,22 +397,17 @@ export default function SettingsPage() {
                         <input className={inputClass} value={editRate} onChange={e => setEditRate(e.target.value)} type="number" />
                       </div>
                     </div>
-
                     <div>
                       <label className={labelClass}>💼 {t('Type de travailleur', 'Worker Type')}</label>
-                      <select className={inputClass} defaultValue={emp.workerType || 'contractor'}
-                        onChange={e => updateEmployee(emp.id, { workerType: e.target.value as any })}>
+                      <select className={inputClass} defaultValue={emp.workerType || 'contractor'} onChange={e => updateEmployee(emp.id, { workerType: e.target.value as any })}>
                         <option value="contractor">🔧 {t('Sous-traitant autonome', 'Independent Contractor')}</option>
                         <option value="salaried">💼 {t('Salarié (employé)', 'Salaried Employee')}</option>
                       </select>
                     </div>
-
-                    {/* Mode de travail — contracteurs */}
                     {(emp.workerType === 'contractor' || !emp.workerType) && (
                       <div>
                         <label className={labelClass}>⚙️ {t('Mode de facturation', 'Billing Mode')}</label>
-                        <select className={inputClass} defaultValue={emp.workMode || 'surface'}
-                          onChange={e => updateEmployee(emp.id, { workMode: e.target.value as any })}>
+                        <select className={inputClass} defaultValue={emp.workMode || 'surface'} onChange={e => updateEmployee(emp.id, { workMode: e.target.value as any })}>
                           <option value="surface">🦶 {t('Pied carré ($/pi²)', 'Square foot ($/sqft)')}</option>
                           <option value="heure">⏱️ {t('Heure ($/h)', 'Hourly ($/h)')}</option>
                           <option value="forfait">💼 {t('À la job — forfait fixe', 'Fixed price — flat rate')}</option>
@@ -477,55 +415,49 @@ export default function SettingsPage() {
                       </div>
                     )}
 
-                    {/* Coordonnées */}
-                    {subHeader(`📞 ${t('Coordonnées', 'Contact Info')}`)}
+                    {/* ── Date d'embauche RH ── */}
+                    {subHeader(`🗓 ${t('Infos RH', 'HR Info')}`)}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="col-span-2">
-                        <label className={labelClass}>{t('Téléphone', 'Phone')}</label>
-                        <input className={inputClass} defaultValue={emp.phone || ''} onChange={e => updateEmployee(emp.id, { phone: e.target.value || undefined })} placeholder="403-555-1234" />
+                        <label className={labelClass}>📅 {t('Date d\'embauche', 'Hire Date')}</label>
+                        <input className={inputClass} type="date" defaultValue={emp.hireDate || ''}
+                          onChange={e => updateEmployee(emp.id, { hireDate: e.target.value || undefined })} />
                       </div>
                       <div className="col-span-2">
-                        <label className={labelClass}>{t('Courriel', 'Email')}</label>
-                        <input className={inputClass} defaultValue={emp.email || ''} onChange={e => updateEmployee(emp.id, { email: e.target.value || undefined })} placeholder="marc@exemple.ca" />
+                        <label className={labelClass}>📄 {t('Renouvellement contrat', 'Contract Renewal')}</label>
+                        <input className={inputClass} type="date" defaultValue={emp.contractRenewalDate || ''}
+                          onChange={e => updateEmployee(emp.id, { contractRenewalDate: e.target.value || undefined })} />
                       </div>
                       <div className="col-span-2">
-                        <label className={labelClass}>{t('Adresse civique', 'Street Address')}</label>
-                        <input className={inputClass} defaultValue={emp.address || ''} onChange={e => updateEmployee(emp.id, { address: e.target.value || undefined })} placeholder="123 Rue Principale" />
+                        <label className={labelClass}>🏖️ {t('Taux vacances override %', 'Vacation Rate Override %')}</label>
+                        <input className={inputClass} type="number" min="0" max="25" step="0.5"
+                          defaultValue={emp.vacationRateOverride || ''}
+                          onChange={e => updateEmployee(emp.id, { vacationRateOverride: parseFloat(e.target.value) || undefined })}
+                          placeholder={t('Laisser vide = palier auto', 'Leave blank = auto tier')} />
                       </div>
-                      <div>
-                        <label className={labelClass}>{t('Ville', 'City')}</label>
-                        <input className={inputClass} defaultValue={emp.city || ''} onChange={e => updateEmployee(emp.id, { city: e.target.value || undefined })} placeholder="Calgary" />
-                      </div>
-                      <div>
-                        <label className={labelClass}>{t('Province', 'Prov.')}</label>
+                    </div>
+
+                    {subHeader(`📞 ${t('Coordonnées', 'Contact Info')}`)}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="col-span-2"><label className={labelClass}>{t('Téléphone', 'Phone')}</label><input className={inputClass} defaultValue={emp.phone || ''} onChange={e => updateEmployee(emp.id, { phone: e.target.value || undefined })} placeholder="403-555-1234" /></div>
+                      <div className="col-span-2"><label className={labelClass}>{t('Courriel', 'Email')}</label><input className={inputClass} defaultValue={emp.email || ''} onChange={e => updateEmployee(emp.id, { email: e.target.value || undefined })} placeholder="marc@exemple.ca" /></div>
+                      <div className="col-span-2"><label className={labelClass}>{t('Adresse civique', 'Street Address')}</label><input className={inputClass} defaultValue={emp.address || ''} onChange={e => updateEmployee(emp.id, { address: e.target.value || undefined })} placeholder="123 Rue Principale" /></div>
+                      <div><label className={labelClass}>{t('Ville', 'City')}</label><input className={inputClass} defaultValue={emp.city || ''} onChange={e => updateEmployee(emp.id, { city: e.target.value || undefined })} placeholder="Calgary" /></div>
+                      <div><label className={labelClass}>{t('Province', 'Prov.')}</label>
                         <select className={inputClass} defaultValue={emp.province || 'AB'} onChange={e => updateEmployee(emp.id, { province: e.target.value })}>
                           {['AB','BC','ON','QC','MB','SK','NS','NB','NL','PE','NT','NU','YT'].map(p => <option key={p} value={p}>{p}</option>)}
                         </select>
                       </div>
-                      <div className="col-span-2">
-                        <label className={labelClass}>{t('Code postal', 'Postal Code')}</label>
-                        <input className={inputClass} defaultValue={emp.postalCode || ''} onChange={e => updateEmployee(emp.id, { postalCode: e.target.value || undefined })} placeholder="T2X 1A1" />
-                      </div>
+                      <div className="col-span-2"><label className={labelClass}>{t('Code postal', 'Postal Code')}</label><input className={inputClass} defaultValue={emp.postalCode || ''} onChange={e => updateEmployee(emp.id, { postalCode: e.target.value || undefined })} placeholder="T2X 1A1" /></div>
                     </div>
 
-                    {/* Contact d'urgence */}
                     {subHeader(`🚨 ${t('Contact d\'urgence', 'Emergency Contact')}`)}
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="col-span-2">
-                        <label className={labelClass}>{t('Nom', 'Name')}</label>
-                        <input className={inputClass} defaultValue={emp.emergencyContact || ''} onChange={e => updateEmployee(emp.id, { emergencyContact: e.target.value || undefined })} placeholder={t('Marie Tremblay', 'Marie Smith')} />
-                      </div>
-                      <div>
-                        <label className={labelClass}>{t('Téléphone', 'Phone')}</label>
-                        <input className={inputClass} defaultValue={emp.emergencyPhone || ''} onChange={e => updateEmployee(emp.id, { emergencyPhone: e.target.value || undefined })} placeholder="403-555-9999" />
-                      </div>
-                      <div>
-                        <label className={labelClass}>{t('Lien', 'Relation')}</label>
-                        <input className={inputClass} defaultValue={emp.emergencyRelation || ''} onChange={e => updateEmployee(emp.id, { emergencyRelation: e.target.value || undefined })} placeholder={t('Conjointe', 'Spouse')} />
-                      </div>
+                      <div className="col-span-2"><label className={labelClass}>{t('Nom', 'Name')}</label><input className={inputClass} defaultValue={emp.emergencyContact || ''} onChange={e => updateEmployee(emp.id, { emergencyContact: e.target.value || undefined })} placeholder={t('Marie Tremblay', 'Marie Smith')} /></div>
+                      <div><label className={labelClass}>{t('Téléphone', 'Phone')}</label><input className={inputClass} defaultValue={emp.emergencyPhone || ''} onChange={e => updateEmployee(emp.id, { emergencyPhone: e.target.value || undefined })} placeholder="403-555-9999" /></div>
+                      <div><label className={labelClass}>{t('Lien', 'Relation')}</label><input className={inputClass} defaultValue={emp.emergencyRelation || ''} onChange={e => updateEmployee(emp.id, { emergencyRelation: e.target.value || undefined })} placeholder={t('Conjointe', 'Spouse')} /></div>
                     </div>
 
-                    {/* Champs contractor */}
                     {(emp.workerType === 'contractor' || !emp.workerType) && (
                       <>
                         {subHeader(`🔧 ${t('Infos sous-traitant', 'Contractor Info')}`)}
@@ -549,7 +481,6 @@ export default function SettingsPage() {
                       </>
                     )}
 
-                    {/* Champs salarié */}
                     {emp.workerType === 'salaried' && (
                       <>
                         {subHeader(`💼 ${t('Infos paie', 'Payroll Info')}`)}
@@ -611,6 +542,11 @@ export default function SettingsPage() {
                             {emp.workMode === 'surface' ? '🦶 pi²' : '💼 forfait'}
                           </span>
                         )}
+                        {emp.hireDate && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-400">
+                            🗓 {new Date(emp.hireDate).getFullYear()}
+                          </span>
+                        )}
                       </div>
                       <div className="text-white/40 text-xs mt-1 flex flex-wrap gap-2">
                         {emp.hourlyRate ? <span>${emp.hourlyRate}/{emp.workMode === 'surface' ? 'pi²' : emp.workMode === 'forfait' ? 'job' : 'h'}</span> : null}
@@ -636,26 +572,21 @@ export default function SettingsPage() {
               </div>
             ))}
 
-            {/* ── Formulaire ajout employé ── */}
+            {/* Formulaire ajout */}
             <div className={cardStyle}>
               {isDeco && <DecoCorners />}
               {sectionTitle(t('➕ Ajouter employé', '➕ Add Employee'))}
               <div className="space-y-3">
-
                 <input className={inputClass} value={newName} onChange={e => setNewName(e.target.value)} placeholder={t('Prénom Nom *', 'First Last *')} />
                 <input className={inputClass} value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g,'').slice(0,4))} type="password" maxLength={4} inputMode="numeric" placeholder={t('PIN 4 chiffres *', 'PIN 4 digits *')} />
-
                 <select className={inputClass} value={newRole} onChange={e => setNewRole(e.target.value as any)}>
                   <option value="employee">👷 {t('Employé', 'Employee')}</option>
                   <option value="admin">👑 Admin</option>
                 </select>
-
                 <select className={inputClass} value={newWorkerType} onChange={e => { setNewWorkerType(e.target.value as any); setNewWorkMode('surface') }}>
                   <option value="contractor">🔧 {t('Sous-traitant autonome', 'Independent Contractor')}</option>
                   <option value="salaried">💼 {t('Salarié', 'Salaried Employee')}</option>
                 </select>
-
-                {/* Mode de facturation — contracteurs */}
                 {newWorkerType === 'contractor' && (
                   <div>
                     <label className={labelClass}>⚙️ {t('Mode de facturation', 'Billing Mode')}</label>
@@ -666,19 +597,11 @@ export default function SettingsPage() {
                     </select>
                   </div>
                 )}
-
-                {/* Taux — label dynamique */}
                 <div>
-                  <label className={labelClass}>
-                    {newWorkerType === 'contractor' ? getRateLabel(newWorkMode) : t('Taux horaire ($/h)', 'Hourly Rate ($/h)')}
-                  </label>
+                  <label className={labelClass}>{newWorkerType === 'contractor' ? getRateLabel(newWorkMode) : t('Taux horaire ($/h)', 'Hourly Rate ($/h)')}</label>
                   <input className={inputClass} value={newRate} onChange={e => setNewRate(e.target.value)} type="number"
-                    placeholder={newWorkerType === 'contractor'
-                      ? newWorkMode === 'surface' ? '$/pi²' : newWorkMode === 'forfait' ? '$' : '$/h'
-                      : '$/h'} />
+                    placeholder={newWorkerType === 'contractor' ? newWorkMode === 'surface' ? '$/pi²' : newWorkMode === 'forfait' ? '$' : '$/h' : '$/h'} />
                 </div>
-
-                {/* Coordonnées + urgence */}
                 <ContactFields
                   phone={newPhone} setPhone={setNewPhone}
                   email={newEmail} setEmail={setNewEmail}
@@ -690,8 +613,6 @@ export default function SettingsPage() {
                   emergencyPhone={newEmergencyPhone} setEmergencyPhone={setNewEmergencyPhone}
                   emergencyRelation={newEmergencyRelation} setEmergencyRelation={setNewEmergencyRelation}
                 />
-
-                {/* Contractor */}
                 {newWorkerType === 'contractor' && (
                   <>
                     {subHeader(`🔧 ${t('Infos sous-traitant', 'Contractor Info')}`)}
@@ -703,9 +624,7 @@ export default function SettingsPage() {
                       <label className={labelClass}>🇨🇦 {t('N° GST (si inscrit)', 'GST # (if registered)')}</label>
                       <input className={inputClass} value={newGstNumber} onChange={e => setNewGstNumber(e.target.value)} placeholder="123456789 RT0001" />
                       <p className={`text-xs mt-1 ${isDeco ? 'text-[#D6B25E]/40' : 'text-white/30'}`}>
-                        {newGstNumber.trim()
-                          ? `✅ ${t('GST applicable → vous lui payez la taxe', 'GST applies → you pay the tax')}`
-                          : `⚠️ ${t('Sans GST → T4A requis si > 500$/an', 'No GST → T4A required if > $500/yr')}`}
+                        {newGstNumber.trim() ? `✅ ${t('GST applicable → vous lui payez la taxe', 'GST applies → you pay the tax')}` : `⚠️ ${t('Sans GST → T4A requis si > 500$/an', 'No GST → T4A required if > $500/yr')}`}
                       </p>
                     </div>
                     {!newGstNumber.trim() && (
@@ -716,8 +635,6 @@ export default function SettingsPage() {
                     )}
                   </>
                 )}
-
-                {/* Salarié */}
                 {newWorkerType === 'salaried' && (
                   <>
                     {subHeader(`💼 ${t('Infos paie', 'Payroll Info')}`)}
@@ -738,7 +655,6 @@ export default function SettingsPage() {
                     <input className={inputClass} value={newAnnualSalary} onChange={e => setNewAnnualSalary(e.target.value)} type="number" placeholder={t('Salaire annuel $ (optionnel)', 'Annual Salary $ (optional)')} />
                   </>
                 )}
-
                 <button onClick={handleAddEmployee}
                   className={`w-full py-3 rounded-xl font-bold text-sm mt-2 ${isDeco ? 'bg-gradient-to-r from-[#D6B25E] to-[#c9a84c] text-[#0d0a00]' : isQuantum ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white' : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white'}`}>
                   ✅ {t('Ajouter', 'Add')}
@@ -997,7 +913,186 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* ─── TAB 11 : RH ALERTES ─── */}
+        {activeTab === 11 && (
+          <div className="space-y-4">
+            <div className={cardStyle}>
+              {isDeco && <DecoCorners />}
+              {sectionTitle(`🚨 ${t('Alertes RH', 'HR Alerts')}`)}
+
+              {/* Stats globales */}
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {[
+                  { label: t('Salariés', 'Salaried'), value: summary.totalSalaried, color: isQuantum ? 'text-violet-400' : 'text-white' },
+                  { label: t('Conformes', 'Compliant'), value: summary.compliant, color: 'text-emerald-400' },
+                  { label: t('Non-conf.', 'Non-comp.'), value: summary.nonCompliant, color: summary.nonCompliant > 0 ? 'text-red-400' : 'text-emerald-400' },
+                ].map(stat => (
+                  <div key={stat.label} className={`rounded-xl p-3 text-center ${isDeco ? 'bg-[#D6B25E]/10 border border-[#D6B25E]/20' : 'bg-white/5 border border-white/10'}`}>
+                    <p className={`text-xl font-black ${stat.color}`}>{stat.value}</p>
+                    <p className={`text-xs mt-1 ${isDeco ? 'text-[#D6B25E]/50' : 'text-white/40'}`}>{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Alertes actives */}
+              {summary.activeAlerts === 0 ? (
+                <div className={`rounded-xl p-6 text-center ${isDeco ? 'bg-[#D6B25E]/5 border border-[#D6B25E]/10' : 'bg-white/5 border border-white/10'}`}>
+                  <p className="text-3xl mb-2">✅</p>
+                  <p className={`font-bold text-sm ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>
+                    {t('Aucune alerte active', 'No active alerts')}
+                  </p>
+                  <p className={`text-xs mt-1 ${isDeco ? 'text-[#D6B25E]/40' : 'text-white/30'}`}>
+                    {t('Tous les employés sont conformes', 'All employees are compliant')}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {alerts
+                    .filter(a => !a.acknowledged)
+                    .sort((a, b) => {
+                      const order = { critical: 0, warning: 1, info: 2 }
+                      return order[a.severity] - order[b.severity]
+                    })
+                    .map(alert => (
+                      <div key={alert.id} className={`rounded-xl p-4 border ${
+                        alert.severity === 'critical' ? 'bg-red-500/10 border-red-500/30'
+                        : alert.severity === 'warning' ? 'bg-orange-500/10 border-orange-500/30'
+                        : 'bg-blue-500/10 border-blue-500/30'
+                      }`}>
+                        <div className="flex items-start gap-3">
+                          <span className="text-xl flex-shrink-0">
+                            {alert.severity === 'critical' ? '🚨' : alert.severity === 'warning' ? '⚠️' : 'ℹ️'}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className={`text-xs font-black uppercase tracking-wider ${
+                                alert.severity === 'critical' ? 'text-red-400'
+                                : alert.severity === 'warning' ? 'text-orange-400'
+                                : 'text-blue-400'
+                              }`}>
+                                {alert.severity === 'critical' ? t('CRITIQUE', 'CRITICAL')
+                                  : alert.severity === 'warning' ? t('AVERTISSEMENT', 'WARNING')
+                                  : t('INFO', 'INFO')}
+                              </p>
+                              <p className={`text-xs font-bold ${isDeco ? 'text-[#D6B25E]/60' : 'text-white/50'}`}>
+                                {alert.employeeName}
+                              </p>
+                            </div>
+                            <p className={`text-sm font-semibold mt-1 ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>
+                              {lang === 'fr' ? alert.messageFR : alert.messageEN}
+                            </p>
+                            {alert.dueDate && (
+                              <p className={`text-xs mt-1 ${isDeco ? 'text-[#D6B25E]/40' : 'text-white/30'}`}>
+                                📅 {new Date(alert.dueDate).toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA')}
+                              </p>
+                            )}
+                            <p className={`text-xs mt-1 ${isDeco ? 'text-[#D6B25E]/30' : 'text-white/20'}`}>
+                              {new Date(alert.triggeredAt).toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA')}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => acknowledgeAlert(alert.id)}
+                            className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all ${
+                              isDeco ? 'bg-[#D6B25E]/20 text-[#D6B25E] hover:bg-[#D6B25E]/40'
+                              : 'bg-white/10 text-white/60 hover:bg-white/20'
+                            }`}
+                          >✓</button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+
+              {summary.activeAlerts > 0 && (
+                <button
+                  onClick={() => hrStatuses.forEach(s => dismissAllAlerts(s.employee.id))}
+                  className={`w-full mt-4 py-3 rounded-xl text-xs font-bold border transition-all ${
+                    isDeco ? 'border-[#D6B25E]/30 text-[#D6B25E]/60 hover:bg-[#D6B25E]/10'
+                    : 'border-white/20 text-white/40 hover:bg-white/5'
+                  }`}
+                >
+                  ✓ {t('Tout marquer comme lu', 'Mark all as read')}
+                </button>
+              )}
+            </div>
+
+            {/* Détail ancienneté par employé */}
+            {hrStatuses.length > 0 && (
+              <div className={cardStyle}>
+                {isDeco && <DecoCorners />}
+                {sectionTitle(t('📊 Détail ancienneté', '📊 Seniority Detail'))}
+                <div className="space-y-3">
+                  {hrStatuses.map(({ employee, seniority, vacation, compliance }) => (
+                    <div key={employee.id} className={`rounded-xl p-4 border ${
+                      compliance.isCompliant
+                        ? isDeco ? 'bg-[#D6B25E]/5 border-[#D6B25E]/15' : 'bg-white/5 border-white/10'
+                        : 'bg-red-500/8 border-red-500/25'
+                    }`}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div style={{ width: 36, height: 36, borderRadius: '50%', background: employee.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
+                          {employee.name[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-bold text-sm ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>{employee.name}</p>
+                          <p className={`text-xs ${isDeco ? 'text-[#D6B25E]/50' : 'text-white/40'}`}>
+                            🗓 {employee.hireDate
+                              ? new Date(employee.hireDate).toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA')
+                              : t('Date non définie', 'No hire date')}
+                          </p>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded-lg font-bold ${compliance.isCompliant ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                          {compliance.isCompliant ? '✅' : '🚨'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className={`rounded-lg p-2 text-center ${isDeco ? 'bg-[#D6B25E]/10' : 'bg-white/5'}`}>
+                          <p className={`text-sm font-black ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>{seniority.label}</p>
+                          <p className={`text-xs mt-0.5 ${isDeco ? 'text-[#D6B25E]/40' : 'text-white/30'}`}>{t('Ancienneté', 'Seniority')}</p>
+                        </div>
+                        <div className={`rounded-lg p-2 text-center ${isDeco ? 'bg-[#D6B25E]/10' : 'bg-white/5'}`}>
+                          <p className={`text-sm font-black ${vacation.isCompliant ? 'text-emerald-400' : 'text-red-400'}`}>{vacation.effectiveRate}%</p>
+                          <p className={`text-xs mt-0.5 ${isDeco ? 'text-[#D6B25E]/40' : 'text-white/30'}`}>{t('Vacances', 'Vacation')}</p>
+                        </div>
+                        <div className={`rounded-lg p-2 text-center ${isDeco ? 'bg-[#D6B25E]/10' : 'bg-white/5'}`}>
+                          <p className={`text-sm font-black ${isDeco ? 'text-[#D6B25E]' : 'text-cyan-400'}`}>
+                            {vacation.nextTier ? `${vacation.monthsUntilNextTier}m` : '—'}
+                          </p>
+                          <p className={`text-xs mt-0.5 ${isDeco ? 'text-[#D6B25E]/40' : 'text-white/30'}`}>{t('→ palier', '→ tier')}</p>
+                        </div>
+                      </div>
+                      {compliance.violations.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {compliance.violations.map((v, i) => (
+                            <p key={i} className="text-xs text-red-400 flex items-start gap-1"><span className="flex-shrink-0">🚨</span>{v}</p>
+                          ))}
+                        </div>
+                      )}
+                      {compliance.warnings.length > 0 && (
+                        <div className="mt-1 space-y-1">
+                          {compliance.warnings.map((w, i) => (
+                            <p key={i} className="text-xs text-orange-400 flex items-start gap-1"><span className="flex-shrink-0">⚠️</span>{w}</p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {hrStatuses.length === 0 && (
+              <div className={cardStyle}>
+                <p className={`text-sm text-center py-6 ${isDeco ? 'text-[#D6B25E]/50' : 'text-white/40'}`}>
+                  {t(
+                    'Aucun employé salarié avec date d\'embauche. Ajoutez une date d\'embauche dans l\'onglet Employés.',
+                    'No salaried employees with hire date. Add a hire date in the Employees tab.'
+                  )}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
     </div>
   )
-}
