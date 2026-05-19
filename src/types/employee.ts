@@ -19,31 +19,36 @@ export interface Employee {
   invoiceSequence: number
 
   // ── Coordonnées — TOUS les employés ─────────────────────────────────────
-  phone?: string            // Téléphone principal
-  email?: string            // Courriel — invoices, slips de paye, communications
-  address?: string          // Numéro civique + rue
-  city?: string             // Ville
-  province?: string         // Province (coordonnées — pas la même que employeeProvince)
-  postalCode?: string       // Code postal
+  phone?: string
+  email?: string
+  address?: string
+  city?: string
+  province?: string
+  postalCode?: string
 
   // ── Contact d'urgence — TOUS les employés ───────────────────────────────
-  // Important pour travaux en hauteur / toiture
-  emergencyContact?: string // Nom de la personne à contacter
-  emergencyPhone?: string   // Son numéro de téléphone
-  emergencyRelation?: string // Ex: "Conjointe", "Père", "Frère"
+  emergencyContact?: string
+  emergencyPhone?: string
+  emergencyRelation?: string
 
   // ── Type de travailleur et paie ──────────────────────────────────────────
   workerType?: EmployeeWorkerType
   employeeCountry?: EmployeeCountry
-  employeeProvince?: string   // Province pour calcul impôt/paie
+  employeeProvince?: string
   payFrequency?: EmployeePayFrequency
   payPeriodStart?: EmployeePayPeriodStart
   annualSalary?: number
 
   // ── Champs sous-traitant uniquement (légal CRA) ──────────────────────────
-  businessName?: string     // "Toiture Leblanc Inc." si différent du nom
-  gstNumber?: string        // Si inscrit TPS → on lui paie GST 5%
-  sin?: string              // NAS — si PAS de GST → T4A requis fin d'année
+  businessName?: string
+  gstNumber?: string
+  sin?: string
+
+  // ── RH — Ancienneté & conformité ─────────────────────────────────────────
+  hireDate?: string                  // ISO date — ex: "2023-06-15"
+  contractRenewalDate?: string       // Rappel renouvellement contrat
+  alertsAcknowledged?: string[]      // IDs des alertes RH déjà vues/fermées
+  vacationRateOverride?: number      // % custom si admin veut forcer (ex: 8.5)
 }
 
 export interface EmployeeSession {
