@@ -57,6 +57,39 @@ function JobCardModal({ project, onClose }: { project: Project; onClose: () => v
   const [expDesc, setExpDesc] = useState('');
   const [expAmt, setExpAmt] = useState('');
   const [tab, setTab] = useState<'overview' | 'employees' | 'expenses' | 'logs'>('overview');
+
+  // ── Géofencing dans la carte projet ──────────────────────────────────────
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [geoError, setGeoError]   = useState('')
+
+  const handleUseMyLocationCard = () => {
+    if (!navigator.geolocation) {
+      setGeoStatus('error')
+      setGeoError(t('GPS non supporté.', 'GPS not supported.'))
+      return
+    }
+    setGeoStatus('loading')
+    setGeoError('')
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude.toFixed(6)
+        const lng = pos.coords.longitude.toFixed(6)
+        updateProject(project.id, { jobsiteLatLng: `${lat},${lng}` })
+        setGeoStatus('success')
+        setTimeout(() => setGeoStatus('idle'), 3000)
+      },
+      () => {
+        setGeoStatus('error')
+        setGeoError(t('Permission GPS refusée.', 'GPS permission denied.'))
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    )
+  }
+
+  const googleMapsUrl = project.jobsiteLatLng
+    ? `https://maps.google.com/?q=${project.jobsiteLatLng}`
+    : null
+
   const stats = calcProjectStats(project);
   const marginColor = stats.marginPercent >= 40 ? theme.colors.success : stats.marginPercent >= 20 ? theme.colors.warning : theme.colors.danger;
 
@@ -93,6 +126,23 @@ function JobCardModal({ project, onClose }: { project: Project; onClose: () => v
                 {project.payMode === 'job' && project.jobAmount && ` · ${fmt(project.jobAmount)}`}
                 {project.payMode === 'sqft' && project.sqftRate && ` · $${project.sqftRate}/pi²`}
               </p>
+              {/* Badge GPS */}
+              {project.jobsiteLatLng ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                  <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '20px', background: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)', fontWeight: 700 }}>
+                    📍 {t('GPS actif', 'GPS active')}
+                  </span>
+                  {googleMapsUrl && (
+                    <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '10px', color: 'var(--text-muted)', textDecoration: 'none' }}>
+                      🗺️ {t('Vérifier', 'Verify')}
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '20px', background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)', fontWeight: 700, marginTop: '4px', display: 'inline-block' }}>
+                  📍 {t('Pas de GPS', 'No GPS')}
+                </span>
+              )}
             </div>
             <button onClick={onClose} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '50%', width: '32px', height: '32px', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
           </div>
@@ -150,6 +200,70 @@ function JobCardModal({ project, onClose }: { project: Project; onClose: () => v
                   </div>
                 </div>
               )}
+
+              {/* ── Section GPS dans la carte projet ── */}
+              <div style={{ ...cardStyle, border: project.jobsiteLatLng ? '1px solid rgba(34,197,94,0.3)' : '1px solid var(--border)', background: project.jobsiteLatLng ? 'rgba(34,197,94,0.06)' : 'var(--card)' }}>
+                <p style={{ fontSize: '10px', fontWeight: 800, color: project.jobsiteLatLng ? '#22c55e' : 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px' }}>
+                  📍 {t('Géofencing chantier', 'Jobsite Geofencing')}
+                </p>
+
+                {/* Bouton position actuelle */}
+                <button
+                  onClick={handleUseMyLocationCard}
+                  disabled={geoStatus === 'loading'}
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', cursor: geoStatus === 'loading' ? 'not-allowed' : 'pointer', border: geoStatus === 'success' ? '1px solid rgba(34,197,94,0.5)' : '1px solid var(--border)', background: geoStatus === 'success' ? 'rgba(34,197,94,0.15)' : 'var(--surface)', color: geoStatus === 'success' ? '#22c55e' : 'var(--text)', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', opacity: geoStatus === 'loading' ? 0.6 : 1 }}
+                >
+                  {geoStatus === 'loading' && <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />}
+                  {geoStatus === 'success' ? '✅' : '📍'}
+                  {geoStatus === 'loading' ? t('Localisation...', 'Getting location...') : geoStatus === 'success' ? t('Position sauvegardée!', 'Position saved!') : t('Utiliser ma position actuelle', 'Use my current location')}
+                </button>
+
+                {geoStatus === 'error' && (
+                  <p style={{ color: '#ef4444', fontSize: '11px', marginBottom: '8px' }}>🚫 {geoError}</p>
+                )}
+
+                {/* Instructions Google Maps */}
+                <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', marginBottom: '8px' }}>
+                  <p style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                    🗺️ {t('Google Maps : appui long sur le chantier → copie les coordonnées → colle ici', 'Google Maps: long press on jobsite → copy coordinates → paste here')}
+                  </p>
+                </div>
+
+                {/* Champ coordonnées */}
+                <input
+                  value={project.jobsiteLatLng || ''}
+                  onChange={e => updateProject(project.id, { jobsiteLatLng: e.target.value || undefined })}
+                  placeholder="51.044733, -114.071883"
+                  inputMode="decimal"
+                  style={{ ...inputStyle, marginBottom: '8px', fontFamily: 'monospace', fontSize: '13px' }}
+                />
+
+                {/* Aperçu + lien Maps */}
+                {project.jobsiteLatLng && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <p style={{ fontSize: '11px', color: '#22c55e', fontWeight: 700 }}>
+                      ✅ {t('GPS configuré — géofencing actif tant que le projet est ouvert', 'GPS set — geofencing active while project is open')}
+                    </p>
+                    {googleMapsUrl && (
+                      <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer"
+                        style={{ flexShrink: 0, padding: '6px 10px', borderRadius: '8px', background: 'rgba(34,197,94,0.15)', color: '#22c55e', fontSize: '11px', fontWeight: 700, textDecoration: 'none' }}>
+                        🗺️
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Effacer */}
+                {project.jobsiteLatLng && (
+                  <button
+                    onClick={() => updateProject(project.id, { jobsiteLatLng: undefined })}
+                    style={{ width: '100%', marginTop: '8px', padding: '8px', borderRadius: '8px', cursor: 'pointer', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: '11px', fontWeight: 700 }}
+                  >
+                    🗑️ {t('Effacer les coordonnées', 'Clear coordinates')}
+                  </button>
+                )}
+              </div>
+
               <DecoGravure />
               {project.status === 'open' && (
                 <button onClick={() => { closeProject(project.id); onClose(); }} style={{ width: '100%', padding: '14px', borderRadius: '12px', cursor: 'pointer', border: '1px solid var(--info)', background: `${theme.colors.info}18`, color: 'var(--info)', fontWeight: 700, fontSize: '14px' }}>
@@ -288,7 +402,36 @@ function NewProjectModal({ onClose }: { onClose: () => void }) {
     payMode: 'hourly' as PayMode,
     hourlyRate: '', jobAmount: '', sqftRate: '', clientAmount: '',
     assignedEmployeeIds: [] as string[], notes: '',
+    jobsiteLatLng: '',
   });
+
+  // ── GPS pour le nouveau projet ────────────────────────────────────────────
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [geoError, setGeoError]   = useState('')
+
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoStatus('error')
+      setGeoError(t('GPS non supporté.', 'GPS not supported.'))
+      return
+    }
+    setGeoStatus('loading')
+    setGeoError('')
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude.toFixed(6)
+        const lng = pos.coords.longitude.toFixed(6)
+        setForm(f => ({ ...f, jobsiteLatLng: `${lat},${lng}` }))
+        setGeoStatus('success')
+        setTimeout(() => setGeoStatus('idle'), 3000)
+      },
+      () => {
+        setGeoStatus('error')
+        setGeoError(t('Permission GPS refusée. Activez la localisation.', 'GPS permission denied. Enable location.'))
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    )
+  }
 
   const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }));
   const toggleEmployee = (id: string) => setForm(f => ({ ...f, assignedEmployeeIds: f.assignedEmployeeIds.includes(id) ? f.assignedEmployeeIds.filter(e => e !== id) : [...f.assignedEmployeeIds, id] }));
@@ -296,12 +439,27 @@ function NewProjectModal({ onClose }: { onClose: () => void }) {
   const handleSubmit = () => {
     if (!form.name || !form.address) return;
     const client = clients.find(c => c.id === form.clientId);
-    addProject({ name: form.name, clientId: form.clientId, clientName: client?.name ?? '', address: form.address, city: form.city, payMode: form.payMode, hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : undefined, jobAmount: form.jobAmount ? parseFloat(form.jobAmount) : undefined, sqftRate: form.sqftRate ? parseFloat(form.sqftRate) : undefined, clientAmount: form.clientAmount ? parseFloat(form.clientAmount) : undefined, assignedEmployeeIds: form.assignedEmployeeIds, notes: form.notes });
+    addProject({
+      name: form.name,
+      clientId: form.clientId,
+      clientName: client?.name ?? '',
+      address: form.address,
+      city: form.city,
+      payMode: form.payMode,
+      hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : undefined,
+      jobAmount: form.jobAmount ? parseFloat(form.jobAmount) : undefined,
+      sqftRate: form.sqftRate ? parseFloat(form.sqftRate) : undefined,
+      clientAmount: form.clientAmount ? parseFloat(form.clientAmount) : undefined,
+      assignedEmployeeIds: form.assignedEmployeeIds,
+      notes: form.notes,
+      jobsiteLatLng: form.jobsiteLatLng.trim() || undefined,
+    });
     onClose();
   };
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: '64px' }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       <div style={{ width: '100%', maxWidth: '520px', background: 'var(--surface)', borderRadius: '24px 24px 0 0', border: '1px solid var(--border)', borderBottom: 'none', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100dvh - 64px)', overflow: 'hidden' }}>
         <div style={{ height: '2px', background: 'linear-gradient(90deg, transparent, var(--primary), transparent)', flexShrink: 0 }} />
         <div style={{ padding: '20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
@@ -309,6 +467,8 @@ function NewProjectModal({ onClose }: { onClose: () => void }) {
           <button onClick={onClose} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '50%', width: '32px', height: '32px', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
         </div>
         <div style={{ overflowY: 'auto', flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+          {/* Infos de base */}
           {[
             { label: t('Nom du projet *', 'Project name *'), key: 'name', placeholder: t('Ex: Toiture — 123 Main St', 'Ex: Roofing — 123 Main St') },
             { label: t('Adresse du chantier *', 'Job site address *'), key: 'address', placeholder: '123 Main St' },
@@ -320,6 +480,7 @@ function NewProjectModal({ onClose }: { onClose: () => void }) {
             </div>
           ))}
 
+          {/* Client */}
           <div>
             <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>{t('Client', 'Client')}</label>
             <select value={form.clientId} onChange={e => set('clientId', e.target.value)} style={{ ...inputStyle }}>
@@ -328,6 +489,7 @@ function NewProjectModal({ onClose }: { onClose: () => void }) {
             </select>
           </div>
 
+          {/* Mode de paiement */}
           <div>
             <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>{t('Mode de paiement des employés', 'Employee pay mode')}</label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
@@ -344,6 +506,7 @@ function NewProjectModal({ onClose }: { onClose: () => void }) {
           {form.payMode === 'job'    && (<div><label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>{t('Montant total à la job ($)', 'Total flat rate ($)')}</label><input type="number" value={form.jobAmount} onChange={e => set('jobAmount', e.target.value)} placeholder="1500" style={inputStyle} /></div>)}
           {form.payMode === 'sqft'   && (<div><label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>{t('Taux pi² ($/pi²)', 'Rate per sqft ($/sqft)')}</label><input type="number" value={form.sqftRate} onChange={e => set('sqftRate', e.target.value)} placeholder="2.25" style={inputStyle} /></div>)}
 
+          {/* Montant client */}
           <div style={{ background: 'var(--primary)11', border: '1px solid var(--primary)33', borderRadius: '10px', padding: '14px' }}>
             <label style={{ display: 'block', fontSize: '11px', color: 'var(--primary)', fontWeight: 800, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '1px' }}>
               💼 {t('Montant client (admin seulement)', 'Client amount (admin only)')}
@@ -351,6 +514,78 @@ function NewProjectModal({ onClose }: { onClose: () => void }) {
             <input type="number" value={form.clientAmount} onChange={e => set('clientAmount', e.target.value)} placeholder={t('Ex: 3500', 'Ex: 3500')} style={{ ...inputStyle, border: '1px solid var(--primary)44' }} />
           </div>
 
+          {/* ── SECTION GPS / GÉOFENCING ── */}
+          <div style={{ background: form.jobsiteLatLng ? 'rgba(34,197,94,0.06)' : 'var(--card)', border: form.jobsiteLatLng ? '1px solid rgba(34,197,94,0.35)' : '1px solid var(--border)', borderRadius: '12px', padding: '14px' }}>
+            <label style={{ display: 'block', fontSize: '11px', color: form.jobsiteLatLng ? '#22c55e' : 'var(--text-muted)', fontWeight: 800, marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              📍 {t('GPS Chantier — Géofencing automatique', 'Jobsite GPS — Auto Geofencing')}
+            </label>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px', lineHeight: 1.5 }}>
+              {t(
+                'En ajoutant les coordonnées, le géofencing s\'active automatiquement. Il s\'arrête quand tu fermes le projet.',
+                'Adding coordinates automatically activates geofencing. It stops when you close the project.'
+              )}
+            </p>
+
+            {/* Bouton Option A — Ma position */}
+            <button
+              onClick={handleUseMyLocation}
+              disabled={geoStatus === 'loading'}
+              style={{ width: '100%', padding: '12px', borderRadius: '10px', cursor: geoStatus === 'loading' ? 'not-allowed' : 'pointer', border: geoStatus === 'success' ? '1px solid rgba(34,197,94,0.5)' : '1px solid var(--border)', background: geoStatus === 'success' ? 'rgba(34,197,94,0.15)' : 'var(--surface)', color: geoStatus === 'success' ? '#22c55e' : 'var(--text)', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', opacity: geoStatus === 'loading' ? 0.6 : 1, transition: 'all 0.2s' }}
+            >
+              {geoStatus === 'loading' && (
+                <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              )}
+              {geoStatus === 'success' ? '✅' : '📍'}
+              {geoStatus === 'loading'
+                ? t('Localisation en cours...', 'Getting location...')
+                : geoStatus === 'success'
+                ? t('Position sauvegardée!', 'Position saved!')
+                : t('📍 Utiliser ma position actuelle', '📍 Use my current location')}
+            </button>
+
+            {/* Erreur GPS */}
+            {geoStatus === 'error' && (
+              <p style={{ color: '#ef4444', fontSize: '11px', marginBottom: '8px' }}>🚫 {geoError}</p>
+            )}
+
+            {/* Option C — Instructions Google Maps */}
+            <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', marginBottom: '8px' }}>
+              <p style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+                🗺️ {t(
+                  'Google Maps : 1. Ouvre Maps  2. Appui long sur le chantier  3. Copie les chiffres  4. Colle ici',
+                  'Google Maps: 1. Open Maps  2. Long press on jobsite  3. Copy numbers  4. Paste here'
+                )}
+              </p>
+            </div>
+
+            {/* Champ coordonnées */}
+            <input
+              value={form.jobsiteLatLng}
+              onChange={e => { set('jobsiteLatLng', e.target.value); if (geoStatus !== 'idle') setGeoStatus('idle') }}
+              placeholder="51.044733, -114.071883"
+              inputMode="decimal"
+              style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '13px' }}
+            />
+
+            {/* Aperçu si valide */}
+            {form.jobsiteLatLng.includes(',') && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
+                <span style={{ fontSize: '11px', color: '#22c55e', fontWeight: 700 }}>
+                  ✅ {t('GPS configuré — géofencing actif dès création', 'GPS set — geofencing active on creation')}
+                </span>
+                <a
+                  href={`https://maps.google.com/?q=${form.jobsiteLatLng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: '11px', color: 'var(--text-muted)', textDecoration: 'none', marginLeft: 'auto' }}
+                >
+                  🗺️ {t('Vérifier', 'Verify')}
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Employés assignés */}
           <div>
             <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>{t('Employés assignés', 'Assigned employees')}</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -366,6 +601,7 @@ function NewProjectModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
+          {/* Notes */}
           <div>
             <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>{t('Notes', 'Notes')}</label>
             <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={3} placeholder={t('Instructions, matériaux requis...', 'Instructions, materials needed...')} style={{ ...inputStyle, resize: 'vertical' as const }} />
@@ -410,6 +646,7 @@ export default function ProjectsPage() {
     <div style={pageStyle}>
       <style>{`
         @keyframes projectFadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg) } }
         .project-card { animation: projectFadeIn 0.3s ease both; }
         .project-card:active { transform: scale(0.98); transition: transform 0.15s; }
       `}</style>
@@ -457,6 +694,12 @@ export default function ProjectsPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 900, fontSize: '15px', color: 'var(--text)' }}>{project.name}</span>
                     {stats.activeLog && (<span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '20px', background: 'var(--success)22', color: 'var(--success)', border: '1px solid var(--success)44', fontWeight: 700 }}>🟢 {t('En cours', 'Active')}</span>)}
+                    {/* Badge GPS sur la carte */}
+                    {project.jobsiteLatLng && project.status === 'open' && (
+                      <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '20px', background: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)', fontWeight: 700 }}>
+                        📍 GPS
+                      </span>
+                    )}
                   </div>
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{project.address}, {project.city}</p>
                   {project.clientName && <p style={{ fontSize: '12px', color: 'var(--primary)', marginTop: '2px' }}>👤 {project.clientName}</p>}
