@@ -66,22 +66,21 @@ export const useEmployeeStore = create<EmployeeStore>()(
           createdAt: new Date().toISOString(),
           invoiceSequence: 0,
         }
-        set({ employees: [...employees, newEmp] })
-        syncEmployeesToSupabase([...employees, newEmp])
+        const newEmployees = [...employees, newEmp]
+        set({ employees: newEmployees })
+        syncEmployeesToSupabase(newEmployees)
       },
 
       updateEmployee: (id, updates) => {
-        set(state => ({
-          employees: state.employees.map(e => e.id === id ? { ...e, ...updates } : e)
-        }))
-        syncEmployeesToSupabase(get().employees)
+        const newEmployees = get().employees.map(e => e.id === id ? { ...e, ...updates } : e)
+        set({ employees: newEmployees })
+        syncEmployeesToSupabase(newEmployees)
       },
 
       deleteEmployee: (id) => {
-        set(state => ({
-          employees: state.employees.filter(e => e.id !== id)
-        }))
-        syncEmployeesToSupabase(get().employees)
+        const newEmployees = get().employees.filter(e => e.id !== id)
+        set({ employees: newEmployees })
+        syncEmployeesToSupabase(newEmployees)
       },
 
       verifyPin: (employeeId, pin) => {
@@ -218,14 +217,13 @@ export const useEmployeeStore = create<EmployeeStore>()(
       },
 
       incrementInvoiceSequence: (employeeId) => {
-        set(state => ({
-          employees: state.employees.map(e =>
-            e.id === employeeId
-              ? { ...e, invoiceSequence: e.invoiceSequence + 1 }
-              : e
-          )
-        }))
-        syncEmployeesToSupabase(get().employees)
+        const newEmployees = get().employees.map(e =>
+          e.id === employeeId
+            ? { ...e, invoiceSequence: e.invoiceSequence + 1 }
+            : e
+        )
+        set({ employees: newEmployees })
+        syncEmployeesToSupabase(newEmployees)
       },
 
       syncToCloud: async () => {
@@ -273,4 +271,4 @@ export const useEmployeeStore = create<EmployeeStore>()(
 
 if (typeof window !== 'undefined') {
   setInterval(() => useEmployeeStore.getState().tick(), 1000)
-}
+                   }
