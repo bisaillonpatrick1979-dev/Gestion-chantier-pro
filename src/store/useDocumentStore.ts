@@ -1,10 +1,16 @@
 'use client'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { GCPDocument, Document, DocumentType, LineItem } from '@/types/documents'
+import { GCPDocument, DocumentType, LineItem } from '@/types/documents'
+import {
+  syncDocumentsToSupabase,
+  fetchDocumentsFromSupabase,
+} from '@/lib/sync'
 
 interface DocumentStore {
   documents: GCPDocument[]
+  isSyncing: boolean
+  lastSync: string | null
   addDocument: (type: DocumentType) => GCPDocument
   updateDocument: (id: string, updates: Partial<GCPDocument>) => void
   deleteDocument: (id: string) => void
@@ -12,6 +18,8 @@ interface DocumentStore {
   updateLineItem: (docId: string, itemId: string, updates: Partial<LineItem>) => void
   removeLineItem: (docId: string, itemId: string) => void
   calculateTotals: (docId: string) => void
+  syncToCloud: () => Promise<void>
+  fetchFromCloud: () => Promise<void>
 }
 
 const uid = () => Date.now().toString() + Math.random().toString(36).slice(2, 6)
@@ -27,6 +35,8 @@ export const useDocumentStore = create<DocumentStore>()(
   persist(
     (set, get) => ({
       documents: [],
+      isSyncing: false,
+      lastSync: null,
 
       addDocument: (type) => {
         const { documents } = get()
@@ -67,18 +77,25 @@ export const useDocumentStore = create<DocumentStore>()(
         }
 
         set({ documents: [...documents, newDoc] })
+        syncDocumentsToSupabase([...get().documents])
         return newDoc
       },
 
-      updateDocument: (id, updates) => set(state => ({
-        documents: state.documents.map(d =>
-          d.id === id ? { ...d, ...updates, updatedAt: new Date().toISOString() } : d
-        )
-      })),
+      updateDocument: (id, updates) => {
+        set(state => ({
+          documents: state.documents.map(d =>
+            d.id === id ? { ...d, ...updates, updatedAt: new Date().toISOString() } : d
+          )
+        }))
+        syncDocumentsToSupabase(get().documents)
+      },
 
-      deleteDocument: (id) => set(state => ({
-        documents: state.documents.filter(d => d.id !== id)
-      })),
+      deleteDocument: (id) => {
+        set(state => ({
+          documents: state.documents.filter(d => d.id !== id)
+        }))
+        syncDocumentsToSupabase(get().documents)
+      },
 
       addLineItem: (docId) => {
         const newItem: LineItem = { id: uid(), description: '', qty: 1, unit: 'unité', unitPrice: 0 }
@@ -87,6 +104,7 @@ export const useDocumentStore = create<DocumentStore>()(
             d.id === docId ? { ...d, lines: [...d.lines, newItem] } : d
           )
         }))
+        syncDocumentsToSupabase(get().documents)
       },
 
       updateLineItem: (docId, itemId, updates) => {
@@ -126,6 +144,34 @@ export const useDocumentStore = create<DocumentStore>()(
             return { ...d, subtotal, discountAmount, taxAmount, total, balanceDue, updatedAt: new Date().toISOString() }
           })
         }))
+        syncDocumentsToSupabase(get().documents)
+      },
+
+      syncToCloud: async () => {
+        set({ isSyncing: true })
+        try {
+          await syncDocumentsToSupabase(get().documents)
+          set({ lastSync: new Date().toISOString() })
+        } catch (e) {
+          console.error('syncToCloud documents error:', e)
+        } finally {
+          set({ isSyncing: false })
+        }
+      },
+
+      fetchFromCloud: async () => {
+        set({ isSyncing: true })
+        try {
+          const remote = await fetchDocumentsFromSupabase()
+          if (remote && remote.length > 0) {
+            set({ documents: remote })
+          }
+          set({ lastSync: new Date().toISOString() })
+        } catch (e) {
+          console.error('fetchFromCloud documents error:', e)
+        } finally {
+          set({ isSyncing: false })
+        }
       },
     }),
     { name: 'document-store-v1' }
