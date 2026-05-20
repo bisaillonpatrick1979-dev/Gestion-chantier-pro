@@ -43,23 +43,22 @@ export const useClientStore = create<ClientStore>()(
           id: Date.now().toString(),
           createdAt: new Date().toISOString(),
         }
-        set(state => ({ clients: [...state.clients, newClient] }))
-        syncClientsToSupabase([...get().clients])
+        const newClients = [...get().clients, newClient]
+        set({ clients: newClients })
+        syncClientsToSupabase(newClients)
         return newClient
       },
 
       updateClient: (id, updates) => {
-        set(state => ({
-          clients: state.clients.map(c => c.id === id ? { ...c, ...updates } : c)
-        }))
-        syncClientsToSupabase(get().clients)
+        const newClients = get().clients.map(c => c.id === id ? { ...c, ...updates } : c)
+        set({ clients: newClients })
+        syncClientsToSupabase(newClients)
       },
 
       deleteClient: (id) => {
-        set(state => ({
-          clients: state.clients.filter(c => c.id !== id)
-        }))
-        syncClientsToSupabase(get().clients)
+        const newClients = get().clients.filter(c => c.id !== id)
+        set({ clients: newClients })
+        syncClientsToSupabase(newClients)
       },
 
       syncToCloud: async () => {
