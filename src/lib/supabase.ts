@@ -1,6 +1,29 @@
-import { createClient } from '@supabase/supabase-js'
-
-const SUPABASE_URL = 'https://nsxeveoscpbioayrvlxi.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zeGV2ZW9zY3BiaW9heXJ2bHhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMjMzOTgsImV4cCI6MjA5NDc5OTM5OH0.v064Bp2HHah4O6bZ5V4WcCV2yD-xsXoerNLJt7hlVeA'
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+export async function syncClientsToSupabase(clients: any[]) {
+  console.log('🔄 syncClientsToSupabase called:', clients.length, 'clients')
+  if (!clients.length) {
+    console.log('⚠️ syncClientsToSupabase: empty array, skipping')
+    return
+  }
+  const rows = clients.map(c => ({
+    id: c.id,
+    name: c.name,
+    phone: c.phone ?? '',
+    email: c.email ?? '',
+    address: c.address ?? '',
+    city: c.city ?? '',
+    province: c.province ?? 'AB',
+    postal_code: c.postalCode ?? '',
+    notes: c.notes ?? '',
+    updated_at: new Date().toISOString(),
+  }))
+  console.log('📤 Upserting rows:', JSON.stringify(rows))
+  const { data, error } = await supabase
+    .from('clients')
+    .upsert(rows, { onConflict: 'id' })
+    .select()
+  if (error) {
+    console.error('❌ Sync clients error:', JSON.stringify(error))
+  } else {
+    console.log('✅ Sync clients success:', data)
+  }
+}
