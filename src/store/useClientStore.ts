@@ -1,6 +1,10 @@
 'use client'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import {
+  syncClientsToSupabase,
+  fetchClientsFromSupabase,
+} from '@/lib/sync'
 
 export interface Client {
   id: string
@@ -17,15 +21,21 @@ export interface Client {
 
 interface ClientStore {
   clients: Client[]
+  isSyncing: boolean
+  lastSync: string | null
   addClient: (data: Omit<Client, 'id' | 'createdAt'>) => Client
   updateClient: (id: string, updates: Partial<Client>) => void
   deleteClient: (id: string) => void
+  syncToCloud: () => Promise<void>
+  fetchFromCloud: () => Promise<void>
 }
 
 export const useClientStore = create<ClientStore>()(
   persist(
     (set, get) => ({
       clients: [],
+      isSyncing: false,
+      lastSync: null,
 
       addClient: (data) => {
         const newClient: Client = {
@@ -34,18 +44,51 @@ export const useClientStore = create<ClientStore>()(
           createdAt: new Date().toISOString(),
         }
         set(state => ({ clients: [...state.clients, newClient] }))
+        syncClientsToSupabase([...get().clients])
         return newClient
       },
 
-      updateClient: (id, updates) => set(state => ({
-        clients: state.clients.map(c => c.id === id ? { ...c, ...updates } : c)
-      })),
+      updateClient: (id, updates) => {
+        set(state => ({
+          clients: state.clients.map(c => c.id === id ? { ...c, ...updates } : c)
+        }))
+        syncClientsToSupabase(get().clients)
+      },
 
-      deleteClient: (id) => set(state => ({
-        clients: state.clients.filter(c => c.id !== id)
-      })),
+      deleteClient: (id) => {
+        set(state => ({
+          clients: state.clients.filter(c => c.id !== id)
+        }))
+        syncClientsToSupabase(get().clients)
+      },
+
+      syncToCloud: async () => {
+        set({ isSyncing: true })
+        try {
+          await syncClientsToSupabase(get().clients)
+          set({ lastSync: new Date().toISOString() })
+        } catch (e) {
+          console.error('syncToCloud clients error:', e)
+        } finally {
+          set({ isSyncing: false })
+        }
+      },
+
+      fetchFromCloud: async () => {
+        set({ isSyncing: true })
+        try {
+          const remote = await fetchClientsFromSupabase()
+          if (remote && remote.length > 0) {
+            set({ clients: remote })
+          }
+          set({ lastSync: new Date().toISOString() })
+        } catch (e) {
+          console.error('fetchFromCloud clients error:', e)
+        } finally {
+          set({ isSyncing: false })
+        }
+      },
     }),
     { name: 'client-store-v1' }
   )
 )
-
