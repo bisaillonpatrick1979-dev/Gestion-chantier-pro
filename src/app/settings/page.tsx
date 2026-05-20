@@ -47,7 +47,7 @@ export default function SettingsPage() {
   const cardClass  = isDeco ? 'deco-card-sweep' : isQuantum ? 'quantum-card-glow' : isAventure ? 'aventure-card-glow' : isInferno ? 'inferno-card-glow' : isArctic ? 'arctic-card-glow' : isCarbon ? 'carbon-card-glow' : ''
 
   const { employees, addEmployee, updateEmployee, deleteEmployee } = useEmployeeStore()
-  const { company, setCompany } = useCompanyStore()
+  const { company, setCompany, syncToCloud: syncCompanyToCloud } = useCompanyStore()
   const { enabled: voiceEnabled, volume: voiceVolume, setEnabled: setVoiceEnabled, setVolume: setVoiceVolume } = useVoiceReminderStore()
   const { clients, addClient, deleteClient } = useClientStore()
   const { materials, deleteMaterial } = useCatalogueStore()
@@ -56,6 +56,7 @@ export default function SettingsPage() {
 
   const TABS = lang === 'fr' ? TABS_FR : TABS_EN
   const [activeTab, setActiveTab] = useState(0)
+  const [companySaved, setCompanySaved] = useState(false)
 
   // ── Géofencing UI state ───────────────────────────────────────────────────
   const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
@@ -144,7 +145,6 @@ export default function SettingsPage() {
     resetNewForm()
   }
 
-  // ── Suppressions avec confirmation ───────────────────────────────────────
   const handleDeleteEmployee = (id: string, name: string) => {
     if (confirm(t(`Supprimer ${name} ? Cette action est irréversible.`, `Delete ${name}? This cannot be undone.`))) {
       deleteEmployee(id)
@@ -184,7 +184,12 @@ export default function SettingsPage() {
     setNewClientName(''); setNewClientPhone(''); setNewClientEmail(''); setNewClientCity('')
   }
 
-  // ── Géofencing : utiliser ma position actuelle ────────────────────────────
+  const handleSaveCompany = async () => {
+    await syncCompanyToCloud()
+    setCompanySaved(true)
+    setTimeout(() => setCompanySaved(false), 2500)
+  }
+
   const handleUseMyLocation = () => {
     if (!navigator.geolocation) {
       setGeoStatus('error')
@@ -430,6 +435,18 @@ export default function SettingsPage() {
               <div><label className={labelClass}>{t('Montant', 'Amount')} $/période</label><input className={inputClass} type="number" min="0" step="0.01" value={company.payrollCustom2Amount || ''} onChange={e => setCompany({ payrollCustom2Amount: parseFloat(e.target.value) || 0 })} placeholder="0.00" /></div>
             </div>
             {isDeco && <DecoDiamondRow />}
+
+            {/* ── Bouton Sauvegarder compagnie ── */}
+            <button
+              onClick={handleSaveCompany}
+              className={`w-full py-4 rounded-2xl font-black text-sm mt-4 transition-all active:scale-95
+                ${companySaved
+                  ? 'bg-emerald-500 text-white'
+                  : isDeco ? 'bg-gradient-to-r from-[#D6B25E] to-[#c9a84c] text-[#0d0a00]'
+                  : isQuantum ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white'
+                  : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white'}`}>
+              {companySaved ? `✅ ${t('Sauvegardé!', 'Saved!')}` : `💾 ${t('Sauvegarder les infos compagnie', 'Save Company Info')}`}
+            </button>
           </div>
         )}
 
@@ -792,8 +809,6 @@ export default function SettingsPage() {
                   💡 {t('Le géofencing se configure maintenant directement dans chaque Projet. Activez ou désactivez globalement ici.', 'Geofencing is now configured directly in each Project. Enable or disable globally here.')}
                 </p>
               </div>
-
-              {/* Toggle global */}
               <div className={`flex items-center justify-between p-4 rounded-xl mb-4 ${isDeco ? 'bg-[#D6B25E]/10 border border-[#D6B25E]/20' : 'bg-white/5 border border-white/10'}`}>
                 <div>
                   <div className={`font-semibold text-sm ${isDeco ? 'text-[#D6B25E]' : 'text-white'}`}>{t('Activer le géofencing', 'Enable Geofencing')}</div>
@@ -803,8 +818,6 @@ export default function SettingsPage() {
                   <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all duration-300 ${company.geofencingEnabled ? 'left-8' : 'left-1'}`} />
                 </button>
               </div>
-
-              {/* Rayon */}
               <div className="mb-4">
                 <label className={labelClass}>🎯 {t('Rayon autorisé', 'Allowed Radius')} — {company.geofencingRadius}m</label>
                 <input type="range" min="25" max="500" step="25" value={company.geofencingRadius} onChange={e => setCompany({ geofencingRadius: parseInt(e.target.value) })} className={`w-full mt-1 ${isDeco ? 'accent-[#D6B25E]' : isQuantum ? 'accent-violet-500' : 'accent-emerald-500'}`} />
@@ -814,15 +827,12 @@ export default function SettingsPage() {
                   <span>500m</span>
                 </div>
               </div>
-
               <div className={`p-3 rounded-xl ${isDeco ? 'bg-[#D6B25E]/5 border border-[#D6B25E]/10' : 'bg-white/5 border border-white/10'}`}>
                 <p className={`text-xs ${isDeco ? 'text-[#D6B25E]/50' : 'text-white/30'}`}>
                   👉 {t('Pour configurer les coordonnées GPS d\'un chantier, ouvre le projet dans la page Projets et entre les coordonnées dans la section GPS.', 'To configure GPS coordinates for a jobsite, open the project in the Projects page and enter coordinates in the GPS section.')}
                 </p>
               </div>
             </div>
-
-            {/* Cache + PWA */}
             <div className={cardStyle}>
               {isDeco && <DecoCorners />}
               {sectionTitle(t('⚙️ Options avancées', '⚙️ Advanced Options'))}
@@ -892,7 +902,6 @@ export default function SettingsPage() {
                 </button>
               )}
             </div>
-
             {hrStatuses.length > 0 && (
               <div className={cardStyle}>
                 {isDeco && <DecoCorners />}
@@ -924,4 +933,4 @@ export default function SettingsPage() {
       </div>
     </div>
   )
-}
+      } 
