@@ -1,5 +1,23 @@
 import { supabase } from './supabase'
 
+// ── DEBUG TEST — enlever après que ça marche ──────────────────────────────
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    supabase
+      .from('employees')
+      .select('id')
+      .limit(1)
+      .then(({ data, error }) => {
+        if (error) {
+          alert('❌ Supabase ERREUR\n' + error.message + '\nCode: ' + error.code + '\nHint: ' + (error.hint ?? 'aucun'))
+        } else {
+          alert('✅ Supabase connecté! Données reçues: ' + JSON.stringify(data))
+        }
+      })
+  }, 2000)
+}
+// ── FIN DEBUG ─────────────────────────────────────────────────────────────
+
 // ── EMPLOYEES ─────────────────────────────────────────────────────────────
 export async function syncEmployeesToSupabase(employees: any[]) {
   if (!employees.length) return
@@ -36,7 +54,10 @@ export async function syncEmployeesToSupabase(employees: any[]) {
     updated_at: new Date().toISOString(),
   }))
   const { error } = await supabase.from('employees').upsert(rows, { onConflict: 'id' })
-  if (error) console.error('Sync employees error:', error)
+  if (error) {
+    alert('❌ Sync employees erreur: ' + error.message)
+    console.error('Sync employees error:', error)
+  }
 }
 
 export async function fetchEmployeesFromSupabase() {
@@ -129,7 +150,10 @@ export async function syncClientsToSupabase(clients: any[]) {
     updated_at: new Date().toISOString(),
   }))
   const { error } = await supabase.from('clients').upsert(rows, { onConflict: 'id' })
-  if (error) console.error('Sync clients error:', error)
+  if (error) {
+    alert('❌ Sync clients erreur: ' + error.message)
+    console.error('Sync clients error:', error)
+  }
 }
 
 export async function fetchClientsFromSupabase() {
