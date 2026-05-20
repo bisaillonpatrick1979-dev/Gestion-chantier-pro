@@ -67,7 +67,6 @@ export const useEmployeeStore = create<EmployeeStore>()(
           invoiceSequence: 0,
         }
         set({ employees: [...employees, newEmp] })
-        // Sync immédiat
         syncEmployeesToSupabase([...employees, newEmp])
       },
 
@@ -158,7 +157,6 @@ export const useEmployeeStore = create<EmployeeStore>()(
           dayDetails: { ...dayDetails, [detailKey]: updated }
         })
 
-        // Sync day detail immédiat
         syncDayDetailToSupabase(detailKey, updated)
       },
 
@@ -188,4 +186,91 @@ export const useEmployeeStore = create<EmployeeStore>()(
         const { activeSessions, employees } = get()
         if (Object.keys(activeSessions).length === 0) return
         const updated = { ...activeSessions }
-        let cha
+        let changed = false
+        Object.keys(updated).forEach(empId => {
+          const session = updated[empId]
+          const emp = employees.find(e => e.id === empId)
+          if (!emp) return
+          changed = true
+          if (session.isOnBreak) {
+            updated[empId] = { ...session, breakElapsed: session.breakElapsed + 1 }
+          } else {
+            const newElapsed = session.elapsed + 1
+            const revenue = emp.workMode === 'heure'
+              ? (newElapsed / 3600) * emp.hourlyRate : 0
+            updated[empId] = { ...session, elapsed: newElapsed, revenue }
+          }
+        })
+        if (changed) set({ activeSessions: updated })
+      },
+
+      getDayDetail: (employeeId, date) => {
+        return get().dayDetails[`${employeeId}-${date}`] || null
+      },
+
+      getNextInvoiceNumber: (employeeId) => {
+        const emp = get().employees.find(e => e.id === employeeId)
+        if (!emp) return 'INV-0001'
+        const year = new Date().getFullYear()
+        const initials = emp.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
+        const num = String(emp.invoiceSequence + 1).padStart(4, '0')
+        return `${initials}-${year}-${num}`
+      },
+
+      incrementInvoiceSequence: (employeeId) => {
+        set(state => ({
+          employees: state.employees.map(e =>
+            e.id === employeeId
+              ? { ...e, invoiceSequence: e.invoiceSequence + 1 }
+              : e
+          )
+        }))
+        syncEmployeesToSupabase(get().employees)
+      },
+
+      syncToCloud: async () => {
+        set({ isSyncing: true })
+        const { employees, dayDetails } = get()
+        try {
+          await syncEmployeesToSupabase(employees)
+          await Promise.all(
+            Object.entries(dayDetails).map(([key, detail]) =>
+              syncDayDetailToSupabase(key, detail)
+            )
+          )
+          set({ lastSync: new Date().toISOString() })
+        } catch (e) {
+          console.error('syncToCloud error:', e)
+        } finally {
+          set({ isSyncing: false })
+        }
+      },
+
+      fetchFromCloud: async () => {
+        set({ isSyncing: true })
+        try {
+          const [remoteEmployees, remoteDayDetails] = await Promise.all([
+            fetchEmployeesFromSupabase(),
+            fetchDayDetailsFromSupabase(),
+          ])
+          if (remoteEmployees && remoteEmployees.length > 0) {
+            set({ employees: remoteEmployees })
+          }
+          if (remoteDayDetails && Object.keys(remoteDayDetails).length > 0) {
+            set({ dayDetails: remoteDayDetails })
+          }
+          set({ lastSync: new Date().toISOString() })
+        } catch (e) {
+          console.error('fetchFromCloud error:', e)
+        } finally {
+          set({ isSyncing: false })
+        }
+      },
+    }),
+    { name: 'employee-store-v1' }
+  )
+)
+
+if (typeof window !== 'undefined') {
+  setInterval(() => useEmployeeStore.getState().tick(), 1000)
+}
