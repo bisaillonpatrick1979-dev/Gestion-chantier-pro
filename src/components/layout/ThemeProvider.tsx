@@ -1,6 +1,7 @@
 'use client'
 import { useEffect } from 'react'
 import { useThemeStore } from '@/store/useThemeStore'
+import { infernoGlobalSkin } from '@/lib/infernoGlobalSkin'
 
 export default function ThemeProvider({
   children,
@@ -11,6 +12,11 @@ export default function ThemeProvider({
 
   useEffect(() => {
     const root = document.documentElement
+    const body = document.body
+
+    // ── Marqueur de thème pour les skins CSS avancés ──────────────────────
+    root.dataset.theme = theme.id
+    body.dataset.theme = theme.id
 
     // ── Variables CSS ────────────────────────────────────────────────────
     root.style.setProperty('--color-background',     theme.colors.background)
@@ -27,16 +33,21 @@ export default function ThemeProvider({
     root.style.setProperty('--color-glow2',          theme.colors.glow2)
 
     // ── Body couleurs ─────────────────────────────────────────────────────
-    document.body.style.backgroundColor = theme.colors.background
-    document.body.style.color = theme.colors.text
+    body.style.backgroundColor = theme.colors.background
+    body.style.color = theme.colors.text
 
     // ── CSS global du thème (effets spéciaux par thème) ───────────────────
     const oldStyle = document.getElementById('theme-global-css')
     if (oldStyle) oldStyle.remove()
-    if (theme.globalCSS) {
+
+    const cssChunks = [theme.globalCSS]
+    if (theme.id === 'inferno') cssChunks.push(infernoGlobalSkin)
+
+    const globalCSS = cssChunks.filter(Boolean).join('\n\n')
+    if (globalCSS) {
       const style = document.createElement('style')
       style.id = 'theme-global-css'
-      style.textContent = theme.globalCSS
+      style.textContent = globalCSS
       document.head.appendChild(style)
     }
   }, [theme])
