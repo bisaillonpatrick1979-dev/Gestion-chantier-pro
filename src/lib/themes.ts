@@ -631,142 +631,27 @@ const inferno: Theme = {
   globalCSS: `
     body {
       background:
-        radial-gradient(ellipse at 50% 100%, rgba(255,60,0,0.15) 0%, transparent 60%),
-        radial-gradient(ellipse at 20% 80%, rgba(255,120,0,0.10) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 90%, rgba(200,40,0,0.10) 0%, transparent 50%),
-        #0A0500 !important;
+        radial-gradient(ellipse at 50% 100%, rgba(255,84,20,0.10) 0%, transparent 55%),
+        linear-gradient(180deg, #0b0908 0%, #090706 50%, #070505 100%) !important;
       background-attachment: fixed !important;
     }
 
-    @property --inferno-angle {
-      syntax: '<angle>';
-      initial-value: 0deg;
-      inherits: false;
-    }
-
-    @keyframes infernoBorderRotate { to { --inferno-angle: 360deg; } }
-    @keyframes infernoFlicker {
-      0%,100% { opacity: 1; }
-      25%      { opacity: 0.85; }
-      50%      { opacity: 1; }
-      75%      { opacity: 0.90; }
-    }
-    @keyframes infernoGlow {
-      0%,100% {
-        box-shadow:
-          0 0 0 1px rgba(255,96,20,0.30),
-          0 0 20px rgba(255,96,20,0.15),
-          0 0 60px rgba(255,48,0,0.08),
-          inset 0 1px 0 rgba(255,160,40,0.10);
-      }
-      50% {
-        box-shadow:
-          0 0 0 1px rgba(255,160,40,0.60),
-          0 0 35px rgba(255,120,20,0.30),
-          0 0 80px rgba(255,60,0,0.15),
-          inset 0 1px 0 rgba(255,160,40,0.20);
-      }
-    }
-    @keyframes infernoSweep {
-      0%   { background-position: -200% 0; }
-      100% { background-position:  300% 0; }
-    }
-    @keyframes infernoShimmer {
-      0%   { background-position: -200% center; }
-      100% { background-position:  200% center; }
-    }
-    @keyframes infernoNavGlow {
-      0%,100% { filter: drop-shadow(0 0 4px rgba(255,96,20,0.65)); }
-      50%      { filter: drop-shadow(0 0 12px rgba(255,160,40,1.00)); }
-    }
-    @keyframes infernoLavaRise {
-      0%,100% { transform: translateY(0) scaleX(1); }
-      50%      { transform: translateY(-4px) scaleX(1.02); }
-    }
-    @keyframes infernoHazard {
-      0%   { background-position: 0 0; }
-      100% { background-position: 40px 0; }
-    }
-
     .inferno-card-glow {
-      position: relative;
       border-radius: 16px;
-      overflow: hidden;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      animation: infernoGlow 3.5s ease-in-out infinite;
-    }
-    .inferno-card-glow::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: 16px;
-      padding: 1px;
-      background: conic-gradient(
-        from var(--inferno-angle, 0deg),
-        transparent 0deg,
-        transparent 40deg,
-        rgba(255,60,0,0.80) 70deg,
-        rgba(255,160,40,1.00) 95deg,
-        rgba(255,220,80,0.90) 110deg,
-        rgba(255,100,20,0.80) 130deg,
-        transparent 160deg,
-        transparent 360deg
-      );
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: destination-out;
-      mask-composite: exclude;
-      pointer-events: none;
-      animation: infernoBorderRotate 3s linear infinite;
-    }
-    .inferno-card-glow::after {
-      content: '';
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, rgba(255,96,20,0.80), rgba(255,160,40,1.00), rgba(255,96,20,0.80), transparent);
-      background-size: 200% 100%;
-      animation: infernoSweep 2s linear infinite;
-      pointer-events: none;
+      background: rgba(24, 12, 8, 0.88);
+      border: 1px solid rgba(255, 120, 60, 0.24);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
     }
 
-    .metal-text {
-      background: linear-gradient(90deg, #FF3000 0%, #FF6014 20%, #FF9040 40%, #FFD060 50%, #FF9040 60%, #FF6014 80%, #FF3000 100%);
-      background-size: 200% auto;
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: infernoShimmer 3s linear infinite;
+    .inferno-nav-active {
+      color: #FF6014;
     }
 
-    .inferno-nav-active { animation: infernoNavGlow 2s ease-in-out infinite; }
-
-    .inferno-engraving {
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,96,20,0.15), rgba(255,160,40,0.80), rgba(255,96,20,0.15), transparent);
-      background-size: 200% 100%;
-      animation: infernoSweep 2s linear infinite;
-      position: relative;
-    }
-    .inferno-engraving::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: inherit;
-      filter: blur(3px);
-      opacity: 0.6;
-    }
-
+    .inferno-engraving,
     .inferno-hazard {
-      height: 4px;
-      background: repeating-linear-gradient(
-        -45deg,
-        rgba(255,160,40,0.80) 0px,
-        rgba(255,160,40,0.80) 8px,
-        rgba(255,60,0,0.60) 8px,
-        rgba(255,60,0,0.60) 16px
-      );
-      animation: infernoHazard 1s linear infinite;
+      display: none;
     }
   `,
 }

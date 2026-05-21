@@ -279,9 +279,9 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
     inferno: {
       wrapperClass: 'inferno-card-glow',
       wrapperStyle: {
-        background: 'rgba(24,10,0,0.95)',
+        background: 'rgba(18,12,10,0.94)',
         borderRadius: 20,
-        padding: '0 16px 28px',
+        padding: '24px 16px',
         position: 'relative',
         overflow: 'hidden',
       },
@@ -289,40 +289,16 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
       buttonStyle: {
         width: 185, height: 185, borderRadius: '50%',
         background: isRunning
-          ? 'radial-gradient(circle at 38% 32%, #FF8080, #EF4444 40%, #B91C1C 75%, #7F1D1D 95%)'
-          : 'radial-gradient(circle at 38% 32%, #FFD060 0%, #FF9040 25%, #FF6014 55%, #CC3000 80%, #8B1200 100%)',
+          ? 'linear-gradient(160deg, #742018 0%, #5f1d18 55%, #4f1a16 100%)'
+          : 'linear-gradient(160deg, #a6461f 0%, #8e3b1a 52%, #6f2d14 100%)',
         boxShadow: isRunning
-          ? '0 0 0 4px rgba(239,68,68,0.45), 0 0 50px rgba(239,68,68,0.50), 0 0 100px rgba(239,68,68,0.20), inset 0 2px 6px rgba(255,120,120,0.25), 0 10px 40px rgba(0,0,0,0.80)'
-          : '0 0 0 4px rgba(255,96,20,0.50), 0 0 50px rgba(255,96,20,0.55), 0 0 100px rgba(255,60,0,0.25), inset 0 2px 6px rgba(255,220,80,0.25), 0 10px 40px rgba(0,0,0,0.80)',
-        border: 'none', cursor: 'pointer',
+          ? '0 0 0 1px rgba(255,140,90,0.24), 0 8px 24px rgba(0,0,0,0.42), inset 0 1px 3px rgba(255,180,140,0.18)'
+          : '0 0 0 1px rgba(255,150,90,0.32), 0 10px 26px rgba(0,0,0,0.45), inset 0 1px 3px rgba(255,190,120,0.20)',
+        border: '1px solid rgba(255,150,90,0.35)', cursor: 'pointer',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         gap: 6, transition: 'all 0.3s',
       },
-      decorLayers: (
-        <>
-          {/* Hazard stripes en haut */}
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, height: 8,
-            background: 'repeating-linear-gradient(-45deg, rgba(255,160,40,0.85) 0px, rgba(255,160,40,0.85) 10px, rgba(180,40,0,0.70) 10px, rgba(180,40,0,0.70) 20px)',
-            zIndex: 5,
-          }} />
-          {/* Hazard stripes en bas */}
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: 8,
-            background: 'repeating-linear-gradient(45deg, rgba(255,160,40,0.85) 0px, rgba(255,160,40,0.85) 10px, rgba(180,40,0,0.70) 10px, rgba(180,40,0,0.70) 20px)',
-            zIndex: 5,
-          }} />
-          {/* Lueur de lave en bas */}
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
-            background: 'radial-gradient(ellipse at 50% 100%, rgba(255,96,20,0.25) 0%, rgba(255,60,0,0.10) 50%, transparent 100%)',
-            pointerEvents: 'none',
-          }} />
-          {/* Cercles concentriques feu */}
-          <div style={{ position:'absolute', top:'50%', left:'50%', width:215, height:215, borderRadius:'50%', border:'1px solid rgba(255,96,20,0.20)', transform:'translate(-50%,-50%)', pointerEvents:'none' }} />
-          <div style={{ position:'absolute', top:'50%', left:'50%', width:235, height:235, borderRadius:'50%', border:'1px solid rgba(255,60,0,0.10)', transform:'translate(-50%,-50%)', pointerEvents:'none' }} />
-        </>
-      ),
+      decorLayers: null,
       icon: <FlameSVG size={50} />,
       labelLine1: isRunning ? t('ÉTEINDRE', 'PUNCH OUT') : t('ALLUMER', 'PUNCH IN'),
       labelLine2: isRunning ? t('LE FEU', 'THE FIRE') : t('LE FEU', 'THE FIRE'),
