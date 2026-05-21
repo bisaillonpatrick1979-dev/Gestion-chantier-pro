@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Theme, getTheme, DEFAULT_THEME_ID } from '@/lib/themes'
 
-const normalizeThemeId = (id: string) => (id === 'inferno' ? DEFAULT_THEME_ID : id)
+const normalizeThemeId = (id: string) => id
 
 interface ThemeStore {
   themeId: string
@@ -26,8 +26,8 @@ export const useThemeStore = create<ThemeStore>()(
     {
       name: 'gcp-theme',
       onRehydrateStorage: () => state => {
-        if (state?.themeId === 'inferno') {
-          state.setTheme(DEFAULT_THEME_ID)
+        if (state?.themeId) {
+          state.setTheme(state.themeId)
         }
       },
     }
