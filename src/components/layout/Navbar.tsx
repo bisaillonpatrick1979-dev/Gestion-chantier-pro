@@ -2,6 +2,7 @@
 
 import { useThemeStore } from '@/store/useThemeStore'
 import { useLangStore } from '@/store/useLangStore'
+import ThemeRuntime from '@/components/ThemeRuntime'
 
 const DecoLogo = () => (
   <svg width="38" height="38" viewBox="0 0 100 100" fill="none">
@@ -47,7 +48,9 @@ export default function Navbar() {
 
   if (isDeco) {
     return (
-      <nav style={{
+      <>
+        <ThemeRuntime />
+        <nav style={{
         position: 'fixed',
         top: 0,
         left: 0,
@@ -133,11 +136,14 @@ export default function Navbar() {
           pointerEvents: 'none',
         }} />
       </nav>
+      </>
     )
   }
 
   return (
-    <nav style={{
+    <>
+      <ThemeRuntime />
+      <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0,
       height: 64, zIndex: 50,
       background: 'rgba(10,5,0,0.90)',
@@ -167,5 +173,6 @@ export default function Navbar() {
         ))}
       </div>
     </nav>
+    </>
   )
 }
