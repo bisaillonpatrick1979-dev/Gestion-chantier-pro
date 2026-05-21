@@ -631,10 +631,10 @@ const inferno: Theme = {
   globalCSS: `
     body {
       background:
-        radial-gradient(ellipse at 50% 100%, rgba(255,60,0,0.15) 0%, transparent 60%),
-        radial-gradient(ellipse at 20% 80%, rgba(255,120,0,0.10) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 90%, rgba(200,40,0,0.10) 0%, transparent 50%),
-        #0A0500 !important;
+        radial-gradient(ellipse at 50% 100%, rgba(255,74,0,0.16) 0%, transparent 58%),
+        radial-gradient(ellipse at 18% 82%, rgba(255,126,26,0.09) 0%, transparent 48%),
+        radial-gradient(ellipse at 82% 88%, rgba(178,36,0,0.10) 0%, transparent 50%),
+        linear-gradient(180deg, #0a0908 0%, #0b0705 45%, #080505 100%) !important;
       background-attachment: fixed !important;
     }
 
