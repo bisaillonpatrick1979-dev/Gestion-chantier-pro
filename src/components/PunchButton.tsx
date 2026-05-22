@@ -289,14 +289,15 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
       buttonStyle: {
         width: 185, height: 185, borderRadius: '50%',
         background: isRunning
-          ? 'radial-gradient(circle at 38% 32%, #FF8080, #EF4444 40%, #B91C1C 75%, #7F1D1D 95%)'
-          : 'radial-gradient(circle at 38% 32%, #FFD060 0%, #FF9040 25%, #FF6014 55%, #CC3000 80%, #8B1200 100%)',
+          ? 'radial-gradient(circle at 34% 28%, #FFE7A8 0%, #FFB14A 15%, #FF6A2A 36%, #EF4444 58%, #B91C1C 82%, #671010 100%)'
+          : 'radial-gradient(circle at 34% 28%, #FFF1BE 0%, #FFD060 14%, #FF9D3A 32%, #FF6014 56%, #CC3000 80%, #741000 100%)',
         boxShadow: isRunning
-          ? '0 0 0 4px rgba(239,68,68,0.45), 0 0 50px rgba(239,68,68,0.50), 0 0 100px rgba(239,68,68,0.20), inset 0 2px 6px rgba(255,120,120,0.25), 0 10px 40px rgba(0,0,0,0.80)'
-          : '0 0 0 4px rgba(255,96,20,0.50), 0 0 50px rgba(255,96,20,0.55), 0 0 100px rgba(255,60,0,0.25), inset 0 2px 6px rgba(255,220,80,0.25), 0 10px 40px rgba(0,0,0,0.80)',
+          ? '0 0 0 4px rgba(255,96,20,0.55), 0 0 56px rgba(255,90,20,0.56), 0 0 110px rgba(239,68,68,0.24), inset 0 7px 18px rgba(255,236,160,0.24), inset 0 -10px 18px rgba(84,8,2,0.44), 0 12px 42px rgba(0,0,0,0.82)'
+          : '0 0 0 4px rgba(255,96,20,0.56), 0 0 58px rgba(255,96,20,0.60), 0 0 115px rgba(255,60,0,0.30), inset 0 8px 18px rgba(255,235,170,0.28), inset 0 -10px 20px rgba(88,10,2,0.45), 0 12px 42px rgba(0,0,0,0.82)',
         border: 'none', cursor: 'pointer',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         gap: 6, transition: 'all 0.3s',
+        overflow: 'hidden',
       },
       decorLayers: (
         <>
@@ -321,6 +322,23 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
           {/* Cercles concentriques feu */}
           <div style={{ position:'absolute', top:'50%', left:'50%', width:215, height:215, borderRadius:'50%', border:'1px solid rgba(255,96,20,0.20)', transform:'translate(-50%,-50%)', pointerEvents:'none' }} />
           <div style={{ position:'absolute', top:'50%', left:'50%', width:235, height:235, borderRadius:'50%', border:'1px solid rgba(255,60,0,0.10)', transform:'translate(-50%,-50%)', pointerEvents:'none' }} />
+          {/* Flammes latérales gauche/droite */}
+          <div style={{
+            position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)',
+            width: 34, height: 130, pointerEvents: 'none',
+            background: 'radial-gradient(ellipse at 50% 86%, rgba(255,214,120,0.60) 0%, rgba(255,128,26,0.42) 34%, rgba(220,40,0,0.20) 64%, transparent 100%)',
+            filter: 'blur(1px)',
+            opacity: 0.85,
+            clipPath: 'polygon(50% 0%, 70% 16%, 78% 34%, 72% 50%, 84% 70%, 66% 88%, 50% 100%, 34% 88%, 16% 70%, 28% 50%, 22% 34%, 30% 16%)',
+          }} />
+          <div style={{
+            position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+            width: 34, height: 130, pointerEvents: 'none',
+            background: 'radial-gradient(ellipse at 50% 86%, rgba(255,214,120,0.60) 0%, rgba(255,128,26,0.42) 34%, rgba(220,40,0,0.20) 64%, transparent 100%)',
+            filter: 'blur(1px)',
+            opacity: 0.85,
+            clipPath: 'polygon(50% 0%, 70% 16%, 78% 34%, 72% 50%, 84% 70%, 66% 88%, 50% 100%, 34% 88%, 16% 70%, 28% 50%, 22% 34%, 30% 16%)',
+          }} />
         </>
       ),
       icon: <FlameSVG size={50} />,
