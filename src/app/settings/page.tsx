@@ -24,6 +24,7 @@ const THEMES = [
   { id: 'inferno', label: '🔥 Inferno', colors: 'from-red-700 to-orange-500' },
   { id: 'arctic',  label: '🧊 Arctic',  colors: 'from-cyan-600 to-blue-400' },
   { id: 'carbon',  label: '🪙 Carbon',  colors: 'from-zinc-600 to-zinc-400' },
+  { id: 'moon-tide', label: '🌙 Moon Tide', colors: 'from-sky-800 to-cyan-500' },
 ]
 
 const TABS_FR = ['🏢 Compagnie','👤 Employés','🎨 Thème','🌐 Langue','💳 Paiement','🔔 Rappels','📋 Conditions','👥 Clients','📦 Catalogue','📊 Comptab.','📍 Géofenc.','🚨 RH']
@@ -44,7 +45,8 @@ export default function SettingsPage() {
   const isInferno  = themeId === 'inferno'
   const isArctic   = themeId === 'arctic'
   const isCarbon   = themeId === 'carbon'
-  const cardClass  = isDeco ? 'deco-card-sweep' : isQuantum ? 'quantum-card-glow' : isAventure ? 'aventure-card-glow' : isInferno ? 'inferno-card-glow' : isArctic ? 'arctic-card-glow' : isCarbon ? 'carbon-card-glow' : ''
+  const isMoonTide = themeId === 'moon-tide'
+  const cardClass  = isDeco ? 'deco-card-sweep' : isQuantum ? 'quantum-card-glow' : isAventure ? 'aventure-card-glow' : isInferno ? 'inferno-card-glow' : isArctic ? 'arctic-card-glow' : isCarbon ? 'carbon-card-glow' : isMoonTide ? 'quantum-card-glow' : ''
 
   const { employees, addEmployee, updateEmployee, deleteEmployee } = useEmployeeStore()
   const { company, setCompany, syncToCloud: syncCompanyToCloud } = useCompanyStore()
