@@ -1102,6 +1102,154 @@ const carbon: Theme = {
   `,
 }
 
+
+
+// ─── 7. MOON TIDE ────────────────────────────────────────────────────────────
+const moonTide: Theme = {
+  id: 'moon-tide',
+  name: 'Moon Tide',
+  nameFr: 'Marée Lunaire',
+  emoji: '🌙',
+  colors: {
+    background: '#03152B',
+    surface: 'rgba(7,20,36,0.82)',
+    card: 'rgba(10,30,55,0.42)',
+    cardAlt: 'rgba(8,24,44,0.34)',
+    border: 'rgba(255,255,255,0.14)',
+    borderStrong: 'rgba(63,203,255,0.40)',
+    text: '#EAF6FF',
+    textMuted: '#A9C7DB',
+    textWeak: '#79A4C1',
+    primary: '#3FCBFF',
+    primaryLight: '#7BE0FF',
+    secondary: '#0C5C8E',
+    secondaryLight: '#36B8E8',
+    glow1: 'rgba(63,203,255,0.35)',
+    glow2: 'rgba(220,235,250,0.25)',
+    success: '#52D6A1',
+    warning: '#F9C46B',
+    danger: '#FF6B7A',
+    info: '#36B8E8',
+    navBackground: 'rgba(6,22,38,0.72)',
+    navBorder: 'rgba(123,224,255,0.22)',
+    navActive: '#7BE0FF',
+    navInactive: '#A9C7DB',
+  },
+  globalCSS: `
+    body[data-theme='moon-tide'] {
+      background:
+        linear-gradient(180deg, rgba(2,12,24,0.55), rgba(2,12,24,0.68)),
+        radial-gradient(ellipse at 18% 8%, rgba(191,216,242,0.22) 0%, rgba(3,21,43,0.0) 30%),
+        radial-gradient(ellipse at 50% 92%, rgba(54,184,232,0.20) 0%, rgba(3,21,43,0.0) 45%),
+        url('/themes/moon-tide/moon-tide-bg.jpg'),
+        linear-gradient(180deg, #03152B 0%, #07294A 62%, #031A36 100%) !important;
+      background-size: cover, cover, cover, cover, cover !important;
+      background-position: center center !important;
+      background-repeat: no-repeat !important;
+      background-attachment: scroll !important;
+      color: #EAF6FF !important;
+    }
+    @media (min-width: 768px) {
+      body[data-theme='moon-tide'] { background-attachment: fixed !important; }
+    }
+
+    @keyframes moonTideCardIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes moonTideGlow {
+      0%,100% { box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.10); }
+      50% { box-shadow: 0 12px 34px rgba(0,0,0,0.45), 0 0 0 1px rgba(123,224,255,0.30), 0 0 26px rgba(63,203,255,0.20); }
+    }
+    @keyframes moonTidePulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(63,203,255,0.0), 0 0 16px rgba(63,203,255,0.24); }
+      50% { box-shadow: 0 0 0 8px rgba(63,203,255,0.08), 0 0 26px rgba(123,224,255,0.34); }
+    }
+
+    body[data-theme='moon-tide'] header {
+      background: rgba(7,20,36,0.62) !important;
+      backdrop-filter: blur(12px) saturate(1.1);
+      -webkit-backdrop-filter: blur(12px) saturate(1.1);
+      border-bottom: 1px solid rgba(255,255,255,0.12) !important;
+    }
+
+    body[data-theme='moon-tide'] nav {
+      background: rgba(6,22,38,0.72) !important;
+      border-top: 1px solid rgba(123,224,255,0.22) !important;
+      backdrop-filter: blur(12px) saturate(1.15);
+      -webkit-backdrop-filter: blur(12px) saturate(1.15);
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.26);
+    }
+
+    body[data-theme='moon-tide'] main > * {
+      animation: moonTideCardIn .35s ease-out both;
+    }
+
+    body[data-theme='moon-tide'] main > div,
+    body[data-theme='moon-tide'] section,
+    body[data-theme='moon-tide'] article,
+    body[data-theme='moon-tide'] [role='dialog'] > div {
+      border-radius: 18px;
+    }
+
+    body[data-theme='moon-tide'] .quantum-card-glow,
+    body[data-theme='moon-tide'] .deco-card-sweep,
+    body[data-theme='moon-tide'] .inferno-card-glow,
+    body[data-theme='moon-tide'] .arctic-card-glow,
+    body[data-theme='moon-tide'] .carbon-card-glow {
+      background: rgba(10,30,55,0.42) !important;
+      border: 1px solid rgba(255,255,255,0.14) !important;
+      backdrop-filter: blur(12px) saturate(1.2);
+      -webkit-backdrop-filter: blur(12px) saturate(1.2);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      animation: moonTideGlow 4s ease-in-out infinite;
+    }
+
+    body[data-theme='moon-tide'] button {
+      border-radius: 14px !important;
+      transition: transform .15s ease, filter .2s ease, box-shadow .2s ease;
+    }
+    body[data-theme='moon-tide'] button:active {
+      transform: translateY(1px) scale(0.98);
+    }
+    body[data-theme='moon-tide'] button:hover,
+    body[data-theme='moon-tide'] button:focus-visible {
+      filter: brightness(1.05);
+    }
+
+    body[data-theme='moon-tide'] input,
+    body[data-theme='moon-tide'] textarea,
+    body[data-theme='moon-tide'] select {
+      background: rgba(8,24,44,0.52) !important;
+      border: 1px solid rgba(255,255,255,0.14) !important;
+      color: #EAF6FF !important;
+      border-radius: 14px !important;
+    }
+    body[data-theme='moon-tide'] input:focus,
+    body[data-theme='moon-tide'] textarea:focus,
+    body[data-theme='moon-tide'] select:focus {
+      border-color: rgba(63,203,255,0.50) !important;
+      box-shadow: 0 0 0 3px rgba(63,203,255,0.16) !important;
+      outline: none;
+    }
+
+    body[data-theme='moon-tide'] .np,
+    body[data-theme='moon-tide'] .nr {
+      animation: moonTidePulse 2.8s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      body[data-theme='moon-tide'] *,
+      body[data-theme='moon-tide'] *::before,
+      body[data-theme='moon-tide'] *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+  `,
+}
+
 // ─── Registry ─────────────────────────────────────────────────────────────────
 const THEMES: Record<string, Theme> = {
   quantum:  quantumGlass,
@@ -1110,6 +1258,7 @@ const THEMES: Record<string, Theme> = {
   inferno:  inferno,
   arctic:   arctic,
   carbon:   carbon,
+  'moon-tide': moonTide,
 }
 
 export function getTheme(id: string): Theme {

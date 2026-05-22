@@ -59,7 +59,7 @@ export default function ThemeProvider({
       {/* Contenu principal avec padding bottom pour la BottomNav (64px) */}
       <main style={{
         minHeight: 'calc(100vh - 64px)',
-        paddingBottom: '80px',
+        paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
         paddingLeft: '16px',
         paddingRight: '16px',
         paddingTop: '8px',
