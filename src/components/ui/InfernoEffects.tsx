@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useThemeStore } from '@/store/useThemeStore'
 
 export const InfernoFlames = () => null
 export const AmbientEmbers = () => null
