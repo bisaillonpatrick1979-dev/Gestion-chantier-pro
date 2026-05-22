@@ -7,7 +7,7 @@ export const infernoGlobalSkin = String.raw`
   body[data-theme='inferno'] {
     --inferno-coal: #050302;
     --inferno-panel: #0d0503;
-    --inferno-card: rgba(16, 7, 4, 0.52);
+    --inferno-card: rgba(8, 3, 2, 0.20);
     --inferno-line: rgba(205, 92, 34, 0.26);
     --inferno-line-soft: rgba(205, 92, 34, 0.15);
     --inferno-core: #d89b4a;
@@ -16,10 +16,14 @@ export const infernoGlobalSkin = String.raw`
     --inferno-text: #f3dfcc;
     --inferno-muted: #a77a62;
     background:
-      radial-gradient(circle at 50% 110%, rgba(120, 42, 16, 0.14), transparent 44%),
-      radial-gradient(circle at 12% 28%, rgba(168, 72, 18, 0.08), transparent 30%),
-      radial-gradient(circle at 88% 34%, rgba(132, 36, 12, 0.07), transparent 32%),
+      linear-gradient(180deg, rgba(5, 2, 1, 0.62) 0%, rgba(6, 2, 1, 0.74) 100%),
+      radial-gradient(circle at 50% 110%, rgba(255, 92, 24, 0.14), transparent 46%),
+      url('/themes/inferno/inferno-bg.jpg'),
       linear-gradient(180deg, #050302 0%, #080403 52%, #0d0503 100%) !important;
+    background-size: cover, cover, cover, cover !important;
+    background-position: center center !important;
+    background-repeat: no-repeat !important;
+    background-attachment: scroll !important;
     color: var(--inferno-text) !important;
   }
 
@@ -27,6 +31,12 @@ export const infernoGlobalSkin = String.raw`
   body[data-theme='inferno']::after {
     content: none !important;
     animation: none !important;
+  }
+
+  @media (min-width: 768px) {
+    body[data-theme='inferno'] {
+      background-attachment: fixed !important;
+    }
   }
 
   body[data-theme='inferno'] main,
@@ -44,10 +54,10 @@ export const infernoGlobalSkin = String.raw`
       radial-gradient(circle at 16% 20%, rgba(255, 150, 48, 0.075), transparent 30%),
       radial-gradient(circle at 84% 80%, rgba(180, 42, 10, 0.10), transparent 32%),
       repeating-linear-gradient(120deg, rgba(255, 140, 44, 0.028) 0px, rgba(255, 140, 44, 0.028) 1px, transparent 1px, transparent 18px),
-      rgba(12, 4, 2, 0.42) !important;
-    border: 1px solid rgba(205, 92, 34, 0.24) !important;
+      rgba(5, 2, 1, 0.16) !important;
+    border: 1px solid rgba(255, 130, 54, 0.20) !important;
     box-shadow:
-      0 10px 26px rgba(0, 0, 0, 0.30),
+      0 10px 26px rgba(0, 0, 0, 0.22),
       inset 0 1px 0 rgba(255, 176, 82, 0.055) !important;
     animation: none !important;
     filter: none !important;
