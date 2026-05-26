@@ -171,4 +171,47 @@ export const infernoGlobalSkin = String.raw`
     animation: none !important;
     box-shadow: none !important;
   }
+
+
+  /* Infernal premium background + global transparency */
+  body[data-theme='inferno'] {
+    background:
+      radial-gradient(1200px 560px at 50% 110%, rgba(255, 86, 0, 0.34), transparent 70%),
+      radial-gradient(700px 450px at 0% 70%, rgba(255, 130, 0, 0.20), transparent 70%),
+      radial-gradient(700px 450px at 100% 70%, rgba(255, 60, 0, 0.22), transparent 72%),
+      linear-gradient(180deg, #050202 0%, #090202 45%, #110303 100%) !important;
+  }
+
+  body[data-theme='inferno']::before,
+  body[data-theme='inferno']::after {
+    content: '' !important;
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    display: block !important;
+  }
+  body[data-theme='inferno']::before {
+    background: radial-gradient(circle at 24% 20%, rgba(255, 140, 20, 0.08) 0 2px, transparent 3px);
+    background-size: 220px 220px;
+    opacity: 0.6;
+    animation: infernalEmbers 24s linear infinite;
+  }
+  body[data-theme='inferno']::after {
+    background: linear-gradient(120deg, transparent 0%, rgba(255, 92, 24, 0.07) 45%, transparent 100%);
+    filter: blur(10px);
+    opacity: 0.45;
+    animation: infernalHeatWave 8s ease-in-out infinite;
+  }
+  @keyframes infernalEmbers { from { transform: translateY(14px); } to { transform: translateY(-18px); } }
+  @keyframes infernalHeatWave { 0%,100% { transform: translateX(0) scale(1); } 50% { transform: translateX(8px) scale(1.02); } }
+
+  body[data-theme='inferno'] :is(.bg-white\/5, .bg-white\/10, .bg-white\/20),
+  body[data-theme='inferno'] [class*='card'],
+  body[data-theme='inferno'] [class*='rounded-2xl'],
+  body[data-theme='inferno'] [class*='rounded-xl'] {
+    background: transparent !important;
+    background-color: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
 `
