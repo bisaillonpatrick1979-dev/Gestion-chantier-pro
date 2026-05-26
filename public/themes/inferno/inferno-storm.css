@@ -1,0 +1,112 @@
+/* Inferno Storm V1 — static background + animated glow layer
+   Put the selected background at: /public/themes/inferno/inferno-storm-bg.webp */
+
+body[data-theme="inferno"] {
+  --inferno-bg-image: url('/themes/inferno/inferno-storm-bg.webp');
+  background:
+    linear-gradient(180deg, rgba(3, 1, 0, 0.72) 0%, rgba(6, 2, 0, 0.58) 36%, rgba(1, 0, 0, 0.90) 100%),
+    radial-gradient(circle at 50% 16%, rgba(255, 111, 20, 0.22), transparent 34%),
+    var(--inferno-bg-image) center top / cover no-repeat fixed !important;
+  color: #fff0e0 !important;
+}
+
+body[data-theme="inferno"]::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255, 150, 40, 0.18), transparent 22%),
+    radial-gradient(circle at 16% 90%, rgba(255, 65, 0, 0.15), transparent 28%),
+    radial-gradient(circle at 85% 80%, rgba(255, 95, 16, 0.12), transparent 32%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.42), transparent 22%, transparent 78%, rgba(0, 0, 0, 0.55));
+  mix-blend-mode: screen;
+  opacity: 0.85;
+}
+
+body[data-theme="inferno"]::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, rgba(255, 167, 64, 0.72) 0 1px, transparent 1.8px),
+    radial-gradient(circle, rgba(255, 76, 12, 0.50) 0 1px, transparent 1.7px);
+  background-size: 120px 120px, 180px 180px;
+  background-position: 0 0, 50px 40px;
+  animation: infernoStormEmbers 16s linear infinite;
+  opacity: 0.22;
+}
+
+body[data-theme="inferno"] main,
+body[data-theme="inferno"] nav,
+body[data-theme="inferno"] header,
+body[data-theme="inferno"] footer,
+body[data-theme="inferno"] [class*="card"],
+body[data-theme="inferno"] [class*="Card"] {
+  position: relative;
+  z-index: 1;
+}
+
+body[data-theme="inferno"] [class*="card"],
+body[data-theme="inferno"] [class*="Card"],
+body[data-theme="inferno"] section,
+body[data-theme="inferno"] article {
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+body[data-theme="inferno"] button:not([disabled]) {
+  transition: transform 160ms ease, box-shadow 220ms ease, filter 220ms ease;
+}
+
+body[data-theme="inferno"] button:not([disabled]):active {
+  transform: scale(0.97);
+}
+
+body[data-theme="inferno"] .inferno-punch-btn,
+body[data-theme="inferno"] .inferno-punch-glow,
+body[data-theme="inferno"] .inferno-punch-ring,
+body[data-theme="inferno"] [class*="punch"] button,
+body[data-theme="inferno"] [class*="Punch"] button {
+  background: radial-gradient(circle at 38% 28%, #ffcf78 0%, #ff7a1a 28%, #ff3c00 58%, #7c1200 100%) !important;
+  box-shadow:
+    0 0 0 4px rgba(255, 118, 24, 0.48),
+    0 0 35px rgba(255, 91, 18, 0.58),
+    0 0 95px rgba(255, 51, 0, 0.30),
+    inset 0 3px 8px rgba(255, 226, 150, 0.35),
+    inset 0 -8px 18px rgba(65, 6, 0, 0.48) !important;
+  animation: infernoStormPulse 2.8s ease-in-out infinite;
+}
+
+@keyframes infernoStormPulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.16); }
+}
+
+@keyframes infernoStormEmbers {
+  0% { transform: translate3d(0, 30px, 0); background-position: 0 0, 50px 40px; }
+  100% { transform: translate3d(0, -120px, 0); background-position: 60px -180px, 20px -220px; }
+}
+
+@media (max-width: 760px) {
+  body[data-theme="inferno"] {
+    background:
+      linear-gradient(180deg, rgba(3, 1, 0, 0.78) 0%, rgba(4, 1, 0, 0.58) 34%, rgba(0, 0, 0, 0.92) 100%),
+      radial-gradient(circle at 50% 18%, rgba(255, 120, 20, 0.24), transparent 36%),
+      var(--inferno-bg-image) center top / auto 100vh no-repeat fixed !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-theme="inferno"]::after,
+  body[data-theme="inferno"] .inferno-punch-btn,
+  body[data-theme="inferno"] .inferno-punch-glow,
+  body[data-theme="inferno"] .inferno-punch-ring,
+  body[data-theme="inferno"] [class*="punch"] button,
+  body[data-theme="inferno"] [class*="Punch"] button {
+    animation: none !important;
+  }
+}
