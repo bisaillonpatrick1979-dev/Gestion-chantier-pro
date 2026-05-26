@@ -19,8 +19,200 @@
   }
 }
 
+html,
+body {
+  min-height: 100%;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ============================================================
+   THEME INFERNAL
+   ID technique: inferno
+   But visuel: cartes full transparentes + background feu visible partout
+   ============================================================ */
+
+body[data-theme="inferno"] {
+  --background: #050505;
+  --foreground: #fff4df;
+  --surface: transparent;
+  --card: transparent;
+  --card-alt: transparent;
+  --border: rgba(255, 110, 35, 0.42);
+  --border-strong: rgba(255, 145, 45, 0.78);
+  --text: #fff4df;
+  --text-muted: rgba(255, 205, 150, 0.76);
+  --text-weak: rgba(255, 174, 104, 0.52);
+  --primary: #ff5a14;
+  --primary-light: #ffd36a;
+  --secondary: #b91c1c;
+  --secondary-light: #ff7a14;
+  --glow1: rgba(255, 90, 20, 0.42);
+  --glow2: rgba(255, 170, 55, 0.20);
+  --nav-bg: transparent;
+  --nav-border: rgba(255, 110, 35, 0.34);
+  --nav-active: #ff7a14;
+  --nav-inactive: rgba(255, 210, 170, 0.52);
+
+  color: #fff4df !important;
+  background:
+    radial-gradient(ellipse at 50% 9%, rgba(255, 126, 26, 0.18) 0%, transparent 38%),
+    radial-gradient(ellipse at 15% 72%, rgba(255, 56, 0, 0.34) 0%, transparent 36%),
+    radial-gradient(ellipse at 85% 72%, rgba(255, 86, 10, 0.36) 0%, transparent 38%),
+    radial-gradient(ellipse at 50% 104%, rgba(255, 126, 26, 0.22) 0%, transparent 52%),
+    linear-gradient(180deg, #070403 0%, #090403 42%, #030303 100%) !important;
+  background-attachment: fixed !important;
+}
+
+body[data-theme="inferno"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 12% 80%, rgba(255, 151, 32, 0.55) 0 1px, transparent 2px),
+    radial-gradient(circle at 21% 64%, rgba(255, 67, 0, 0.46) 0 1px, transparent 2px),
+    radial-gradient(circle at 38% 55%, rgba(255, 118, 18, 0.32) 0 1px, transparent 2px),
+    radial-gradient(circle at 68% 50%, rgba(255, 135, 30, 0.38) 0 1px, transparent 2px),
+    radial-gradient(circle at 84% 76%, rgba(255, 69, 0, 0.50) 0 1px, transparent 2px),
+    linear-gradient(115deg, transparent 0%, rgba(255, 65, 0, 0.10) 19%, transparent 32%, rgba(255, 118, 21, 0.09) 64%, transparent 84%);
+  background-size: 260px 260px, 340px 340px, 420px 420px, 320px 320px, 390px 390px, 100% 100%;
+  opacity: 0.95;
+  mix-blend-mode: screen;
+  animation: infernalEmbersFloat 18s linear infinite;
+}
+
+body[data-theme="inferno"]::after {
+  content: "";
+  position: fixed;
+  left: -5vw;
+  right: -5vw;
+  bottom: -10vh;
+  height: 54vh;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 6% 88%, rgba(255, 178, 42, 0.46), transparent 16%),
+    radial-gradient(ellipse at 18% 76%, rgba(255, 74, 0, 0.42), transparent 25%),
+    radial-gradient(ellipse at 31% 92%, rgba(255, 120, 18, 0.20), transparent 22%),
+    radial-gradient(ellipse at 68% 92%, rgba(255, 104, 14, 0.20), transparent 23%),
+    radial-gradient(ellipse at 82% 80%, rgba(255, 116, 10, 0.44), transparent 25%),
+    radial-gradient(ellipse at 96% 86%, rgba(255, 44, 0, 0.40), transparent 17%),
+    linear-gradient(90deg, transparent, rgba(255, 60, 0, 0.13), transparent 48%, rgba(255, 88, 0, 0.15), transparent);
+  filter: blur(16px) saturate(1.45) contrast(1.18);
+  mix-blend-mode: screen;
+  opacity: 0.95;
+  animation: infernalHeatWave 6.5s ease-in-out infinite alternate;
+}
+
+@keyframes infernalEmbersFloat {
+  0% {
+    background-position: 0 0, 0 0, 0 0, 0 0, 0 0, center;
+  }
+  100% {
+    background-position: 80px -260px, -110px -340px, 90px -420px, -70px -320px, 95px -390px, center;
+  }
+}
+
+@keyframes infernalHeatWave {
+  0% {
+    transform: translate3d(-1.5%, 0, 0) scaleX(1.02) scaleY(1);
+    opacity: 0.70;
+  }
+  50% {
+    transform: translate3d(0, -1.7vh, 0) scaleX(1.07) scaleY(1.05);
+    opacity: 0.98;
+  }
+  100% {
+    transform: translate3d(1.5%, -0.6vh, 0) scaleX(1.03) scaleY(1.02);
+    opacity: 0.82;
+  }
+}
+
+body[data-theme="inferno"] main,
+body[data-theme="inferno"] section,
+body[data-theme="inferno"] article,
+body[data-theme="inferno"] aside,
+body[data-theme="inferno"] header,
+body[data-theme="inferno"] footer,
+body[data-theme="inferno"] nav {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+body[data-theme="inferno"] :where(div, section, article, aside, header, footer, main, nav)[class*="rounded"],
+body[data-theme="inferno"] :where(div, section, article, aside, header, footer, main, nav)[class*="card"],
+body[data-theme="inferno"] :where(div, section, article, aside, header, footer, main, nav)[style*="var(--card)"],
+body[data-theme="inferno"] :where(div, section, article, aside, header, footer, main, nav)[style*="var(--surface)"],
+body[data-theme="inferno"] :where(div, section, article, aside, header, footer, main, nav)[style*="rgba(17,7,40"],
+body[data-theme="inferno"] :where(div, section, article, aside, header, footer, main, nav)[style*="rgba(168,85,247"],
+body[data-theme="inferno"] .bg-white\/5,
+body[data-theme="inferno"] .bg-white\/10,
+body[data-theme="inferno"] .bg-white\/20,
+body[data-theme="inferno"] .bg-black\/20,
+body[data-theme="inferno"] .bg-black\/30,
+body[data-theme="inferno"] .bg-black\/40,
+body[data-theme="inferno"] .bg-\[\#0d0a00\]\/80,
+body[data-theme="inferno"] .bg-\[\#0a0015\]\/80 {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body[data-theme="inferno"] :where(div, section, article, aside)[class*="rounded"],
+body[data-theme="inferno"] :where(div, section, article, aside)[class*="card"],
+body[data-theme="inferno"] .inferno-card-glow {
+  border-color: rgba(255, 110, 35, 0.42) !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 160, 55, 0.07) inset,
+    0 0 20px rgba(255, 80, 15, 0.16),
+    0 10px 28px rgba(0, 0, 0, 0.34) !important;
+}
+
+body[data-theme="inferno"] button,
+body[data-theme="inferno"] input,
+body[data-theme="inferno"] select,
+body[data-theme="inferno"] textarea {
+  border-color: rgba(255, 110, 35, 0.42) !important;
+  color: #fff4df !important;
+}
+
+body[data-theme="inferno"] input,
+body[data-theme="inferno"] select,
+body[data-theme="inferno"] textarea {
+  background: transparent !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body[data-theme="inferno"] p,
+body[data-theme="inferno"] span,
+body[data-theme="inferno"] h1,
+body[data-theme="inferno"] h2,
+body[data-theme="inferno"] h3,
+body[data-theme="inferno"] h4,
+body[data-theme="inferno"] label,
+body[data-theme="inferno"] button,
+body[data-theme="inferno"] input,
+body[data-theme="inferno"] select,
+body[data-theme="inferno"] textarea {
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.88),
+    0 0 10px rgba(255, 94, 25, 0.22);
+}
+
+body[data-theme="inferno"] .metal-text {
+  background: linear-gradient(90deg, #ff3a00, #ff7a14, #ffd36a, #ff7a14, #ff3a00) !important;
+  background-size: 220% auto !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
 }
