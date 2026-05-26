@@ -1,26 +1,16 @@
-import { supabase } from './supabase'
+import { supabase, isSupabaseConfigured } from './supabase'
 
-// ── DEBUG TEST — enlever après que ça marche ──────────────────────────────
-if (typeof window !== 'undefined') {
-  setTimeout(() => {
-    supabase
-      .from('employees')
-      .select('id')
-      .limit(1)
-      .then(({ data, error }) => {
-        if (error) {
-          alert('❌ Supabase ERREUR\n' + error.message + '\nCode: ' + error.code + '\nHint: ' + (error.hint ?? 'aucun'))
-        } else {
-          alert('✅ Supabase connecté! Données reçues: ' + JSON.stringify(data))
-        }
-      })
-  }, 2000)
+function canSync() {
+  if (!isSupabaseConfigured) {
+    console.warn('Supabase sync skipped: environment variables are not configured.')
+    return false
+  }
+  return true
 }
-// ── FIN DEBUG ─────────────────────────────────────────────────────────────
 
 // ── EMPLOYEES ─────────────────────────────────────────────────────────────
 export async function syncEmployeesToSupabase(employees: any[]) {
-  if (!employees.length) return
+  if (!canSync() || !employees.length) return
   const rows = employees.map(e => ({
     id: e.id,
     name: e.name,
@@ -54,13 +44,11 @@ export async function syncEmployeesToSupabase(employees: any[]) {
     updated_at: new Date().toISOString(),
   }))
   const { error } = await supabase.from('employees').upsert(rows, { onConflict: 'id' })
-  if (error) {
-    alert('❌ Sync employees erreur: ' + error.message)
-    console.error('Sync employees error:', error)
-  }
+  if (error) console.error('Sync employees error:', error)
 }
 
 export async function fetchEmployeesFromSupabase() {
+  if (!canSync()) return null
   const { data, error } = await supabase.from('employees').select('*').order('created_at')
   if (error) { console.error('Fetch employees error:', error); return null }
   return data.map((e: any) => ({
@@ -99,6 +87,7 @@ export async function fetchEmployeesFromSupabase() {
 
 // ── DAY DETAILS ───────────────────────────────────────────────────────────
 export async function syncDayDetailToSupabase(key: string, detail: any) {
+  if (!canSync()) return
   const row = {
     id: key,
     employee_id: detail.employeeId,
@@ -116,6 +105,7 @@ export async function syncDayDetailToSupabase(key: string, detail: any) {
 }
 
 export async function fetchDayDetailsFromSupabase() {
+  if (!canSync()) return null
   const { data, error } = await supabase.from('day_details').select('*')
   if (error) { console.error('Fetch day_details error:', error); return null }
   const result: Record<string, any> = {}
@@ -136,7 +126,7 @@ export async function fetchDayDetailsFromSupabase() {
 
 // ── CLIENTS ───────────────────────────────────────────────────────────────
 export async function syncClientsToSupabase(clients: any[]) {
-  if (!clients.length) return
+  if (!canSync() || !clients.length) return
   const rows = clients.map(c => ({
     id: c.id,
     name: c.name,
@@ -150,13 +140,11 @@ export async function syncClientsToSupabase(clients: any[]) {
     updated_at: new Date().toISOString(),
   }))
   const { error } = await supabase.from('clients').upsert(rows, { onConflict: 'id' })
-  if (error) {
-    alert('❌ Sync clients erreur: ' + error.message)
-    console.error('Sync clients error:', error)
-  }
+  if (error) console.error('Sync clients error:', error)
 }
 
 export async function fetchClientsFromSupabase() {
+  if (!canSync()) return null
   const { data, error } = await supabase.from('clients').select('*').order('created_at')
   if (error) { console.error('Fetch clients error:', error); return null }
   return data.map((c: any) => ({
@@ -175,7 +163,7 @@ export async function fetchClientsFromSupabase() {
 
 // ── DOCUMENTS ─────────────────────────────────────────────────────────────
 export async function syncDocumentsToSupabase(documents: any[]) {
-  if (!documents.length) return
+  if (!canSync() || !documents.length) return
   const rows = documents.map(d => ({
     id: d.id,
     type: d.type,
@@ -245,6 +233,7 @@ export async function syncDocumentsToSupabase(documents: any[]) {
 }
 
 export async function fetchDocumentsFromSupabase() {
+  if (!canSync()) return null
   const { data, error } = await supabase.from('documents').select('*').order('created_at')
   if (error) { console.error('Fetch documents error:', error); return null }
   return data.map((d: any) => ({
@@ -316,6 +305,7 @@ export async function fetchDocumentsFromSupabase() {
 
 // ── COMPANY INFO ──────────────────────────────────────────────────────────
 export async function syncCompanyToSupabase(company: any) {
+  if (!canSync()) return
   const row = {
     id: 'singleton',
     name: company.name ?? '',
@@ -360,6 +350,7 @@ export async function syncCompanyToSupabase(company: any) {
 }
 
 export async function fetchCompanyFromSupabase() {
+  if (!canSync()) return null
   const { data, error } = await supabase.from('company_info').select('*').eq('id', 'singleton').single()
   if (error) { console.error('Fetch company error:', error); return null }
   return {
@@ -403,7 +394,7 @@ export async function fetchCompanyFromSupabase() {
 
 // ── PAYROLL RECORDS ───────────────────────────────────────────────────────
 export async function syncPayrollToSupabase(records: any[]) {
-  if (!records.length) return
+  if (!canSync() || !records.length) return
   const rows = records.map(r => ({
     id: r.id,
     employee_id: r.employeeId,
@@ -430,6 +421,7 @@ export async function syncPayrollToSupabase(records: any[]) {
 }
 
 export async function fetchPayrollFromSupabase() {
+  if (!canSync()) return null
   const { data, error } = await supabase.from('payroll_records').select('*').order('created_at')
   if (error) { console.error('Fetch payroll error:', error); return null }
   return data.map((r: any) => ({
@@ -458,7 +450,7 @@ export async function fetchPayrollFromSupabase() {
 
 // ── PROJECTS ──────────────────────────────────────────────────────────────
 export async function syncProjectsToSupabase(projects: any[]) {
-  if (!projects.length) return
+  if (!canSync() || !projects.length) return
   const rows = projects.map(p => ({
     id: p.id,
     name: p.name,
@@ -485,6 +477,7 @@ export async function syncProjectsToSupabase(projects: any[]) {
 }
 
 export async function fetchProjectsFromSupabase() {
+  if (!canSync()) return null
   const { data, error } = await supabase.from('projects').select('*').order('created_at')
   if (error) { console.error('Fetch projects error:', error); return null }
   return data.map((p: any) => ({
