@@ -21,11 +21,10 @@ const THEMES = [
   { id: 'quantum', label: '⚡ Quantum', colors: 'from-blue-700 to-cyan-500' },
   { id: 'xp',      label: '🎮 XP',      colors: 'from-purple-700 to-cyan-400' },
   { id: 'deco',    label: '✨ Deco',    colors: 'from-yellow-700 to-amber-400' },
-  { id: 'inferno', label: '🔥 Inferno', colors: 'from-red-700 to-orange-500' },
+  { id: 'inferno', label: '🔥 Infernal', colors: 'from-red-700 to-orange-500' },
   { id: 'arctic',  label: '🧊 Arctic',  colors: 'from-cyan-600 to-blue-400' },
   { id: 'carbon',  label: '🪙 Carbon',  colors: 'from-zinc-600 to-zinc-400' },
-  { id: 'moon-tide', label: '🌙 Moon Tide', colors: 'from-sky-800 to-cyan-500' },
-]
+  ]
 
 const TABS_FR = ['🏢 Compagnie','👤 Employés','🎨 Thème','🌐 Langue','💳 Paiement','🔔 Rappels','📋 Conditions','👥 Clients','📦 Catalogue','📊 Comptab.','📍 Géofenc.','🚨 RH']
 const TABS_EN = ['🏢 Company','👤 Employees','🎨 Theme','🌐 Language','💳 Payment','🔔 Reminders','📋 Terms','👥 Clients','📦 Catalog','📊 Accounting','📍 Geofenc.','🚨 HR']
