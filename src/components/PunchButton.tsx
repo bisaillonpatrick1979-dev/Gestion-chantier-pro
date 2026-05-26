@@ -279,9 +279,9 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
     inferno: {
       wrapperClass: 'inferno-card-glow',
       wrapperStyle: {
-        background: 'rgba(24,10,0,0.95)',
+        background: 'transparent',
         borderRadius: 20,
-        padding: '0 16px 28px',
+        padding: '8px 12px 22px',
         position: 'relative',
         overflow: 'hidden',
       },
@@ -301,44 +301,10 @@ function getConfig(themeId: string, isRunning: boolean, isFr: boolean) {
       },
       decorLayers: (
         <>
-          {/* Hazard stripes en haut */}
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, height: 8,
-            background: 'repeating-linear-gradient(-45deg, rgba(255,160,40,0.85) 0px, rgba(255,160,40,0.85) 10px, rgba(180,40,0,0.70) 10px, rgba(180,40,0,0.70) 20px)',
-            zIndex: 5,
-          }} />
-          {/* Hazard stripes en bas */}
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: 8,
-            background: 'repeating-linear-gradient(45deg, rgba(255,160,40,0.85) 0px, rgba(255,160,40,0.85) 10px, rgba(180,40,0,0.70) 10px, rgba(180,40,0,0.70) 20px)',
-            zIndex: 5,
-          }} />
-          {/* Lueur de lave en bas */}
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
-            background: 'radial-gradient(ellipse at 50% 100%, rgba(255,96,20,0.25) 0%, rgba(255,60,0,0.10) 50%, transparent 100%)',
-            pointerEvents: 'none',
-          }} />
-          {/* Cercles concentriques feu */}
-          <div style={{ position:'absolute', top:'50%', left:'50%', width:215, height:215, borderRadius:'50%', border:'1px solid rgba(255,96,20,0.20)', transform:'translate(-50%,-50%)', pointerEvents:'none' }} />
-          <div style={{ position:'absolute', top:'50%', left:'50%', width:235, height:235, borderRadius:'50%', border:'1px solid rgba(255,60,0,0.10)', transform:'translate(-50%,-50%)', pointerEvents:'none' }} />
-          {/* Flammes latérales gauche/droite */}
-          <div style={{
-            position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)',
-            width: 34, height: 130, pointerEvents: 'none',
-            background: 'radial-gradient(ellipse at 50% 86%, rgba(255,214,120,0.60) 0%, rgba(255,128,26,0.42) 34%, rgba(220,40,0,0.20) 64%, transparent 100%)',
-            filter: 'blur(1px)',
-            opacity: 0.85,
-            clipPath: 'polygon(50% 0%, 70% 16%, 78% 34%, 72% 50%, 84% 70%, 66% 88%, 50% 100%, 34% 88%, 16% 70%, 28% 50%, 22% 34%, 30% 16%)',
-          }} />
-          <div style={{
-            position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-            width: 34, height: 130, pointerEvents: 'none',
-            background: 'radial-gradient(ellipse at 50% 86%, rgba(255,214,120,0.60) 0%, rgba(255,128,26,0.42) 34%, rgba(220,40,0,0.20) 64%, transparent 100%)',
-            filter: 'blur(1px)',
-            opacity: 0.85,
-            clipPath: 'polygon(50% 0%, 70% 16%, 78% 34%, 72% 50%, 84% 70%, 66% 88%, 50% 100%, 34% 88%, 16% 70%, 28% 50%, 22% 34%, 30% 16%)',
-          }} />
+          <div style={{ position:'absolute', top:'50%', left:'50%', width:215, height:215, borderRadius:'50%', border:'1px solid rgba(255,96,20,0.26)', transform:'translate(-50%,-50%)', pointerEvents:'none' }} />
+          <div style={{ position:'absolute', top:'50%', left:'50%', width:235, height:235, borderRadius:'50%', border:'1px solid rgba(255,160,40,0.18)', transform:'translate(-50%,-50%)', pointerEvents:'none' }} />
+          <div style={{ position:'absolute', top:'50%', left:'50%', width:255, height:255, borderRadius:'50%', border:'1px solid rgba(255,60,0,0.10)', transform:'translate(-50%,-50%)', pointerEvents:'none' }} />
+          <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 50% 100%, rgba(255,96,20,0.20), transparent 62%)', pointerEvents:'none' }} />
         </>
       ),
       icon: <FlameSVG size={50} />,

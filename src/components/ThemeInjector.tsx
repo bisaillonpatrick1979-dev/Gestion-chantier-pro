@@ -42,7 +42,31 @@ export default function ThemeProvider() {
       styleEl.id = styleId
       document.head.appendChild(styleEl)
     }
-    styleEl.textContent = theme.globalCSS ?? ''
+    const infernalOverrides = themeId === 'inferno' ? `
+      :root {
+        --card: transparent !important;
+        --card-alt: transparent !important;
+        --surface: transparent !important;
+      }
+      body[data-theme='inferno'] :is(
+        .inferno-card-glow,
+        .bg-white\\/5, .bg-white\\/10, .bg-white\\/20,
+        .rounded-xl, .rounded-2xl,
+        [class*='card'], [class*='panel'],
+        div[style*='var(--card)'], div[style*='var(--surface)'],
+        [role='dialog'] > div
+      ) {
+        background: transparent !important;
+        background-color: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        border-color: rgba(255, 110, 35, 0.46) !important;
+      }
+      body[data-theme='inferno'] :is(h1,h2,h3,h4,p,span,label,small,button) {
+        text-shadow: 0 1px 2px rgba(0,0,0,.85), 0 0 10px rgba(255,122,20,.26);
+      }
+    ` : ''
+    styleEl.textContent = (theme.globalCSS ?? '') + infernalOverrides
 
     // ── 3. Appliquer data-theme sur le body ───────────────────────────────
     document.body.setAttribute('data-theme', themeId)
