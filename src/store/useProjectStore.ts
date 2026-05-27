@@ -311,7 +311,7 @@ export const useProjectStore = create<ProjectStore>()(
         set({ isSyncing: true });
         try {
           const remote = await fetchProjectsFromSupabase();
-          if (remote && remote.length > 0) set({ projects: remote });
+          if (remote !== null) set({ projects: remote });
           set({ lastSync: new Date().toISOString() });
         } catch (e) {
           console.error('fetchFromCloud projects error:', e);

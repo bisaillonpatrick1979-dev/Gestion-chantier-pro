@@ -18,7 +18,7 @@ import {
   DecoSeparator, DecoCorners, DecoTitle, DecoOrnament,
   DecoBackground, DecoDiamondRow, DecoFlower, DecoStarRow,
 } from '@/components/DecoElements'
-import { AmbientEmbers, InfernoPunchWrapper } from '@/components/ui/InfernoEffects'
+import { AmbientEmbers, InfernoFlames, InfernoPunchWrapper } from '@/components/ui/InfernoEffects'
 
 type Screen = 'select' | 'pin' | 'dashboard'
 
@@ -807,7 +807,8 @@ export default function HomePage() {
               </p>
             </div>
           )}
-          {/* ── INFERNO: embers ambiants + wrapper atmosphérique ── */}
+          {/* ── INFERNO: fond premium + embers + wrapper atmosphérique ── */}
+          <InfernoFlames />
           <AmbientEmbers />
           <InfernoPunchWrapper active={isRunning}>
             <PunchButton

@@ -24,3 +24,194 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Infernal theme: global background + transparent cards across app */
+body[data-theme="inferno"] {
+  --infernal-bg: #050505;
+  --infernal-accent-1: #ff3a00;
+  --infernal-accent-2: #ff5a14;
+  --infernal-accent-3: #ff7a14;
+  --infernal-accent-4: #ffd36a;
+  --infernal-border: rgba(255, 110, 35, 0.44);
+  --infernal-border-strong: rgba(255, 110, 35, 0.50);
+  --infernal-text-glow: rgba(255, 122, 20, 0.30);
+
+  background:
+    radial-gradient(130% 90% at 50% 100%, rgba(255, 58, 0, 0.16) 0%, rgba(0, 0, 0, 0) 60%),
+    radial-gradient(70% 60% at 5% 90%, rgba(255, 90, 20, 0.20) 0%, rgba(0, 0, 0, 0) 72%),
+    radial-gradient(70% 60% at 95% 90%, rgba(255, 122, 20, 0.18) 0%, rgba(0, 0, 0, 0) 75%),
+    linear-gradient(180deg, #090909 0%, var(--infernal-bg) 42%, #020202 100%) !important;
+  background-attachment: fixed !important;
+  color: #fff5ec;
+}
+
+body[data-theme="inferno"]::before,
+body[data-theme="inferno"]::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body[data-theme="inferno"]::before {
+  background-image:
+    radial-gradient(circle at 18% 100%, rgba(255, 90, 20, 0.35) 0 1px, transparent 2px),
+    radial-gradient(circle at 78% 100%, rgba(255, 211, 106, 0.28) 0 1px, transparent 2px),
+    radial-gradient(circle at 40% 100%, rgba(255, 58, 0, 0.30) 0 1px, transparent 2px);
+  background-size: 170px 170px, 210px 210px, 260px 260px;
+  opacity: 0.3;
+  filter: blur(0.25px);
+  animation: infernal-embers-rise 30s linear infinite;
+}
+
+body[data-theme="inferno"]::after {
+  inset: auto -12% -18% -12%;
+  height: 52vh;
+  background:
+    radial-gradient(60% 90% at 50% 100%, rgba(255, 58, 0, 0.28), transparent 70%),
+    radial-gradient(34% 70% at 8% 100%, rgba(255, 90, 20, 0.22), transparent 75%),
+    radial-gradient(34% 70% at 92% 100%, rgba(255, 122, 20, 0.22), transparent 75%);
+  filter: blur(18px) saturate(120%);
+  opacity: 0.45;
+  animation: infernal-heatwave 8.5s ease-in-out infinite alternate;
+}
+
+body[data-theme="inferno"] > * {
+  position: relative;
+  z-index: 1;
+}
+
+body[data-theme="inferno"] :is(
+  .inferno-card-glow,
+  div[style*="var(--card)"],
+  div[style*="var(--surface)"],
+  .bg-white\/5,
+  .bg-white\/10,
+  .bg-white\/20,
+  .rounded-xl,
+  .rounded-2xl,
+  [class*="card"],
+  [class*="panel"],
+  [role="dialog"] > div,
+  section,
+  article
+) {
+  background: transparent !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: inset 0 0 0 1px var(--infernal-border), 0 14px 36px rgba(0, 0, 0, 0.52) !important;
+}
+
+body[data-theme="inferno"] :is(.rounded-xl, .rounded-2xl, [class*="card"], [class*="panel"], .inferno-card-glow) {
+  border-color: var(--infernal-border-strong) !important;
+}
+
+body[data-theme="inferno"] :is(h1, h2, h3, h4, .font-black, .font-bold, p, span, label, small) {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85), 0 0 12px var(--infernal-text-glow);
+}
+
+body[data-theme="inferno"] button {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}
+
+body[data-theme="inferno"] :is(input, textarea, select, [role="textbox"]) {
+  background: rgba(9, 6, 4, 0.32) !important;
+  border-color: rgba(255, 110, 35, 0.46) !important;
+  color: #fff6ea !important;
+}
+
+body[data-theme="inferno"] button:focus-visible,
+body[data-theme="inferno"] :is(input, textarea, select):focus-visible {
+  outline: 2px solid rgba(255, 122, 20, 0.48);
+  outline-offset: 2px;
+}
+
+@keyframes infernal-embers-rise {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(0, -140px, 0); }
+}
+
+@keyframes infernal-heatwave {
+  0% { transform: translateY(0) scale(1); opacity: 0.36; }
+  100% { transform: translateY(-14px) scale(1.03); opacity: 0.55; }
+}
+
+
+
+body[data-theme="inferno"] .infernal-bg-layer,
+body[data-theme="inferno"] .infernal-bg-smoke,
+body[data-theme="inferno"] .infernal-bg-flame,
+body[data-theme="inferno"] .infernal-embers {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body[data-theme="inferno"] .infernal-bg-layer {
+  background:
+    radial-gradient(110% 90% at 50% 0%, rgba(255, 80, 16, 0.08) 0%, transparent 60%),
+    repeating-linear-gradient(125deg, rgba(255, 90, 20, 0.03) 0 2px, rgba(10, 10, 10, 0) 2px 8px);
+  mix-blend-mode: screen;
+}
+
+body[data-theme="inferno"] .infernal-bg-smoke {
+  background: radial-gradient(100% 90% at 50% 100%, rgba(60, 60, 60, 0.2), transparent 70%);
+  filter: blur(22px);
+  animation: infernal-smoke 16s ease-in-out infinite alternate;
+}
+
+body[data-theme="inferno"] .infernal-bg-flame {
+  inset: auto;
+  bottom: -12vh;
+  width: 32vw;
+  height: 56vh;
+  background:
+    radial-gradient(62% 84% at 50% 88%, rgba(255, 211, 106, 0.26) 0%, rgba(255, 90, 20, 0.22) 28%, rgba(255, 58, 0, 0.18) 50%, transparent 74%),
+    conic-gradient(from 180deg at 50% 90%, transparent 0 15%, rgba(255, 122, 20, 0.18) 30%, transparent 42%, rgba(255, 58, 0, 0.16) 58%, transparent 100%);
+  mask-image: radial-gradient(56% 92% at 50% 100%, #000 10%, transparent 74%);
+  filter: blur(6px);
+  animation: infernal-flame 6.4s ease-in-out infinite alternate;
+}
+body[data-theme="inferno"] .infernal-bg-flame-left { left: -4vw; }
+body[data-theme="inferno"] .infernal-bg-flame-right { right: -4vw; transform: scaleX(-1); }
+
+body[data-theme="inferno"] .infernal-embers {
+  background-image:
+    radial-gradient(circle at 20% 95%, rgba(255, 160, 76, 0.5) 0 1px, transparent 2px),
+    radial-gradient(circle at 70% 92%, rgba(255, 100, 20, 0.5) 0 1px, transparent 2px),
+    radial-gradient(circle at 45% 97%, rgba(255, 211, 106, 0.45) 0 1px, transparent 2px);
+  background-size: 190px 190px, 240px 240px, 300px 300px;
+  opacity: 0.38;
+  animation: infernal-embers-rise 28s linear infinite;
+}
+
+body[data-theme="inferno"] .infernal-punch-panel {
+  position: relative;
+  border-radius: 28px;
+  padding: 14px 12px 22px;
+  border: 1px solid rgba(255, 110, 35, 0.48);
+  box-shadow: inset 0 0 44px rgba(255, 90, 20, 0.14), 0 20px 36px rgba(0,0,0,.55);
+}
+
+body[data-theme="inferno"] .infernal-punch-button-wrap {
+  position: relative;
+}
+
+body[data-theme="inferno"] .infernal-transparent-card {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  border: 1px solid rgba(255, 110, 35, 0.44);
+  box-shadow: 0 10px 24px rgba(0,0,0,.45);
+}
+
+@keyframes infernal-smoke {
+  0% { transform: translateY(0); opacity: .16; }
+  100% { transform: translateY(-14px); opacity: .28; }
+}
+@keyframes infernal-flame {
+  0% { transform: translateY(0) scale(1); opacity: .26; }
+  100% { transform: translateY(-9px) scale(1.04); opacity: .38; }
+}

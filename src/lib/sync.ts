@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabase'
+import { getOrCreateInstallationId, getOrCreateLocalCompanyId } from './tenant'
 
 function canSync() {
   if (!isSupabaseConfigured) {
@@ -8,11 +9,44 @@ function canSync() {
   return true
 }
 
+// Temporary single-tenant strategy (no company_id yet):
+// replace the full remote list so stale local caches cannot repopulate cloud rows.
+async function replaceTableRows(table: 'employees' | 'clients' | 'documents' | 'projects', rows: any[]) {
+  if (!canSync()) return
+  const companyId = getOrCreateLocalCompanyId()
+  const { data: existingRows, error: fetchErr } = await supabase.from(table).select('id').eq('company_id', companyId)
+  if (fetchErr) {
+    console.error(`Fetch existing ${table} ids error:`, fetchErr)
+    return
+  }
+
+  const nextIds = new Set((rows ?? []).map((r: any) => r.id).filter(Boolean))
+  const existingIds = (existingRows ?? []).map((r: any) => r.id).filter(Boolean)
+  const idsToDelete = existingIds.filter((id: string) => !nextIds.has(id))
+
+  if (rows.length > 0) {
+    const { error: upsertErr } = await supabase.from(table).upsert(rows, { onConflict: 'id' })
+    if (upsertErr) {
+      console.error(`Sync ${table} upsert error:`, upsertErr)
+      return
+    }
+  }
+
+  if (idsToDelete.length > 0) {
+    const { error: deleteErr } = await supabase.from(table).delete().in('id', idsToDelete)
+    if (deleteErr) console.error(`Sync ${table} delete stale ids error:`, deleteErr)
+  }
+}
+
 // ── EMPLOYEES ─────────────────────────────────────────────────────────────
 export async function syncEmployeesToSupabase(employees: any[]) {
-  if (!canSync() || !employees.length) return
+  if (!canSync()) return
+  const companyId = getOrCreateLocalCompanyId()
+  const installationId = getOrCreateInstallationId()
   const rows = employees.map(e => ({
     id: e.id,
+    company_id: companyId,
+    installation_id: installationId,
     name: e.name,
     role: e.role,
     pin: e.pin,
@@ -43,13 +77,13 @@ export async function syncEmployeesToSupabase(employees: any[]) {
     invoice_sequence: e.invoiceSequence ?? 0,
     updated_at: new Date().toISOString(),
   }))
-  const { error } = await supabase.from('employees').upsert(rows, { onConflict: 'id' })
-  if (error) console.error('Sync employees error:', error)
+  await replaceTableRows('employees', rows)
 }
 
 export async function fetchEmployeesFromSupabase() {
   if (!canSync()) return null
-  const { data, error } = await supabase.from('employees').select('*').order('created_at')
+  const companyId = getOrCreateLocalCompanyId()
+  const { data, error } = await supabase.from('employees').select('*').eq('company_id', companyId).order('created_at')
   if (error) { console.error('Fetch employees error:', error); return null }
   return data.map((e: any) => ({
     id: e.id,
@@ -88,8 +122,12 @@ export async function fetchEmployeesFromSupabase() {
 // ── DAY DETAILS ───────────────────────────────────────────────────────────
 export async function syncDayDetailToSupabase(key: string, detail: any) {
   if (!canSync()) return
+  const companyId = getOrCreateLocalCompanyId()
+  const installationId = getOrCreateInstallationId()
   const row = {
     id: key,
+    company_id: companyId,
+    installation_id: installationId,
     employee_id: detail.employeeId,
     date: detail.date,
     sessions: detail.sessions ?? [],
@@ -106,7 +144,8 @@ export async function syncDayDetailToSupabase(key: string, detail: any) {
 
 export async function fetchDayDetailsFromSupabase() {
   if (!canSync()) return null
-  const { data, error } = await supabase.from('day_details').select('*')
+  const companyId = getOrCreateLocalCompanyId()
+  const { data, error } = await supabase.from('day_details').select('*').eq('company_id', companyId)
   if (error) { console.error('Fetch day_details error:', error); return null }
   const result: Record<string, any> = {}
   data.forEach((d: any) => {
@@ -126,9 +165,13 @@ export async function fetchDayDetailsFromSupabase() {
 
 // ── CLIENTS ───────────────────────────────────────────────────────────────
 export async function syncClientsToSupabase(clients: any[]) {
-  if (!canSync() || !clients.length) return
+  if (!canSync()) return
+  const companyId = getOrCreateLocalCompanyId()
+  const installationId = getOrCreateInstallationId()
   const rows = clients.map(c => ({
     id: c.id,
+    company_id: companyId,
+    installation_id: installationId,
     name: c.name,
     phone: c.phone ?? '',
     email: c.email ?? '',
@@ -139,13 +182,13 @@ export async function syncClientsToSupabase(clients: any[]) {
     notes: c.notes ?? '',
     updated_at: new Date().toISOString(),
   }))
-  const { error } = await supabase.from('clients').upsert(rows, { onConflict: 'id' })
-  if (error) console.error('Sync clients error:', error)
+  await replaceTableRows('clients', rows)
 }
 
 export async function fetchClientsFromSupabase() {
   if (!canSync()) return null
-  const { data, error } = await supabase.from('clients').select('*').order('created_at')
+  const companyId = getOrCreateLocalCompanyId()
+  const { data, error } = await supabase.from('clients').select('*').eq('company_id', companyId).order('created_at')
   if (error) { console.error('Fetch clients error:', error); return null }
   return data.map((c: any) => ({
     id: c.id,
@@ -163,9 +206,13 @@ export async function fetchClientsFromSupabase() {
 
 // ── DOCUMENTS ─────────────────────────────────────────────────────────────
 export async function syncDocumentsToSupabase(documents: any[]) {
-  if (!canSync() || !documents.length) return
+  if (!canSync()) return
+  const companyId = getOrCreateLocalCompanyId()
+  const installationId = getOrCreateInstallationId()
   const rows = documents.map(d => ({
     id: d.id,
+    company_id: companyId,
+    installation_id: installationId,
     type: d.type,
     status: d.status ?? 'draft',
     number: d.number ?? '',
@@ -228,13 +275,13 @@ export async function syncDocumentsToSupabase(documents: any[]) {
     signature: d.signature ?? '',
     updated_at: new Date().toISOString(),
   }))
-  const { error } = await supabase.from('documents').upsert(rows, { onConflict: 'id' })
-  if (error) console.error('Sync documents error:', error)
+  await replaceTableRows('documents', rows)
 }
 
 export async function fetchDocumentsFromSupabase() {
   if (!canSync()) return null
-  const { data, error } = await supabase.from('documents').select('*').order('created_at')
+  const companyId = getOrCreateLocalCompanyId()
+  const { data, error } = await supabase.from('documents').select('*').eq('company_id', companyId).order('created_at')
   if (error) { console.error('Fetch documents error:', error); return null }
   return data.map((d: any) => ({
     id: d.id,
@@ -306,8 +353,12 @@ export async function fetchDocumentsFromSupabase() {
 // ── COMPANY INFO ──────────────────────────────────────────────────────────
 export async function syncCompanyToSupabase(company: any) {
   if (!canSync()) return
+  const companyId = getOrCreateLocalCompanyId()
+  const installationId = getOrCreateInstallationId()
   const row = {
-    id: 'singleton',
+    id: `singleton-${companyId}`,
+    company_id: companyId,
+    installation_id: installationId,
     name: company.name ?? '',
     owner_name: company.ownerName ?? '',
     logo_url: company.logoUrl ?? '',
@@ -351,8 +402,10 @@ export async function syncCompanyToSupabase(company: any) {
 
 export async function fetchCompanyFromSupabase() {
   if (!canSync()) return null
-  const { data, error } = await supabase.from('company_info').select('*').eq('id', 'singleton').single()
+  const companyId = getOrCreateLocalCompanyId()
+  const { data, error } = await supabase.from('company_info').select('*').eq('company_id', companyId).limit(1).maybeSingle()
   if (error) { console.error('Fetch company error:', error); return null }
+  if (!data) return null
   return {
     name: data.name,
     ownerName: data.owner_name,
@@ -395,8 +448,12 @@ export async function fetchCompanyFromSupabase() {
 // ── PAYROLL RECORDS ───────────────────────────────────────────────────────
 export async function syncPayrollToSupabase(records: any[]) {
   if (!canSync() || !records.length) return
+  const companyId = getOrCreateLocalCompanyId()
+  const installationId = getOrCreateInstallationId()
   const rows = records.map(r => ({
     id: r.id,
+    company_id: companyId,
+    installation_id: installationId,
     employee_id: r.employeeId,
     employee_name: r.employeeName ?? '',
     week_start: r.weekStart ?? '',
@@ -422,7 +479,8 @@ export async function syncPayrollToSupabase(records: any[]) {
 
 export async function fetchPayrollFromSupabase() {
   if (!canSync()) return null
-  const { data, error } = await supabase.from('payroll_records').select('*').order('created_at')
+  const companyId = getOrCreateLocalCompanyId()
+  const { data, error } = await supabase.from('payroll_records').select('*').eq('company_id', companyId).order('created_at')
   if (error) { console.error('Fetch payroll error:', error); return null }
   return data.map((r: any) => ({
     id: r.id,
@@ -450,9 +508,13 @@ export async function fetchPayrollFromSupabase() {
 
 // ── PROJECTS ──────────────────────────────────────────────────────────────
 export async function syncProjectsToSupabase(projects: any[]) {
-  if (!canSync() || !projects.length) return
+  if (!canSync()) return
+  const companyId = getOrCreateLocalCompanyId()
+  const installationId = getOrCreateInstallationId()
   const rows = projects.map(p => ({
     id: p.id,
+    company_id: companyId,
+    installation_id: installationId,
     name: p.name,
     client_id: p.clientId ?? '',
     client_name: p.clientName ?? '',
@@ -472,13 +534,13 @@ export async function syncProjectsToSupabase(projects: any[]) {
     closed_at: p.closedAt ?? null,
     updated_at: new Date().toISOString(),
   }))
-  const { error } = await supabase.from('projects').upsert(rows, { onConflict: 'id' })
-  if (error) console.error('Sync projects error:', error)
+  await replaceTableRows('projects', rows)
 }
 
 export async function fetchProjectsFromSupabase() {
   if (!canSync()) return null
-  const { data, error } = await supabase.from('projects').select('*').order('created_at')
+  const companyId = getOrCreateLocalCompanyId()
+  const { data, error } = await supabase.from('projects').select('*').eq('company_id', companyId).order('created_at')
   if (error) { console.error('Fetch projects error:', error); return null }
   return data.map((p: any) => ({
     id: p.id,
