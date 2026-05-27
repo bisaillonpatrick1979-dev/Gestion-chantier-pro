@@ -1,6 +1,6 @@
 // public/sw.js
 // Service Worker — Gestion Chantier Pro
-const CACHE = 'gcp-v3-payroll-2026'
+const CACHE = 'gcp-v4-supabase-beta'
 const STATIC = [
   '/',
   '/stats',
@@ -12,6 +12,7 @@ const STATIC = [
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/payroll-rules/manifest.json',
 ]
 
 // ── Install ────────────────────────────────────────────────────────────────

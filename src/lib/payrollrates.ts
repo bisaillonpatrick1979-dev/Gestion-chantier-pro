@@ -6,6 +6,7 @@
 export const PAYROLL_YEAR = 2026
 export const PAYROLL_LAST_UPDATED = '2026-01-01'
 export const PAYROLL_NEXT_UPDATE = '2026-07-01'
+export const PAYROLL_PACKAGE_VERSION = '2026.01'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🇨🇦 CANADA — FÉDÉRAL 2026
