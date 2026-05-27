@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useLangStore } from '@/store/useLangStore'
-import { PAYROLL_LAST_UPDATED } from '@/lib/payrollrates'
+import { PAYROLL_LAST_UPDATED, PAYROLL_PACKAGE_VERSION } from '@/lib/payrollrates'
 
-const INSTALLED_PACKAGE = '2026.01'
+const INSTALLED_PACKAGE = PAYROLL_PACKAGE_VERSION
 
 type Manifest = {
   latestPublishedPackage?: string
