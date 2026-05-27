@@ -1,6 +1,6 @@
 // public/sw.js
 // Service Worker — Gestion Chantier Pro
-const CACHE = 'gcp-v2'
+const CACHE = 'gcp-v3-payroll-2026'
 const STATIC = [
   '/',
   '/stats',
@@ -8,6 +8,7 @@ const STATIC = [
   '/clients',
   '/settings',
   '/paye',
+  '/payroll-compliance',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -68,19 +69,15 @@ self.addEventListener('fetch', (e) => {
     return
   }
 
-  // Pages — Stale-While-Revalidate + fallback offline
+  // Pages — Network first pour mieux recevoir les mises à jour, fallback cache offline
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      const networkFetch = fetch(e.request).then(res => {
-        if (res.ok && res.status === 200) {
-          const clone = res.clone()
-          caches.open(CACHE).then(c => c.put(e.request, clone))
-        }
-        return res
-      }).catch(() => cached || caches.match('/'))
-
-      return cached || networkFetch
-    })
+    fetch(e.request).then(res => {
+      if (res.ok && res.status === 200) {
+        const clone = res.clone()
+        caches.open(CACHE).then(c => c.put(e.request, clone))
+      }
+      return res
+    }).catch(() => caches.match(e.request).then(cached => cached || caches.match('/')))
   )
 })
 
