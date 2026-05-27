@@ -8,6 +8,7 @@ import {
   syncDayDetailToSupabase,
   fetchDayDetailsFromSupabase,
 } from '@/lib/sync'
+import { supabase } from '@/lib/supabase'
 
 interface EmployeeStore {
   employees: Employee[]
@@ -18,7 +19,7 @@ interface EmployeeStore {
   lastSync: string | null
   addEmployee: (data: Omit<Employee, 'id' | 'createdAt' | 'invoiceSequence'>) => void
   updateEmployee: (id: string, updates: Partial<Employee>) => void
-  deleteEmployee: (id: string) => void
+  deleteEmployee: (id: string) => Promise<void>
   verifyPin: (employeeId: string, pin: string) => boolean
   setCurrentEmployee: (id: string | null) => void
   punchIn: (employeeId: string) => void
@@ -34,22 +35,24 @@ interface EmployeeStore {
 }
 
 const COLORS = ['#ea580c','#f59e0b','#22c55e','#06b6d4','#a855f7','#ec4899','#3b82f6']
+const DEFAULT_ADMIN: Employee = {
+  id: 'admin',
+  name: 'Admin',
+  role: 'admin',
+  pin: '0000',
+  workMode: 'heure',
+  hourlyRate: 45,
+  color: '#ea580c',
+  active: true,
+  createdAt: new Date().toISOString(),
+  invoiceSequence: 0,
+}
+const cloudEmployees = (employees: Employee[]) => employees.filter(e => e.id !== 'admin')
 
 export const useEmployeeStore = create<EmployeeStore>()(
   persist(
     (set, get) => ({
-      employees: [{
-        id: 'admin',
-        name: 'Admin',
-        role: 'admin',
-        pin: '0000',
-        workMode: 'heure',
-        hourlyRate: 45,
-        color: '#ea580c',
-        active: true,
-        createdAt: new Date().toISOString(),
-        invoiceSequence: 0,
-      }],
+      employees: [DEFAULT_ADMIN],
       currentEmployeeId: null,
       activeSessions: {},
       dayDetails: {},
@@ -68,19 +71,25 @@ export const useEmployeeStore = create<EmployeeStore>()(
         }
         const newEmployees = [...employees, newEmp]
         set({ employees: newEmployees })
-        syncEmployeesToSupabase(newEmployees)
+        syncEmployeesToSupabase(cloudEmployees(newEmployees))
       },
 
       updateEmployee: (id, updates) => {
         const newEmployees = get().employees.map(e => e.id === id ? { ...e, ...updates } : e)
         set({ employees: newEmployees })
-        syncEmployeesToSupabase(newEmployees)
+        syncEmployeesToSupabase(cloudEmployees(newEmployees))
       },
 
-      deleteEmployee: (id) => {
+      deleteEmployee: async (id) => {
+        if (id === 'admin') return
         const newEmployees = get().employees.filter(e => e.id !== id)
         set({ employees: newEmployees })
-        syncEmployeesToSupabase(newEmployees)
+        try {
+          await supabase.from('employees').delete().eq('id', id)
+        } catch (e) {
+          console.error('deleteEmployee supabase delete error:', e)
+        }
+        await syncEmployeesToSupabase(cloudEmployees(newEmployees))
       },
 
       verifyPin: (employeeId, pin) => {
@@ -223,14 +232,14 @@ export const useEmployeeStore = create<EmployeeStore>()(
             : e
         )
         set({ employees: newEmployees })
-        syncEmployeesToSupabase(newEmployees)
+        syncEmployeesToSupabase(cloudEmployees(newEmployees))
       },
 
       syncToCloud: async () => {
         set({ isSyncing: true })
         const { employees, dayDetails } = get()
         try {
-          await syncEmployeesToSupabase(employees)
+          await syncEmployeesToSupabase(cloudEmployees(employees))
           await Promise.all(
             Object.entries(dayDetails).map(([key, detail]) =>
               syncDayDetailToSupabase(key, detail)
@@ -251,10 +260,11 @@ export const useEmployeeStore = create<EmployeeStore>()(
             fetchEmployeesFromSupabase(),
             fetchDayDetailsFromSupabase(),
           ])
-          if (remoteEmployees && remoteEmployees.length > 0) {
-            set({ employees: remoteEmployees })
+          if (remoteEmployees !== null) {
+            const remoteSansAdmin = remoteEmployees.filter((e: Employee) => e.id !== 'admin')
+            set({ employees: [DEFAULT_ADMIN, ...remoteSansAdmin] })
           }
-          if (remoteDayDetails && Object.keys(remoteDayDetails).length > 0) {
+          if (remoteDayDetails !== null) {
             set({ dayDetails: remoteDayDetails })
           }
           set({ lastSync: new Date().toISOString() })

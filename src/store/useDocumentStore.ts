@@ -163,7 +163,7 @@ export const useDocumentStore = create<DocumentStore>()(
         set({ isSyncing: true })
         try {
           const remote = await fetchDocumentsFromSupabase()
-          if (remote && remote.length > 0) {
+          if (remote !== null) {
             set({ documents: remote })
           }
           set({ lastSync: new Date().toISOString() })
