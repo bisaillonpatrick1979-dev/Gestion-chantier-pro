@@ -3,6 +3,7 @@ import './globals.css'
 import Navbar from '@/components/layout/Navbar'
 import BottomNav from '@/components/layout/BottomNav'
 import OnboardingGuard from '@/components/OnboardingGuard'
+import LegalConsentGate from '@/components/LegalConsentGate'
 import PWARegister from '@/components/PWARegister'
 import ThemeInjector from '@/components/ThemeInjector'
 import DevTools from '@/components/DevTools'
@@ -52,6 +53,7 @@ export default function RootLayout({
       <body className="min-h-screen overflow-x-hidden">
         <ThemeInjector />
         <OnboardingGuard />
+        <LegalConsentGate />
         <PWARegister />
         <SyncManager />
         <Navbar />
