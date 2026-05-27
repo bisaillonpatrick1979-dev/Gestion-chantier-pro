@@ -20,7 +20,7 @@ export default function AboutPage() {
     border: isDeco ? '1px solid rgba(214,178,94,0.26)' : `1px solid ${theme.colors.border}`,
     borderRadius: 20,
     padding: 18,
-    boxShadow: isDeco ? '0 10px 30px rgba(0,0,0,0.42)' : `0 10px 28px ${theme.colors.shadow}`,
+    boxShadow: '0 10px 28px rgba(0,0,0,0.34)',
   }
 
   const muted = isDeco ? 'rgba(214,178,94,0.62)' : theme.colors.textMuted
