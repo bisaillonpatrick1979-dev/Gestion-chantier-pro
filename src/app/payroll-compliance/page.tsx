@@ -13,6 +13,8 @@ export default function PayrollCompliancePage() {
   const { lang } = useLangStore()
   const [lastCheck, setLastCheck] = useState<string | null>(null)
   const [sentToAccountant, setSentToAccountant] = useState(false)
+  const [periodType, setPeriodType] = useState<'weekly' | 'biweekly' | 'custom'>('weekly')
+  const [batchPreparedAt, setBatchPreparedAt] = useState<string | null>(null)
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
   const status = useMemo(() => {
@@ -27,8 +29,11 @@ export default function PayrollCompliancePage() {
   }
 
   const sendToAccountant = () => {
+    const now = new Date().toISOString()
     setSentToAccountant(true)
-    localStorage.setItem('payroll-compliance-accountant-export', new Date().toISOString())
+    setBatchPreparedAt(now)
+    localStorage.setItem('payroll-compliance-accountant-export', now)
+    localStorage.setItem('payroll-compliance-accountant-period-type', periodType)
   }
 
   return (
@@ -55,11 +60,50 @@ export default function PayrollCompliancePage() {
           <button onClick={verifyRules} className="w-full rounded-2xl p-4 bg-cyan-500/20 border border-cyan-300/40 text-cyan-100 font-black">{t('Vérifier les règles maintenant', 'Check rules now')}</button>
         </section>
 
+        <section className="rounded-3xl p-5 bg-violet-500/10 border border-violet-300/30 text-white space-y-4">
+          <h2 className="text-lg font-black">📤 {t('Envoi groupé au comptable', 'Grouped accountant send')}</h2>
+          <p className="text-white/65 text-sm leading-relaxed">
+            {t(
+              'Un seul bouton prépare la paie de tout le monde pour la période choisie, mais chaque personne reste séparée : salariés, sous-traitants et contracteurs. Le comptable reçoit un dossier clair, sans mélanger les montants.',
+              'One button prepares payroll for everyone for the selected period, but each person stays separated: employees, subcontractors, and contractors. The accountant receives a clear package without mixed amounts.'
+            )}
+          </p>
+
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { id: 'weekly', fr: 'Semaine', en: 'Weekly' },
+              { id: 'biweekly', fr: '2 semaines', en: 'Biweekly' },
+              { id: 'custom', fr: 'Période perso', en: 'Custom' },
+            ].map(option => (
+              <button
+                key={option.id}
+                onClick={() => setPeriodType(option.id as 'weekly' | 'biweekly' | 'custom')}
+                className={`rounded-2xl p-3 text-xs font-black border ${periodType === option.id ? 'bg-violet-500/30 border-violet-200 text-white' : 'bg-white/5 border-white/10 text-white/60'}`}
+              >
+                {lang === 'fr' ? option.fr : option.en}
+              </button>
+            ))}
+          </div>
+
+          <div className="rounded-2xl p-4 bg-black/20 border border-white/10 space-y-2 text-sm">
+            <p className="font-black text-violet-100">{t('Le dossier comptable doit contenir :', 'The accountant package should include:')}</p>
+            <ul className="list-disc pl-5 text-white/70 leading-relaxed">
+              <li>{t('un résumé général de la période;', 'one general period summary;')}</li>
+              <li>{t('un fichier séparé par employé salarié;', 'one separate file per salaried employee;')}</li>
+              <li>{t('un fichier séparé par sous-traitant / contracteur;', 'one separate file per subcontractor / contractor;')}</li>
+              <li>{t('les heures, taux, montants, province, type de travail et version des règles;', 'hours, rates, amounts, province, work type, and rules version;')}</li>
+              <li>{t('une note demandant la validation avant paiement officiel.', 'a note requesting validation before official payment.')}</li>
+            </ul>
+          </div>
+
+          <button onClick={sendToAccountant} className="w-full rounded-2xl p-4 bg-violet-500/25 border border-violet-300/50 text-violet-100 font-black">{t('Envoyer toutes les payes au comptable', 'Send all payroll to accountant')}</button>
+          {sentToAccountant && <p className="text-emerald-300 text-xs font-bold">✓ {t('Dossier groupé marqué prêt pour le comptable.', 'Grouped package marked ready for the accountant.')} {batchPreparedAt ? batchPreparedAt.slice(0, 10) : ''}</p>}
+        </section>
+
         <section className="rounded-3xl p-5 bg-white/5 border border-white/10 text-white space-y-3">
-          <h2 className="text-lg font-black">📤 {t('Envoyer au comptable', 'Send to accountant')}</h2>
-          <p className="text-white/65 text-sm leading-relaxed">{t('Prépare un résumé de paie pour salarié ou contracteur avec période, heures, montants, province, version des règles et note de validation.', 'Prepares a payroll summary for an employee or contractor with period, hours, amounts, province, rules version, and validation note.')}</p>
-          <button onClick={sendToAccountant} className="w-full rounded-2xl p-4 bg-violet-500/20 border border-violet-300/40 text-violet-100 font-black">{t('Préparer l’envoi comptable', 'Prepare accountant send')}</button>
-          {sentToAccountant && <p className="text-emerald-300 text-xs font-bold">✓ {t('Résumé marqué comme prêt à envoyer au comptable.', 'Summary marked as ready to send to accountant.')}</p>}
+          <h2 className="text-lg font-black">📄 {t('Envoi individuel', 'Individual send')}</h2>
+          <p className="text-white/65 text-sm leading-relaxed">{t('Chaque paie doit aussi pouvoir être envoyée séparément si un employé, un sous-traitant ou une période demande une vérification à part.', 'Each payroll should also be sendable separately if an employee, subcontractor, or period needs a separate review.')}</p>
+          <button onClick={sendToAccountant} className="w-full rounded-2xl p-4 bg-white/10 border border-white/15 text-white font-black">{t('Préparer un envoi individuel', 'Prepare individual send')}</button>
         </section>
 
         <section className="rounded-3xl p-5 bg-amber-500/10 border border-amber-300/30 text-amber-100">
