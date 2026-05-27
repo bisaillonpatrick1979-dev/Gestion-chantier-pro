@@ -3,6 +3,9 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLangStore } from '@/store/useLangStore'
+import { useEmployeeStore } from '@/store/useEmployeeStore'
+import { useCompanyStore } from '@/store/useCompanyStore'
+import { exportGroupedPayrollForAccountant } from '@/lib/accountantPayrollExport'
 
 const RULE_VERSION = '2026.01'
 const EFFECTIVE_DATE = '2026-01-01'
@@ -11,16 +14,28 @@ const NEXT_REVIEW = '2026-01-02'
 export default function PayrollCompliancePage() {
   const router = useRouter()
   const { lang } = useLangStore()
+  const { employees, dayDetails } = useEmployeeStore()
+  const { company } = useCompanyStore()
   const [lastCheck, setLastCheck] = useState<string | null>(null)
   const [sentToAccountant, setSentToAccountant] = useState(false)
   const [periodType, setPeriodType] = useState<'weekly' | 'biweekly' | 'custom'>('weekly')
   const [batchPreparedAt, setBatchPreparedAt] = useState<string | null>(null)
+  const [exportInfo, setExportInfo] = useState<string>('')
   const t = (fr: string, en: string) => lang === 'fr' ? fr : en
 
   const status = useMemo(() => {
     if (!lastCheck) return t('À vérifier', 'Needs review')
     return t('Vérifié localement', 'Checked locally')
   }, [lastCheck, lang])
+
+  const payrollCounts = useMemo(() => {
+    const workers = employees.filter(emp => emp.id !== 'admin' && emp.active !== false)
+    return {
+      total: workers.length,
+      salaried: workers.filter(emp => emp.workerType === 'salaried').length,
+      contractors: workers.filter(emp => emp.workerType !== 'salaried').length,
+    }
+  }, [employees])
 
   const verifyRules = () => {
     const now = new Date().toISOString()
@@ -30,8 +45,16 @@ export default function PayrollCompliancePage() {
 
   const sendToAccountant = () => {
     const now = new Date().toISOString()
+    const result = exportGroupedPayrollForAccountant({
+      company,
+      employees,
+      dayDetails,
+      periodType,
+      lang: lang as 'fr' | 'en',
+    })
     setSentToAccountant(true)
     setBatchPreparedAt(now)
+    setExportInfo(`${result.employeeCount} ${t('personne(s)', 'worker(s)')} · ${result.start} → ${result.end}`)
     localStorage.setItem('payroll-compliance-accountant-export', now)
     localStorage.setItem('payroll-compliance-accountant-period-type', periodType)
   }
@@ -64,8 +87,8 @@ export default function PayrollCompliancePage() {
           <h2 className="text-lg font-black">📤 {t('Envoi groupé au comptable', 'Grouped accountant send')}</h2>
           <p className="text-white/65 text-sm leading-relaxed">
             {t(
-              'Un seul bouton prépare la paie de tout le monde pour la période choisie, mais chaque personne reste séparée : salariés, sous-traitants et contracteurs. Le comptable reçoit un dossier clair, sans mélanger les montants.',
-              'One button prepares payroll for everyone for the selected period, but each person stays separated: employees, subcontractors, and contractors. The accountant receives a clear package without mixed amounts.'
+              'Un seul bouton prépare la paie de tout le monde pour la période choisie, mais chaque personne reste séparée : salariés, sous-traitants et contracteurs. Le comptable reçoit un fichier CSV clair, sans mélanger les montants.',
+              'One button prepares payroll for everyone for the selected period, but each person stays separated: employees, subcontractors, and contractors. The accountant receives a clear CSV file without mixed amounts.'
             )}
           </p>
 
@@ -85,25 +108,31 @@ export default function PayrollCompliancePage() {
             ))}
           </div>
 
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-2xl p-3 bg-black/20 border border-white/10"><p className="text-xl font-black">{payrollCounts.total}</p><p className="text-[10px] text-white/55">{t('total', 'total')}</p></div>
+            <div className="rounded-2xl p-3 bg-black/20 border border-white/10"><p className="text-xl font-black">{payrollCounts.salaried}</p><p className="text-[10px] text-white/55">{t('salariés', 'employees')}</p></div>
+            <div className="rounded-2xl p-3 bg-black/20 border border-white/10"><p className="text-xl font-black">{payrollCounts.contractors}</p><p className="text-[10px] text-white/55">{t('contracteurs', 'contractors')}</p></div>
+          </div>
+
           <div className="rounded-2xl p-4 bg-black/20 border border-white/10 space-y-2 text-sm">
-            <p className="font-black text-violet-100">{t('Le dossier comptable doit contenir :', 'The accountant package should include:')}</p>
+            <p className="font-black text-violet-100">{t('Le fichier CSV contient :', 'The CSV file includes:')}</p>
             <ul className="list-disc pl-5 text-white/70 leading-relaxed">
               <li>{t('un résumé général de la période;', 'one general period summary;')}</li>
-              <li>{t('un fichier séparé par employé salarié;', 'one separate file per salaried employee;')}</li>
-              <li>{t('un fichier séparé par sous-traitant / contracteur;', 'one separate file per subcontractor / contractor;')}</li>
+              <li>{t('une section séparée pour employés salariés;', 'one separated section for salaried employees;')}</li>
+              <li>{t('une section séparée pour sous-traitants / contracteurs;', 'one separated section for subcontractors / contractors;')}</li>
               <li>{t('les heures, taux, montants, province, type de travail et version des règles;', 'hours, rates, amounts, province, work type, and rules version;')}</li>
               <li>{t('une note demandant la validation avant paiement officiel.', 'a note requesting validation before official payment.')}</li>
             </ul>
           </div>
 
-          <button onClick={sendToAccountant} className="w-full rounded-2xl p-4 bg-violet-500/25 border border-violet-300/50 text-violet-100 font-black">{t('Envoyer toutes les payes au comptable', 'Send all payroll to accountant')}</button>
-          {sentToAccountant && <p className="text-emerald-300 text-xs font-bold">✓ {t('Dossier groupé marqué prêt pour le comptable.', 'Grouped package marked ready for the accountant.')} {batchPreparedAt ? batchPreparedAt.slice(0, 10) : ''}</p>}
+          <button onClick={sendToAccountant} className="w-full rounded-2xl p-4 bg-violet-500/25 border border-violet-300/50 text-violet-100 font-black">{t('Générer le fichier comptable CSV', 'Generate accountant CSV file')}</button>
+          {sentToAccountant && <p className="text-emerald-300 text-xs font-bold">✓ {t('Fichier comptable généré.', 'Accountant file generated.')} {exportInfo || (batchPreparedAt ? batchPreparedAt.slice(0, 10) : '')}</p>}
         </section>
 
         <section className="rounded-3xl p-5 bg-white/5 border border-white/10 text-white space-y-3">
           <h2 className="text-lg font-black">📄 {t('Envoi individuel', 'Individual send')}</h2>
           <p className="text-white/65 text-sm leading-relaxed">{t('Chaque paie doit aussi pouvoir être envoyée séparément si un employé, un sous-traitant ou une période demande une vérification à part.', 'Each payroll should also be sendable separately if an employee, subcontractor, or period needs a separate review.')}</p>
-          <button onClick={sendToAccountant} className="w-full rounded-2xl p-4 bg-white/10 border border-white/15 text-white font-black">{t('Préparer un envoi individuel', 'Prepare individual send')}</button>
+          <button onClick={sendToAccountant} className="w-full rounded-2xl p-4 bg-white/10 border border-white/15 text-white font-black">{t('Générer un export individuel', 'Generate individual export')}</button>
         </section>
 
         <section className="rounded-3xl p-5 bg-amber-500/10 border border-amber-300/30 text-amber-100">
