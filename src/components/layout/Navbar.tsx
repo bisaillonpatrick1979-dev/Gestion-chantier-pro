@@ -1,8 +1,10 @@
 'use client'
 
+import Link from 'next/link'
 import { useThemeStore } from '@/store/useThemeStore'
 import { useLangStore } from '@/store/useLangStore'
 import ThemeRuntime from '@/components/ThemeRuntime'
+import ShareAppButton from '@/components/ShareAppButton'
 
 const DecoLogo = () => (
   <svg width="38" height="38" viewBox="0 0 100 100" fill="none">
@@ -46,6 +48,20 @@ export default function Navbar() {
   const { lang, setLang } = useLangStore()
   const isDeco = themeId === 'deco'
 
+  const aboutLabel = lang === 'fr' ? 'À propos' : 'About'
+  const aboutButtonStyle = {
+    padding: '6px 10px',
+    borderRadius: 999,
+    cursor: 'pointer',
+    border: isDeco ? '1px solid rgba(214,178,94,0.45)' : `1px solid ${theme.colors.border}`,
+    background: isDeco ? 'rgba(214,178,94,0.10)' : 'transparent',
+    color: isDeco ? '#D6B25E' : theme.colors.textMuted,
+    fontSize: 12,
+    fontWeight: 800,
+    textDecoration: 'none',
+    whiteSpace: 'nowrap' as const,
+  }
+
   if (isDeco) {
     return (
       <>
@@ -63,7 +79,7 @@ export default function Navbar() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 16px',
+        padding: '0 10px',
       }}>
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: 2,
@@ -82,7 +98,7 @@ export default function Navbar() {
           borderRight: '1.5px solid rgba(214,178,94,0.65)',
           pointerEvents: 'none',
         }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           <DecoLogo />
           <div>
             <div style={{
@@ -107,28 +123,32 @@ export default function Navbar() {
             </div>
           </div>
         </div>
-        <div style={{
-          display: 'flex', alignItems: 'center',
-          background: '#111109',
-          border: '1px solid rgba(214,178,94,0.40)',
-          borderRadius: 999,
-          padding: 3,
-          gap: 2,
-        }}>
-          {(['fr', 'en'] as const).map(l => (
-            <button key={l} onClick={() => setLang(l)} style={{
-              padding: '5px 14px', borderRadius: 999, cursor: 'pointer',
-              border: 'none',
-              background: lang === l ? 'linear-gradient(135deg, #C49A3C, #D6B25E)' : 'transparent',
-              color: lang === l ? '#0A0800' : 'rgba(214,178,94,0.60)',
-              fontSize: 12, fontWeight: 800,
-              letterSpacing: '1px',
-              boxShadow: lang === l ? '0 0 10px rgba(214,178,94,0.40)' : 'none',
-              transition: 'all 0.2s ease',
-            }}>
-              {l.toUpperCase()}
-            </button>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <Link href="/about" style={aboutButtonStyle}>ℹ️ <span className="hidden sm:inline">{aboutLabel}</span></Link>
+          <ShareAppButton />
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            background: '#111109',
+            border: '1px solid rgba(214,178,94,0.40)',
+            borderRadius: 999,
+            padding: 3,
+            gap: 2,
+          }}>
+            {(['fr', 'en'] as const).map(l => (
+              <button key={l} onClick={() => setLang(l)} style={{
+                padding: '5px 8px', borderRadius: 999, cursor: 'pointer',
+                border: 'none',
+                background: lang === l ? 'linear-gradient(135deg, #C49A3C, #D6B25E)' : 'transparent',
+                color: lang === l ? '#0A0800' : 'rgba(214,178,94,0.60)',
+                fontSize: 12, fontWeight: 800,
+                letterSpacing: '1px',
+                boxShadow: lang === l ? '0 0 10px rgba(214,178,94,0.40)' : 'none',
+                transition: 'all 0.2s ease',
+              }}>
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0, height: 1,
@@ -150,27 +170,31 @@ export default function Navbar() {
       backdropFilter: 'blur(12px)',
       borderBottom: `1px solid ${theme.colors.border}`,
       display: 'flex', alignItems: 'center',
-      justifyContent: 'space-between', padding: '0 16px',
+      justifyContent: 'space-between', padding: '0 10px',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
         <StandardLogo theme={theme} />
         <div>
           <div className="metal-text" style={{ fontSize: 13, fontWeight: 800, letterSpacing: '2px', lineHeight: 1 }}>HAILITE</div>
           <div className="metal-text" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '3px', lineHeight: 1 }}>XTERIORS</div>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 4 }}>
-        {(['fr', 'en'] as const).map(l => (
-          <button key={l} onClick={() => setLang(l)} style={{
-            padding: '6px 12px', borderRadius: 20, cursor: 'pointer',
-            border: lang === l ? `2px solid ${theme.colors.primary}` : `1px solid ${theme.colors.border}`,
-            background: lang === l ? theme.colors.glow1 : 'transparent',
-            color: lang === l ? theme.colors.primary : theme.colors.textMuted,
-            fontSize: 12, fontWeight: 700,
-          }}>
-            {l === 'fr' ? '🇫🇷 FR' : '🇬🇧 EN'}
-          </button>
-        ))}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <Link href="/about" style={aboutButtonStyle}>ℹ️ <span className="hidden sm:inline">{aboutLabel}</span></Link>
+        <ShareAppButton />
+        <div style={{ display: 'flex', gap: 4 }}>
+          {(['fr', 'en'] as const).map(l => (
+            <button key={l} onClick={() => setLang(l)} style={{
+              padding: '6px 8px', borderRadius: 20, cursor: 'pointer',
+              border: lang === l ? `2px solid ${theme.colors.primary}` : `1px solid ${theme.colors.border}`,
+              background: lang === l ? theme.colors.glow1 : 'transparent',
+              color: lang === l ? theme.colors.primary : theme.colors.textMuted,
+              fontSize: 12, fontWeight: 700,
+            }}>
+              {l === 'fr' ? 'FR' : 'EN'}
+            </button>
+          ))}
+        </div>
       </div>
     </nav>
     </>
