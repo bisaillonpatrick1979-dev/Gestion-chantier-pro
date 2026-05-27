@@ -4,6 +4,7 @@ import Navbar from '@/components/layout/Navbar'
 import BottomNav from '@/components/layout/BottomNav'
 import OnboardingGuard from '@/components/OnboardingGuard'
 import LegalConsentGate from '@/components/LegalConsentGate'
+import StartupConsentGate from '@/components/StartupConsentGate'
 import PWARegister from '@/components/PWARegister'
 import ThemeInjector from '@/components/ThemeInjector'
 import DevTools from '@/components/DevTools'
@@ -36,11 +37,7 @@ export const viewport: Viewport = {
   themeColor: '#a855f7',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
       <head>
@@ -54,12 +51,11 @@ export default function RootLayout({
         <ThemeInjector />
         <OnboardingGuard />
         <LegalConsentGate />
+        <StartupConsentGate />
         <PWARegister />
         <SyncManager />
         <Navbar />
-        <main className="pt-16" style={{ paddingBottom: 80 }}>
-          {children}
-        </main>
+        <main className="pt-16" style={{ paddingBottom: 80 }}>{children}</main>
         <BottomNav />
         <DevTools />
       </body>
