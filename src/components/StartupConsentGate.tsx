@@ -100,6 +100,7 @@ export default function StartupConsentGate() {
   const selectedProvider = PROVIDERS.find(p => p.id === provider)
   const providerName = lang === 'fr' ? selectedProvider?.fr : selectedProvider?.en
   const needsBackupSetup = mode === 'local' || mode === 'file-backup'
+  const showIOSGuide = needsBackupSetup && (provider === 'icloud' || provider === 'device' || provider === 'other')
 
   const createBackupNow = async () => {
     try {
@@ -204,6 +205,22 @@ export default function StartupConsentGate() {
                 ? t('Ce navigateur peut demander de choisir un dossier. Sinon, l’app téléchargera un fichier que vous placerez dans votre cloud personnel.', 'This browser may ask you to choose a folder. Otherwise, the app downloads a file that you place in your personal cloud.')
                 : t('Sur mobile/iPhone/Samsung, le navigateur télécharge souvent le fichier. Vous pourrez ensuite choisir iCloud, Google Drive, Samsung Files ou un autre dossier avec le menu de partage/fichiers.', 'On mobile/iPhone/Samsung, the browser often downloads the file. You can then choose iCloud, Google Drive, Samsung Files, or another folder using the share/files menu.')}
             </p>
+
+            {showIOSGuide && (
+              <div style={{ marginBottom: 10, padding: 12, borderRadius: 14, background: 'rgba(59,130,246,.12)', border: '1px solid rgba(147,197,253,.28)' }}>
+                <p style={{ color: '#bfdbfe', fontSize: 12, fontWeight: 950, marginBottom: 6 }}>🍎 {t('Information importante pour iPhone / iPad', 'Important information for iPhone / iPad')}</p>
+                <p style={{ color: '#dbeafe', fontSize: 11, lineHeight: 1.5, marginBottom: 6 }}>
+                  {t('Sur iOS, une app web ne peut pas toujours créer automatiquement un dossier permanent dans iCloud Drive. Le plus fiable est de télécharger le fichier de sauvegarde, puis de le déplacer dans Fichiers ou iCloud Drive.', 'On iOS, a web app cannot always automatically create a permanent folder in iCloud Drive. The most reliable method is to download the backup file, then move it into Files or iCloud Drive.')}
+                </p>
+                <ol style={{ color: '#93c5fd', fontSize: 11, lineHeight: 1.55, margin: '0 0 0 18px', padding: 0 }}>
+                  <li>{t('Appuyez sur Télécharger ou Créer fichier.', 'Tap Download or Create file.')}</li>
+                  <li>{t('Quand le fichier est créé, ouvrez l’app Fichiers.', 'When the file is created, open the Files app.')}</li>
+                  <li>{t('Déplacez le fichier dans iCloud Drive > Gestion Chantier Pro, ou créez ce dossier.', 'Move the file to iCloud Drive > Gestion Chantier Pro, or create that folder.')}</li>
+                  <li>{t('Pour restaurer, revenez ici et utilisez Importer une sauvegarde existante.', 'To restore, come back here and use Import existing backup.')}</li>
+                </ol>
+              </div>
+            )}
+
             <label style={{ display: 'flex', gap: 10, fontSize: 12, color: '#e5e7eb', lineHeight: 1.4, marginBottom: 8 }}>
               <input type="checkbox" checked={permission} onChange={() => setPermission(v => !v)} style={{ width: 18, height: 18 }} />
               <span>{t('J’autorise l’application à créer ou télécharger un fichier de sauvegarde selon le choix de mon appareil/navigateur.', 'I authorize the app to create or download a backup file according to my device/browser choice.')}</span>
