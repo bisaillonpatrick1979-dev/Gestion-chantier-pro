@@ -30,6 +30,23 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Settings tabs visual order.
+   Keeps the existing activeTab ids intact while showing the requested order:
+   Compagnie, Clients, Employés, Comptabilité, Catalogue, Paiement,
+   Rappels, Conditions, Thèmes, Langue, Géofenc., RH. */
+main .scrollbar-hide > button:nth-child(1) { order: 1; }
+main .scrollbar-hide > button:nth-child(8) { order: 2; }
+main .scrollbar-hide > button:nth-child(2) { order: 3; }
+main .scrollbar-hide > button:nth-child(10) { order: 4; }
+main .scrollbar-hide > button:nth-child(9) { order: 5; }
+main .scrollbar-hide > button:nth-child(5) { order: 6; }
+main .scrollbar-hide > button:nth-child(6) { order: 7; }
+main .scrollbar-hide > button:nth-child(7) { order: 8; }
+main .scrollbar-hide > button:nth-child(3) { order: 9; }
+main .scrollbar-hide > button:nth-child(4) { order: 10; }
+main .scrollbar-hide > button:nth-child(11) { order: 11; }
+main .scrollbar-hide > button:nth-child(12) { order: 12; }
+
 /* ============================================================
    THEME INFERNAL
    ID technique: inferno
