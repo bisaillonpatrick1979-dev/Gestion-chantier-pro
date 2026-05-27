@@ -1,0 +1,17 @@
+{
+  "manifestVersion": "1.0",
+  "latestPublishedPackage": "2026.07",
+  "latestEffectiveDate": "2026-07-01",
+  "currentInstalledPackage": "2026.01",
+  "currentInstalledEffectiveDate": "2026-01-01",
+  "nextRequiredReview": "2026-07-01",
+  "countryCoverage": ["CA", "US"],
+  "canada": {
+    "sourceName": "CRA T4127 Payroll Deductions Formulas",
+    "currentYearIndexUrl": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4127-payroll-deductions-formulas.html",
+    "jan2026Url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4127-payroll-deductions-formulas/t4127-jan.html",
+    "jul2026Url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4127-payroll-deductions-formulas/t4127-jul.html"
+  },
+  "validationNoticeFr": "Ce manifeste permet a l'application de detecter qu'un paquet plus recent existe. Les calculs officiels doivent etre valides par l'entreprise ou le comptable.",
+  "validationNoticeEn": "This manifest lets the app detect when a newer package exists. Official calculations must be validated by the business or accountant."
+}
