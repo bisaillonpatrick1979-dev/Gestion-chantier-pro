@@ -8,6 +8,58 @@ import { useStorageSettingsStore, StorageMode } from '@/store/useStorageSettings
 
 const KEY = 'gcp-startup-consent-v1'
 
+type ChoiceInfo = {
+  mode: StorageMode
+  icon: string
+  titleFr: string
+  titleEn: string
+  subtitleFr: string
+  subtitleEn: string
+  detailFr: string
+  detailEn: string
+  bulletsFr: string[]
+  bulletsEn: string[]
+}
+
+const CHOICES: ChoiceInfo[] = [
+  {
+    mode: 'local',
+    icon: '📱',
+    titleFr: 'Local seulement',
+    titleEn: 'Local only',
+    subtitleFr: 'Données gardées sur cet appareil.',
+    subtitleEn: 'Data kept on this device.',
+    detailFr: 'Vos données restent sur ce téléphone, cette tablette ou ce navigateur. Rien n’est envoyé vers Supabase par ce choix.',
+    detailEn: 'Your data stays on this phone, tablet, or browser. Nothing is sent to Supabase with this choice.',
+    bulletsFr: ['Fonctionne hors ligne.', 'Plus privé.', 'Peut être perdu si le navigateur, l’app ou l’appareil est effacé.'],
+    bulletsEn: ['Works offline.', 'More private.', 'May be lost if the browser, app, or device is erased.'],
+  },
+  {
+    mode: 'file-backup',
+    icon: '💾',
+    titleFr: 'Sauvegarde fichier',
+    titleEn: 'File backup',
+    subtitleFr: 'Export manuel vers votre cloud personnel.',
+    subtitleEn: 'Manual export to your personal cloud.',
+    detailFr: 'Vos données restent locales. Vous pouvez exporter un fichier de sauvegarde et le garder dans iCloud, Google Drive, Samsung Files, OneDrive ou ailleurs.',
+    detailEn: 'Your data stays local. You can export a backup file and keep it in iCloud, Google Drive, Samsung Files, OneDrive, or elsewhere.',
+    bulletsFr: ['Vous contrôlez le fichier.', 'Bon choix pour garder une copie personnelle.', 'La sauvegarde dépend de vous.'],
+    bulletsEn: ['You control the file.', 'Good choice for keeping a personal copy.', 'The backup depends on you.'],
+  },
+  {
+    mode: 'supabase',
+    icon: '☁️',
+    titleFr: 'Supabase / Cloud sécurisé',
+    titleEn: 'Supabase / Secure cloud',
+    subtitleFr: 'Sauvegarde cloud, multi-appareils et équipe.',
+    subtitleEn: 'Cloud backup, multi-device, and team use.',
+    detailFr: 'Les données peuvent être synchronisées dans Supabase pour récupérer vos informations, travailler sur plusieurs appareils et gérer une équipe.',
+    detailEn: 'Data can be synchronized to Supabase to recover information, work across devices, and manage a team.',
+    bulletsFr: ['Nous appliquons des mesures strictes pour protéger l’accès aux données.', 'Conçu pour rôles Admin, Employé et Sous-traitant.', 'Les données vont dans le cloud seulement si vous activez ce choix.'],
+    bulletsEn: ['We apply strict measures to protect data access.', 'Designed for Admin, Employee, and Subcontractor roles.', 'Data goes to the cloud only if you enable this choice.'],
+  },
+]
+
 export default function StartupConsentGate() {
   const pathname = usePathname()
   const { lang } = useLangStore()
@@ -36,26 +88,57 @@ export default function StartupConsentGate() {
   if (!ready || done || !completed || pathname === '/onboarding') return null
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 10002, background: '#030712', padding: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: '100%', maxWidth: 540, background: '#111827', border: '1px solid #22d3ee55', borderRadius: 24, padding: 18, color: 'white' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 10002, overflowY: 'auto', background: '#030712', padding: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: '100%', maxWidth: 560, background: '#111827', border: '1px solid #22d3ee55', borderRadius: 24, padding: 18, color: 'white' }}>
         <h1 style={{ fontSize: 22, fontWeight: 950, marginBottom: 8 }}>🔐 {t('Autorisation et sauvegarde', 'Consent and backup')}</h1>
-        <p style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 1.45 }}>{t('Choisissez où vos données seront gardées.', 'Choose where your data will be kept.')}</p>
-        <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
-          <button onClick={() => setMode('local')} style={btn(mode === 'local')}>📱 {t('Local seulement', 'Local only')}</button>
-          <button onClick={() => setMode('file-backup')} style={btn(mode === 'file-backup')}>💾 {t('Sauvegarde fichier', 'File backup')}</button>
-          <button onClick={() => setMode('supabase')} style={btn(mode === 'supabase')}>☁️ {t('Supabase / Cloud sécurisé', 'Supabase / Secure cloud')}</button>
+        <p style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 1.45, marginBottom: 12 }}>{t('Choisissez où vos données seront gardées. Cliquez sur une option pour voir ce que ce choix veut dire.', 'Choose where your data will be kept. Tap an option to see what the choice means.')}</p>
+
+        <div style={{ display: 'grid', gap: 10 }}>
+          {CHOICES.map(choice => {
+            const active = mode === choice.mode
+            return (
+              <button key={choice.mode} onClick={() => setMode(choice.mode)} style={choiceBtn(active)}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: 28 }}>{choice.icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 950, fontSize: 15 }}>{lang === 'fr' ? choice.titleFr : choice.titleEn}</div>
+                    <div style={{ color: '#cbd5e1', fontSize: 12, marginTop: 3 }}>{lang === 'fr' ? choice.subtitleFr : choice.subtitleEn}</div>
+                    {active && (
+                      <div style={{ marginTop: 10 }}>
+                        <p style={{ color: '#e5e7eb', fontSize: 12, lineHeight: 1.45, margin: 0 }}>{lang === 'fr' ? choice.detailFr : choice.detailEn}</p>
+                        <ul style={{ color: '#93c5fd', fontSize: 12, lineHeight: 1.55, margin: '8px 0 0 18px', padding: 0 }}>
+                          {(lang === 'fr' ? choice.bulletsFr : choice.bulletsEn).map(item => <li key={item}>{item}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                  {active && <span style={{ color: '#22d3ee', fontWeight: 950 }}>✓</span>}
+                </div>
+              </button>
+            )
+          })}
         </div>
-        <p style={{ color: '#93c5fd', fontSize: 12, lineHeight: 1.45, marginTop: 12 }}>{t('Nous appliquons des mesures strictes pour protéger l’accès aux données.', 'We apply strict measures to protect data access.')}</p>
-        <label style={{ display: 'flex', gap: 10, marginTop: 12, fontSize: 12, color: '#e5e7eb' }}>
-          <input type="checkbox" checked={ok} onChange={() => setOk(v => !v)} />
-          <span>{t('Je comprends et j’accepte ce choix.', 'I understand and accept this choice.')}</span>
+
+        <label style={{ display: 'flex', gap: 10, marginTop: 14, fontSize: 12, color: '#e5e7eb', lineHeight: 1.4 }}>
+          <input type="checkbox" checked={ok} onChange={() => setOk(v => !v)} style={{ width: 18, height: 18 }} />
+          <span>{t('Je comprends ce choix de sauvegarde et j’accepte de continuer.', 'I understand this backup choice and agree to continue.')}</span>
         </label>
+
         <button onClick={save} disabled={!ok} style={{ width: '100%', marginTop: 14, padding: 14, borderRadius: 16, border: 'none', opacity: ok ? 1 : .45, background: 'linear-gradient(135deg,#7c3aed,#22d3ee)', color: 'white', fontWeight: 950 }}>{t('Continuer', 'Continue')}</button>
       </div>
     </div>
   )
 }
 
-function btn(active: boolean) {
-  return { padding: 13, borderRadius: 14, border: active ? '2px solid #22d3ee' : '1px solid #ffffff22', background: active ? '#0891b233' : '#ffffff0d', color: 'white', textAlign: 'left' as const, fontWeight: 900, cursor: 'pointer' }
+function choiceBtn(active: boolean) {
+  return {
+    width: '100%',
+    padding: 13,
+    borderRadius: 16,
+    border: active ? '2px solid #22d3ee' : '1px solid #ffffff22',
+    background: active ? '#0891b233' : '#ffffff0d',
+    color: 'white',
+    textAlign: 'left' as const,
+    cursor: 'pointer',
+  }
 }
