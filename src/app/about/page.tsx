@@ -7,6 +7,7 @@ import ShareAppButton from '@/components/ShareAppButton'
 
 const APP_VERSION = '0.1.0'
 const BUILD_LABEL = 'MVP local / Supabase-ready'
+const CREATED_BY = 'Hailite Apps'
 
 export default function AboutPage() {
   const router = useRouter()
@@ -60,8 +61,8 @@ export default function AboutPage() {
             <InfoRow label={t('Nom', 'Name')} value="Gestion Chantier Pro" color={titleColor} muted={muted} />
             <InfoRow label={t('Version', 'Version')} value={APP_VERSION} color={titleColor} muted={muted} />
             <InfoRow label={t('Build', 'Build')} value={BUILD_LABEL} color={titleColor} muted={muted} />
-            <InfoRow label={t('Créé pour', 'Created for')} value="Hailite Xteriors" color={titleColor} muted={muted} />
-            <InfoRow label={t('Créateur / propriétaire', 'Creator / owner')} value="Patrick Bisaillon" color={titleColor} muted={muted} />
+            <InfoRow label={t('Créé par', 'Created by')} value={CREATED_BY} color={titleColor} muted={muted} />
+            <InfoRow label={t('Type', 'Type')} value={t('Outil de gestion de chantier', 'Jobsite management tool')} color={titleColor} muted={muted} />
           </div>
         </section>
 
