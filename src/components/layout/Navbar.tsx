@@ -62,100 +62,49 @@ export default function Navbar() {
     whiteSpace: 'nowrap' as const,
   }
 
+  const shareCenterStyle = {
+    position: 'absolute' as const,
+    left: '50%',
+    top: '50%',
+    transform: 'translate(-50%, -50%)',
+    zIndex: 2,
+  }
+
   if (isDeco) {
     return (
       <>
         <ThemeRuntime />
         <nav style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 64,
-        zIndex: 50,
-        background: 'rgba(5,5,5,0.97)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(214,178,94,0.30)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 10px',
-      }}>
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-          background: 'linear-gradient(90deg, transparent, rgba(214,178,94,0.80), transparent)',
-          pointerEvents: 'none',
-        }} />
-        <div style={{
-          position: 'absolute', top: 6, left: 6, width: 16, height: 16,
-          borderTop: '1.5px solid rgba(214,178,94,0.65)',
-          borderLeft: '1.5px solid rgba(214,178,94,0.65)',
-          pointerEvents: 'none',
-        }} />
-        <div style={{
-          position: 'absolute', top: 6, right: 6, width: 16, height: 16,
-          borderTop: '1.5px solid rgba(214,178,94,0.65)',
-          borderRight: '1.5px solid rgba(214,178,94,0.65)',
-          pointerEvents: 'none',
-        }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <DecoLogo />
-          <div>
-            <div style={{
-              fontSize: 13, fontWeight: 900, letterSpacing: '3px', lineHeight: 1.1,
-              background: 'linear-gradient(90deg, #8B6010, #D6B25E, #F2D27A, #D6B25E, #8B6010)',
-              backgroundSize: '200% auto',
-              WebkitBackgroundClip: 'text', backgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              animation: 'decoShimmerText 4s linear infinite',
-            }}>
-              HAILITE
-            </div>
-            <div style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: '4px', lineHeight: 1.1,
-              background: 'linear-gradient(90deg, #A67C2D, #D6B25E, #F2D27A, #D6B25E, #A67C2D)',
-              backgroundSize: '200% auto',
-              WebkitBackgroundClip: 'text', backgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              animation: 'decoShimmerText 4s linear infinite 0.5s',
-            }}>
-              XTERIORS
+          position: 'fixed', top: 0, left: 0, right: 0,
+          height: 64, zIndex: 50,
+          background: 'rgba(5,5,5,0.97)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(214,178,94,0.30)',
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 10px',
+        }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, rgba(214,178,94,0.80), transparent)', pointerEvents: 'none' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <DecoLogo />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: '3px', lineHeight: 1.1, background: 'linear-gradient(90deg, #8B6010, #D6B25E, #F2D27A, #D6B25E, #8B6010)', backgroundSize: '200% auto', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', animation: 'decoShimmerText 4s linear infinite' }}>HAILITE</div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '4px', lineHeight: 1.1, background: 'linear-gradient(90deg, #A67C2D, #D6B25E, #F2D27A, #D6B25E, #A67C2D)', backgroundSize: '200% auto', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', animation: 'decoShimmerText 4s linear infinite 0.5s' }}>XTERIORS</div>
             </div>
           </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <Link href="/about" style={aboutButtonStyle}>ℹ️ <span className="hidden sm:inline">{aboutLabel}</span></Link>
-          <ShareAppButton />
-          <div style={{
-            display: 'flex', alignItems: 'center',
-            background: '#111109',
-            border: '1px solid rgba(214,178,94,0.40)',
-            borderRadius: 999,
-            padding: 3,
-            gap: 2,
-          }}>
-            {(['fr', 'en'] as const).map(l => (
-              <button key={l} onClick={() => setLang(l)} style={{
-                padding: '5px 8px', borderRadius: 999, cursor: 'pointer',
-                border: 'none',
-                background: lang === l ? 'linear-gradient(135deg, #C49A3C, #D6B25E)' : 'transparent',
-                color: lang === l ? '#0A0800' : 'rgba(214,178,94,0.60)',
-                fontSize: 12, fontWeight: 800,
-                letterSpacing: '1px',
-                boxShadow: lang === l ? '0 0 10px rgba(214,178,94,0.40)' : 'none',
-                transition: 'all 0.2s ease',
-              }}>
-                {l.toUpperCase()}
-              </button>
-            ))}
+
+          <div style={shareCenterStyle}><ShareAppButton /></div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, zIndex: 3 }}>
+            <Link href="/about" style={aboutButtonStyle}>ℹ️ <span className="hidden sm:inline">{aboutLabel}</span></Link>
+            <div style={{ display: 'flex', alignItems: 'center', background: '#111109', border: '1px solid rgba(214,178,94,0.40)', borderRadius: 999, padding: 3, gap: 2 }}>
+              {(['fr', 'en'] as const).map(l => (
+                <button key={l} onClick={() => setLang(l)} style={{ padding: '5px 8px', borderRadius: 999, cursor: 'pointer', border: 'none', background: lang === l ? 'linear-gradient(135deg, #C49A3C, #D6B25E)' : 'transparent', color: lang === l ? '#0A0800' : 'rgba(214,178,94,0.60)', fontSize: 12, fontWeight: 800, letterSpacing: '1px', boxShadow: lang === l ? '0 0 10px rgba(214,178,94,0.40)' : 'none', transition: 'all 0.2s ease' }}>{l.toUpperCase()}</button>
+              ))}
+            </div>
           </div>
-        </div>
-        <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: 1,
-          background: 'linear-gradient(90deg, transparent, rgba(214,178,94,0.50), transparent)',
-          pointerEvents: 'none',
-        }} />
-      </nav>
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(214,178,94,0.50), transparent)', pointerEvents: 'none' }} />
+        </nav>
       </>
     )
   }
@@ -164,39 +113,33 @@ export default function Navbar() {
     <>
       <ThemeRuntime />
       <nav style={{
-      position: 'fixed', top: 0, left: 0, right: 0,
-      height: 64, zIndex: 50,
-      background: 'rgba(10,5,0,0.90)',
-      backdropFilter: 'blur(12px)',
-      borderBottom: `1px solid ${theme.colors.border}`,
-      display: 'flex', alignItems: 'center',
-      justifyContent: 'space-between', padding: '0 10px',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-        <StandardLogo theme={theme} />
-        <div>
-          <div className="metal-text" style={{ fontSize: 13, fontWeight: 800, letterSpacing: '2px', lineHeight: 1 }}>HAILITE</div>
-          <div className="metal-text" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '3px', lineHeight: 1 }}>XTERIORS</div>
+        position: 'fixed', top: 0, left: 0, right: 0,
+        height: 64, zIndex: 50,
+        background: 'rgba(10,5,0,0.90)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: `1px solid ${theme.colors.border}`,
+        display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', padding: '0 10px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <StandardLogo theme={theme} />
+          <div>
+            <div className="metal-text" style={{ fontSize: 13, fontWeight: 800, letterSpacing: '2px', lineHeight: 1 }}>HAILITE</div>
+            <div className="metal-text" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '3px', lineHeight: 1 }}>XTERIORS</div>
+          </div>
         </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <Link href="/about" style={aboutButtonStyle}>ℹ️ <span className="hidden sm:inline">{aboutLabel}</span></Link>
-        <ShareAppButton />
-        <div style={{ display: 'flex', gap: 4 }}>
-          {(['fr', 'en'] as const).map(l => (
-            <button key={l} onClick={() => setLang(l)} style={{
-              padding: '6px 8px', borderRadius: 20, cursor: 'pointer',
-              border: lang === l ? `2px solid ${theme.colors.primary}` : `1px solid ${theme.colors.border}`,
-              background: lang === l ? theme.colors.glow1 : 'transparent',
-              color: lang === l ? theme.colors.primary : theme.colors.textMuted,
-              fontSize: 12, fontWeight: 700,
-            }}>
-              {l === 'fr' ? 'FR' : 'EN'}
-            </button>
-          ))}
+
+        <div style={shareCenterStyle}><ShareAppButton /></div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, zIndex: 3 }}>
+          <Link href="/about" style={aboutButtonStyle}>ℹ️ <span className="hidden sm:inline">{aboutLabel}</span></Link>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {(['fr', 'en'] as const).map(l => (
+              <button key={l} onClick={() => setLang(l)} style={{ padding: '6px 8px', borderRadius: 20, cursor: 'pointer', border: lang === l ? `2px solid ${theme.colors.primary}` : `1px solid ${theme.colors.border}`, background: lang === l ? theme.colors.glow1 : 'transparent', color: lang === l ? theme.colors.primary : theme.colors.textMuted, fontSize: 12, fontWeight: 700 }}>{l === 'fr' ? 'FR' : 'EN'}</button>
+            ))}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
     </>
   )
 }
