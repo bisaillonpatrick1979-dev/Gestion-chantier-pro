@@ -77,7 +77,9 @@ export const useClientStore = create<ClientStore>()(
         set({ isSyncing: true })
         try {
           const remote = await fetchClientsFromSupabase()
-          if (remote && remote.length > 0) {
+          // Important: an empty Supabase table must clear stale local demo/dev data.
+          // null means Supabase is not configured or the fetch failed, so we keep local data.
+          if (remote !== null) {
             set({ clients: remote })
           }
           set({ lastSync: new Date().toISOString() })
