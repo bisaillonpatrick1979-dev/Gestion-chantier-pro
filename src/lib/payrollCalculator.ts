@@ -11,166 +11,135 @@ export type PayFrequency = 'weekly' | 'biweekly' | 'semimonthly' | 'monthly'
 export type WorkerType = 'contractor' | 'salaried'
 export type Country = 'CA' | 'US'
 
-// Nombre de périodes de paie par année
+type PayrollBracket = { upTo?: number; min?: number; max?: number; rate: number }
+
 export const PAY_PERIODS: Record<PayFrequency, number> = {
-  weekly:      52,
-  biweekly:    26,
+  weekly: 52,
+  biweekly: 26,
   semimonthly: 24,
-  monthly:     12,
+  monthly: 12,
 }
 
 export const PAY_FREQUENCY_LABELS: Record<PayFrequency, { fr: string; en: string }> = {
-  weekly:      { fr: 'Hebdomadaire',      en: 'Weekly' },
-  biweekly:    { fr: 'Aux deux semaines', en: 'Bi-weekly' },
-  semimonthly: { fr: 'Deux fois/mois',    en: 'Semi-monthly' },
-  monthly:     { fr: 'Mensuel',           en: 'Monthly' },
+  weekly: { fr: 'Hebdomadaire', en: 'Weekly' },
+  biweekly: { fr: 'Aux deux semaines', en: 'Bi-weekly' },
+  semimonthly: { fr: 'Deux fois/mois', en: 'Semi-monthly' },
+  monthly: { fr: 'Mensuel', en: 'Monthly' },
 }
 
-// ─── Résultat du calcul ────────────────────────────────────────────────────
 export interface PayrollResult {
   country: Country
   province: string
   payFrequency: PayFrequency
-  grossPay: number           // Salaire brut cette période
-  annualGross: number        // Salaire brut annuel estimé
-
-  // Déductions employé
+  grossPay: number
+  annualGross: number
   deductions: {
-    // Canada
-    cpp?: number             // RPC employé
-    cpp2?: number            // RPC2 employé (si applicable)
-    ei?: number              // AE employé
-    federalTax?: number      // Impôt fédéral
-    provincialTax?: number   // Impôt provincial
-    // USA
-    socialSecurity?: number  // Sécurité sociale employé
-    medicare?: number        // Medicare employé
-    stateTax?: number        // Impôt état
-    federalIncomeTax?: number
-  }
-
-  // Parts employeur (ton coût additionnel)
-  employerCost: {
-    cpp?: number             // RPC employeur
+    cpp?: number
     cpp2?: number
-    ei?: number              // AE employeur
+    ei?: number
+    federalTax?: number
+    provincialTax?: number
     socialSecurity?: number
     medicare?: number
-    futa?: number            // Chômage fédéral US
+    stateTax?: number
+    federalIncomeTax?: number
   }
-
-  totalDeductions: number    // Total retiré du chèque employé
-  netPay: number             // Net à payer à l'employé
-  totalEmployerCost: number  // Ce que ça te coûte vraiment
-  effectiveTaxRate: number   // Taux effectif global %
-
-  notes: string[]            // Avertissements / infos importantes
+  employerCost: {
+    cpp?: number
+    cpp2?: number
+    ei?: number
+    socialSecurity?: number
+    medicare?: number
+    futa?: number
+  }
+  totalDeductions: number
+  netPay: number
+  totalEmployerCost: number
+  effectiveTaxRate: number
+  notes: string[]
   year: number
 }
 
-// ─── Calculer l'impôt par paliers ─────────────────────────────────────────
-function calcBracketTax(
-  annualIncome: number,
-  brackets: { min: number; max: number; rate: number }[],
-  personalAmount: number = 0
-): number {
+function calcBracketTax(annualIncome: number, brackets: PayrollBracket[], personalAmount = 0): number {
   const taxableIncome = Math.max(0, annualIncome - personalAmount)
   let tax = 0
+  let previousLimit = 0
+
   for (const bracket of brackets) {
-    if (taxableIncome <= bracket.min) break
-    const taxable = Math.min(taxableIncome, bracket.max) - bracket.min
-    tax += taxable * bracket.rate
+    if (typeof bracket.upTo === 'number') {
+      const upper = bracket.upTo
+      if (taxableIncome <= previousLimit) break
+      const taxable = Math.max(0, Math.min(taxableIncome, upper) - previousLimit)
+      tax += taxable * bracket.rate
+      previousLimit = upper
+    } else {
+      const min = bracket.min ?? previousLimit
+      const max = bracket.max ?? Infinity
+      if (taxableIncome <= min) break
+      const taxable = Math.max(0, Math.min(taxableIncome, max) - min)
+      tax += taxable * bracket.rate
+      previousLimit = max
+    }
   }
+
   return tax
 }
 
-// ─── CALCULATEUR CANADA ────────────────────────────────────────────────────
-export function calculateCanadaPayroll(
-  grossPay: number,
-  provinceCode: string,
-  payFrequency: PayFrequency
-): PayrollResult {
+export function calculateCanadaPayroll(grossPay: number, provinceCode: string, payFrequency: PayFrequency): PayrollResult {
   const periods = PAY_PERIODS[payFrequency]
   const annualGross = grossPay * periods
-  const province = CANADA_PROVINCES[provinceCode]
+  const province = CANADA_PROVINCES[provinceCode] ?? CANADA_PROVINCES.AB
   const fed = CANADA_FEDERAL
   const notes: string[] = []
   const deductions: PayrollResult['deductions'] = {}
   const employerCost: PayrollResult['employerCost'] = {}
 
-  if (!province) {
-    notes.push(`Province ${provinceCode} non trouvée — utilisation Alberta par défaut`)
-  }
+  if (!CANADA_PROVINCES[provinceCode]) notes.push(`Province ${provinceCode} non trouvée — utilisation Alberta par défaut`)
 
-  // ── RPC / CPP ────────────────────────────────────────────────────────────
   if (provinceCode !== 'QC') {
     const pensionableEarnings = Math.min(
       Math.max(0, annualGross - fed.cpp.basicExemption),
       fed.cpp.maxInsurableEarnings - fed.cpp.basicExemption
     )
-    const annualCPP = Math.min(
-      pensionableEarnings * fed.cpp.employeeRate,
-      fed.cpp.maxEmployeeContribution
-    )
+    const annualCPP = Math.min(pensionableEarnings * fed.cpp.employeeRate, fed.cpp.maxEmployeeContribution)
     deductions.cpp = annualCPP / periods
+    employerCost.cpp = deductions.cpp
 
-    // CPP2 si salaire > YMPE
     if (annualGross > fed.cpp.maxInsurableEarnings) {
       const cpp2Earnings = Math.min(
         annualGross - fed.cpp.maxInsurableEarnings,
         fed.cpp.cpp2MaxEarnings - fed.cpp.maxInsurableEarnings
       )
-      const annualCPP2 = Math.min(
-        cpp2Earnings * fed.cpp.cpp2Rate,
-        fed.cpp.cpp2MaxContribution
-      )
+      const annualCPP2 = Math.min(cpp2Earnings * fed.cpp.cpp2Rate, fed.cpp.cpp2MaxContribution)
       deductions.cpp2 = annualCPP2 / periods
-      employerCost.cpp2 = deductions.cpp2 // Employeur = même chose
+      employerCost.cpp2 = deductions.cpp2
     }
-
-    employerCost.cpp = deductions.cpp // Employeur = même chose
   } else {
-    notes.push('Québec : QPP au lieu de CPP — taux similaire mais différent. Vérifiez avec Revenu Québec.')
-    deductions.cpp = (annualGross * 0.0608) / periods // QPP 2026 approximatif
+    notes.push('Québec : QPP/RRQ et RQAP peuvent différer. Vérifiez avec Revenu Québec.')
+    deductions.cpp = (annualGross * 0.0608) / periods
     employerCost.cpp = deductions.cpp
   }
 
-  // ── AE / EI ───────────────────────────────────────────────────────────────
   if (provinceCode !== 'QC') {
     const insurable = Math.min(annualGross, fed.ei.maxInsurableEarnings)
-    const annualEI = Math.min(
-      insurable * fed.ei.employeeRate,
-      fed.ei.maxEmployeePremium
-    )
+    const annualEI = Math.min(insurable * fed.ei.employeeRate, fed.ei.maxEmployeePremium)
     deductions.ei = annualEI / periods
     employerCost.ei = deductions.ei * fed.ei.employerMultiplier
   } else {
-    notes.push('Québec : RQAP au lieu de EI fédéral. Vérifiez avec Revenu Québec.')
-    deductions.ei = (annualGross * 0.013) / periods // RQAP approximatif
+    deductions.ei = (annualGross * 0.013) / periods
     employerCost.ei = deductions.ei * 1.4
   }
 
-  // ── Impôt fédéral ────────────────────────────────────────────────────────
-  const annualFederalTax = calcBracketTax(
-    annualGross,
-    fed.incomeTax.brackets,
-    fed.incomeTax.basicPersonalAmount
+  const annualFederalTax = calcBracketTax(annualGross, fed.incomeTax.brackets, fed.incomeTax.basicPersonalAmount)
+  const federalTaxAdjusted = Math.max(
+    0,
+    annualFederalTax - ((deductions.cpp ?? 0) * periods * 0.15) - ((deductions.ei ?? 0) * periods * 0.15)
   )
-  // Crédit pour CPP et EI déjà intégré dans les tables — approximation
-  const federalTaxAdjusted = Math.max(0, annualFederalTax - (deductions.cpp! * periods * 0.15) - (deductions.ei! * periods * 0.15))
   deductions.federalTax = federalTaxAdjusted / periods
 
-  // ── Impôt provincial ─────────────────────────────────────────────────────
-  if (province) {
-    const annualProvTax = calcBracketTax(
-      annualGross,
-      province.brackets,
-      province.basicPersonalAmount
-    )
-    deductions.provincialTax = annualProvTax / periods
-  }
+  const annualProvTax = calcBracketTax(annualGross, province.brackets, province.basicPersonalAmount)
+  deductions.provincialTax = annualProvTax / periods
 
-  // ── Totaux ───────────────────────────────────────────────────────────────
   const totalDeductions =
     (deductions.cpp ?? 0) +
     (deductions.cpp2 ?? 0) +
@@ -178,24 +147,19 @@ export function calculateCanadaPayroll(
     (deductions.federalTax ?? 0) +
     (deductions.provincialTax ?? 0)
 
-  const netPay = grossPay - totalDeductions
-
   const totalEmployerExtra =
     (employerCost.cpp ?? 0) +
     (employerCost.cpp2 ?? 0) +
     (employerCost.ei ?? 0)
 
-  const totalEmployerCost = grossPay + totalEmployerExtra
+  const netPay = grossPay - totalDeductions
 
-  if (annualGross > 100000) {
-    notes.push('Revenu élevé : vérifiez avec un comptable pour optimisation fiscale.')
-  }
-
-  notes.push(`Calculs estimés pour ${provinceCode} — ${PAYROLL_YEAR}. Utilisez le calculateur PDOC de l'ARC pour confirmation officielle.`)
+  if (annualGross > 100000) notes.push('Revenu élevé : vérifiez avec un comptable pour optimisation fiscale.')
+  notes.push(`Calculs estimés pour ${province.code} — ${PAYROLL_YEAR}. Utilisez le calculateur PDOC de l'ARC pour confirmation officielle.`)
 
   return {
     country: 'CA',
-    province: provinceCode,
+    province: province.code,
     payFrequency,
     grossPay,
     annualGross,
@@ -203,19 +167,14 @@ export function calculateCanadaPayroll(
     employerCost,
     totalDeductions,
     netPay,
-    totalEmployerCost,
-    effectiveTaxRate: (totalDeductions / grossPay) * 100,
+    totalEmployerCost: grossPay + totalEmployerExtra,
+    effectiveTaxRate: grossPay > 0 ? (totalDeductions / grossPay) * 100 : 0,
     notes,
     year: PAYROLL_YEAR,
   }
 }
 
-// ─── CALCULATEUR USA ───────────────────────────────────────────────────────
-export function calculateUSAPayroll(
-  grossPay: number,
-  stateCode: string,
-  payFrequency: PayFrequency
-): PayrollResult {
+export function calculateUSAPayroll(grossPay: number, stateCode: string, payFrequency: PayFrequency): PayrollResult {
   const periods = PAY_PERIODS[payFrequency]
   const annualGross = grossPay * periods
   const state = USA_STATES[stateCode]
@@ -224,76 +183,44 @@ export function calculateUSAPayroll(
   const deductions: PayrollResult['deductions'] = {}
   const employerCost: PayrollResult['employerCost'] = {}
 
-  if (!state) {
-    notes.push(`État ${stateCode} non trouvé — vérifiez le code.`)
-  }
+  if (!state) notes.push(`État ${stateCode} non trouvé — aucun impôt d'état appliqué.`)
 
-  // ── Social Security ───────────────────────────────────────────────────────
-  if (annualGross <= fed.socialSecurity.wageBase) {
-    deductions.socialSecurity = grossPay * fed.socialSecurity.rate
-    employerCost.socialSecurity = grossPay * fed.socialSecurity.employerRate
-  } else {
-    // Plafond atteint
-    const annualSS = fed.socialSecurity.wageBase * fed.socialSecurity.rate
-    deductions.socialSecurity = annualSS / periods
-    employerCost.socialSecurity = annualSS / periods
-    notes.push('Plafond Social Security atteint — pas de déduction supplémentaire.')
-  }
+  const ssAnnualWages = Math.min(annualGross, fed.socialSecurity.wageBase)
+  const annualSS = ssAnnualWages * fed.socialSecurity.rate
+  deductions.socialSecurity = annualSS / periods
+  employerCost.socialSecurity = annualSS / periods
+  if (annualGross > fed.socialSecurity.wageBase) notes.push('Plafond Social Security atteint — pas de déduction supplémentaire au-delà du plafond.')
 
-  // ── Medicare ─────────────────────────────────────────────────────────────
   deductions.medicare = grossPay * fed.medicare.rate
-  employerCost.medicare = grossPay * fed.medicare.employerRate
-  if (annualGross > 200000) {
+  employerCost.medicare = grossPay * fed.medicare.rate
+  if (annualGross > fed.medicare.additionalThreshold) {
     deductions.medicare += grossPay * fed.medicare.additionalRate
-    notes.push('Medicare additionnel 0.9% appliqué (revenus >200k$).')
+    notes.push('Medicare additionnel 0.9% appliqué.')
   }
 
-  // ── Impôt fédéral US ─────────────────────────────────────────────────────
-  const annualFederalTax = calcBracketTax(
-    annualGross,
-    fed.incomeTax.brackets,
-    fed.incomeTax.standardDeduction
-  )
+  const annualFederalTax = calcBracketTax(annualGross, fed.incomeTax.brackets, fed.incomeTax.standardDeductionSingle)
   deductions.federalIncomeTax = annualFederalTax / periods
 
-  // ── Impôt d'état ─────────────────────────────────────────────────────────
-  if (state?.hasIncomeTax) {
-    if (state.flatRate) {
-      deductions.stateTax = grossPay * state.flatRate
-    } else if (state.brackets) {
-      const annualStateTax = calcBracketTax(
-        annualGross,
-        state.brackets,
-        state.standardDeduction ?? 0
-      )
-      deductions.stateTax = annualStateTax / periods
-    }
-  } else if (state) {
-    notes.push(`${state.name} : ${state.notes ?? 'Aucun impôt sur le revenu.'}`)
+  if (state) {
+    deductions.stateTax = grossPay * state.incomeTaxRate
+    if (state.incomeTaxRate === 0) notes.push(`${state.name} : aucun impôt sur le revenu d'état configuré.`)
   }
 
-  // ── FUTA (employeur seulement) ────────────────────────────────────────────
-  if (annualGross <= fed.futa.wageBase) {
-    employerCost.futa = grossPay * fed.futa.rate
-  } else {
-    employerCost.futa = (fed.futa.wageBase * fed.futa.rate) / periods
-  }
+  const futaAnnualWages = Math.min(annualGross, fed.futa.wageBase)
+  employerCost.futa = (futaAnnualWages * fed.futa.rate) / periods
 
-  // ── Totaux ───────────────────────────────────────────────────────────────
   const totalDeductions =
     (deductions.socialSecurity ?? 0) +
     (deductions.medicare ?? 0) +
     (deductions.federalIncomeTax ?? 0) +
     (deductions.stateTax ?? 0)
 
-  const netPay = grossPay - totalDeductions
-
   const totalEmployerExtra =
     (employerCost.socialSecurity ?? 0) +
     (employerCost.medicare ?? 0) +
     (employerCost.futa ?? 0)
 
-  const totalEmployerCost = grossPay + totalEmployerExtra
+  const netPay = grossPay - totalDeductions
 
   notes.push(`Calculs estimés pour ${stateCode} — ${PAYROLL_YEAR}. Vérifiez avec un comptable CPA américain.`)
 
@@ -307,28 +234,19 @@ export function calculateUSAPayroll(
     employerCost,
     totalDeductions,
     netPay,
-    totalEmployerCost,
-    effectiveTaxRate: (totalDeductions / grossPay) * 100,
+    totalEmployerCost: grossPay + totalEmployerExtra,
+    effectiveTaxRate: grossPay > 0 ? (totalDeductions / grossPay) * 100 : 0,
     notes,
     year: PAYROLL_YEAR,
   }
 }
 
-// ─── FONCTION PRINCIPALE ───────────────────────────────────────────────────
-export function calculatePayroll(
-  grossPay: number,
-  country: Country,
-  regionCode: string,
-  payFrequency: PayFrequency
-): PayrollResult {
-  if (country === 'CA') {
-    return calculateCanadaPayroll(grossPay, regionCode, payFrequency)
-  } else {
-    return calculateUSAPayroll(grossPay, regionCode, payFrequency)
-  }
+export function calculatePayroll(grossPay: number, country: Country, regionCode: string, payFrequency: PayFrequency): PayrollResult {
+  return country === 'CA'
+    ? calculateCanadaPayroll(grossPay, regionCode, payFrequency)
+    : calculateUSAPayroll(grossPay, regionCode, payFrequency)
 }
 
-// ─── FORMATEUR ─────────────────────────────────────────────────────────────
 export function formatPayrollResult(result: PayrollResult, lang: 'fr' | 'en' = 'fr'): {
   label: string
   amount: number
@@ -343,30 +261,28 @@ export function formatPayrollResult(result: PayrollResult, lang: 'fr' | 'en' = '
   rows.push({ label: t('Salaire brut', 'Gross Pay'), amount: result.grossPay, type: 'gross' as const })
 
   if (result.country === 'CA') {
-    if (d.cpp)          rows.push({ label: t('RPC (employé)', 'CPP (employee)'), amount: -d.cpp, type: 'deduction' as const })
-    if (d.cpp2)         rows.push({ label: t('RPC2 (employé)', 'CPP2 (employee)'), amount: -d.cpp2, type: 'deduction' as const })
-    if (d.ei)           rows.push({ label: t('AE (employé)', 'EI (employee)'), amount: -d.ei, type: 'deduction' as const })
-    if (d.federalTax)   rows.push({ label: t('Impôt fédéral', 'Federal Tax'), amount: -d.federalTax, type: 'deduction' as const })
-    if (d.provincialTax)rows.push({ label: t('Impôt provincial', 'Provincial Tax'), amount: -d.provincialTax, type: 'deduction' as const })
+    if (d.cpp) rows.push({ label: t('RPC (employé)', 'CPP (employee)'), amount: -d.cpp, type: 'deduction' as const })
+    if (d.cpp2) rows.push({ label: t('RPC2 (employé)', 'CPP2 (employee)'), amount: -d.cpp2, type: 'deduction' as const })
+    if (d.ei) rows.push({ label: t('AE (employé)', 'EI (employee)'), amount: -d.ei, type: 'deduction' as const })
+    if (d.federalTax) rows.push({ label: t('Impôt fédéral', 'Federal Tax'), amount: -d.federalTax, type: 'deduction' as const })
+    if (d.provincialTax) rows.push({ label: t('Impôt provincial', 'Provincial Tax'), amount: -d.provincialTax, type: 'deduction' as const })
     rows.push({ label: t('💵 NET À PAYER', '💵 NET PAY'), amount: result.netPay, type: 'net' as const })
     rows.push({ label: '─────', amount: 0, type: 'total' as const })
-    if (e.cpp)          rows.push({ label: t('RPC (employeur)', 'CPP (employer)'), amount: e.cpp, type: 'employer' as const, isEmployer: true })
-    if (e.cpp2)         rows.push({ label: t('RPC2 (employeur)', 'CPP2 (employer)'), amount: e.cpp2, type: 'employer' as const, isEmployer: true })
-    if (e.ei)           rows.push({ label: t('AE (employeur)', 'EI (employer)'), amount: e.ei, type: 'employer' as const, isEmployer: true })
+    if (e.cpp) rows.push({ label: t('RPC (employeur)', 'CPP (employer)'), amount: e.cpp, type: 'employer' as const, isEmployer: true })
+    if (e.cpp2) rows.push({ label: t('RPC2 (employeur)', 'CPP2 (employer)'), amount: e.cpp2, type: 'employer' as const, isEmployer: true })
+    if (e.ei) rows.push({ label: t('AE (employeur)', 'EI (employer)'), amount: e.ei, type: 'employer' as const, isEmployer: true })
   } else {
-    if (d.socialSecurity)   rows.push({ label: 'Social Security (EE)', amount: -d.socialSecurity, type: 'deduction' as const })
-    if (d.medicare)          rows.push({ label: 'Medicare (EE)', amount: -d.medicare, type: 'deduction' as const })
-    if (d.federalIncomeTax)  rows.push({ label: t('Impôt fédéral', 'Federal Income Tax'), amount: -d.federalIncomeTax, type: 'deduction' as const })
-    if (d.stateTax)          rows.push({ label: t('Impôt d\'état', 'State Tax'), amount: -d.stateTax, type: 'deduction' as const })
+    if (d.socialSecurity) rows.push({ label: 'Social Security (EE)', amount: -d.socialSecurity, type: 'deduction' as const })
+    if (d.medicare) rows.push({ label: 'Medicare (EE)', amount: -d.medicare, type: 'deduction' as const })
+    if (d.federalIncomeTax) rows.push({ label: t('Impôt fédéral', 'Federal Income Tax'), amount: -d.federalIncomeTax, type: 'deduction' as const })
+    if (d.stateTax) rows.push({ label: t('Impôt etat', 'State Tax'), amount: -d.stateTax, type: 'deduction' as const })
     rows.push({ label: t('💵 NET À PAYER', '💵 NET PAY'), amount: result.netPay, type: 'net' as const })
     rows.push({ label: '─────', amount: 0, type: 'total' as const })
-    if (e.socialSecurity)    rows.push({ label: 'Social Security (ER)', amount: e.socialSecurity, type: 'employer' as const, isEmployer: true })
-    if (e.medicare)          rows.push({ label: 'Medicare (ER)', amount: e.medicare, type: 'employer' as const, isEmployer: true })
-    if (e.futa)              rows.push({ label: 'FUTA (ER)', amount: e.futa, type: 'employer' as const, isEmployer: true })
+    if (e.socialSecurity) rows.push({ label: 'Social Security (ER)', amount: e.socialSecurity, type: 'employer' as const, isEmployer: true })
+    if (e.medicare) rows.push({ label: 'Medicare (ER)', amount: e.medicare, type: 'employer' as const, isEmployer: true })
+    if (e.futa) rows.push({ label: 'FUTA (ER)', amount: e.futa, type: 'employer' as const, isEmployer: true })
   }
 
   rows.push({ label: t('🏷️ Coût total employeur', '🏷️ Total Employer Cost'), amount: result.totalEmployerCost, type: 'total' as const })
-
   return rows
 }
-
