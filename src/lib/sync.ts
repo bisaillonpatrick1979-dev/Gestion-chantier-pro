@@ -8,9 +8,37 @@ function canSync() {
   return true
 }
 
+// Temporary single-tenant strategy (no company_id yet):
+// replace the full remote list so stale local caches cannot repopulate cloud rows.
+async function replaceTableRows(table: 'employees' | 'clients' | 'documents' | 'projects', rows: any[]) {
+  if (!canSync()) return
+  const { data: existingRows, error: fetchErr } = await supabase.from(table).select('id')
+  if (fetchErr) {
+    console.error(`Fetch existing ${table} ids error:`, fetchErr)
+    return
+  }
+
+  const nextIds = new Set((rows ?? []).map((r: any) => r.id).filter(Boolean))
+  const existingIds = (existingRows ?? []).map((r: any) => r.id).filter(Boolean)
+  const idsToDelete = existingIds.filter((id: string) => !nextIds.has(id))
+
+  if (rows.length > 0) {
+    const { error: upsertErr } = await supabase.from(table).upsert(rows, { onConflict: 'id' })
+    if (upsertErr) {
+      console.error(`Sync ${table} upsert error:`, upsertErr)
+      return
+    }
+  }
+
+  if (idsToDelete.length > 0) {
+    const { error: deleteErr } = await supabase.from(table).delete().in('id', idsToDelete)
+    if (deleteErr) console.error(`Sync ${table} delete stale ids error:`, deleteErr)
+  }
+}
+
 // ── EMPLOYEES ─────────────────────────────────────────────────────────────
 export async function syncEmployeesToSupabase(employees: any[]) {
-  if (!canSync() || !employees.length) return
+  if (!canSync()) return
   const rows = employees.map(e => ({
     id: e.id,
     name: e.name,
@@ -43,8 +71,7 @@ export async function syncEmployeesToSupabase(employees: any[]) {
     invoice_sequence: e.invoiceSequence ?? 0,
     updated_at: new Date().toISOString(),
   }))
-  const { error } = await supabase.from('employees').upsert(rows, { onConflict: 'id' })
-  if (error) console.error('Sync employees error:', error)
+  await replaceTableRows('employees', rows)
 }
 
 export async function fetchEmployeesFromSupabase() {
@@ -126,7 +153,7 @@ export async function fetchDayDetailsFromSupabase() {
 
 // ── CLIENTS ───────────────────────────────────────────────────────────────
 export async function syncClientsToSupabase(clients: any[]) {
-  if (!canSync() || !clients.length) return
+  if (!canSync()) return
   const rows = clients.map(c => ({
     id: c.id,
     name: c.name,
@@ -139,8 +166,7 @@ export async function syncClientsToSupabase(clients: any[]) {
     notes: c.notes ?? '',
     updated_at: new Date().toISOString(),
   }))
-  const { error } = await supabase.from('clients').upsert(rows, { onConflict: 'id' })
-  if (error) console.error('Sync clients error:', error)
+  await replaceTableRows('clients', rows)
 }
 
 export async function fetchClientsFromSupabase() {
@@ -163,7 +189,7 @@ export async function fetchClientsFromSupabase() {
 
 // ── DOCUMENTS ─────────────────────────────────────────────────────────────
 export async function syncDocumentsToSupabase(documents: any[]) {
-  if (!canSync() || !documents.length) return
+  if (!canSync()) return
   const rows = documents.map(d => ({
     id: d.id,
     type: d.type,
@@ -228,8 +254,7 @@ export async function syncDocumentsToSupabase(documents: any[]) {
     signature: d.signature ?? '',
     updated_at: new Date().toISOString(),
   }))
-  const { error } = await supabase.from('documents').upsert(rows, { onConflict: 'id' })
-  if (error) console.error('Sync documents error:', error)
+  await replaceTableRows('documents', rows)
 }
 
 export async function fetchDocumentsFromSupabase() {
@@ -450,7 +475,7 @@ export async function fetchPayrollFromSupabase() {
 
 // ── PROJECTS ──────────────────────────────────────────────────────────────
 export async function syncProjectsToSupabase(projects: any[]) {
-  if (!canSync() || !projects.length) return
+  if (!canSync()) return
   const rows = projects.map(p => ({
     id: p.id,
     name: p.name,
@@ -472,8 +497,7 @@ export async function syncProjectsToSupabase(projects: any[]) {
     closed_at: p.closedAt ?? null,
     updated_at: new Date().toISOString(),
   }))
-  const { error } = await supabase.from('projects').upsert(rows, { onConflict: 'id' })
-  if (error) console.error('Sync projects error:', error)
+  await replaceTableRows('projects', rows)
 }
 
 export async function fetchProjectsFromSupabase() {

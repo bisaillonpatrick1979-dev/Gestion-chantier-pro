@@ -15,6 +15,7 @@ import {
   SEED_DAY_DETAILS, SEED_EMPLOYEE_INVOICES, SEED_COMMANDES,
   ALL_STORE_KEYS,
 } from '@/lib/seedData'
+import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 
 const CATEGORIES = [
   { key: 'company',   emoji: '🏢', label: 'Compagnie',            desc: 'Hailite Xteriors — Patrick Bisaillon' },
@@ -107,12 +108,24 @@ export default function DevTools() {
   }
 
   // ── Reset ────────────────────────────────────────────────────────────────
-  const handleReset = () => {
+  const handleReset = async () => {
     const ok = window.confirm(
       '⚠️ Effacer TOUTES les données?\n\nEmployés, clients, documents, punch data, invoices, commandes...\n\nCette action est irréversible.'
     )
     if (!ok) return
     ALL_STORE_KEYS.forEach(key => localStorage.removeItem(key))
+    sessionStorage.clear()
+
+    // Personal single-tenant cloud reset (temporary until company_id architecture).
+    if (isSupabaseConfigured) {
+      await Promise.allSettled([
+        supabase.from('employees').delete().neq('id', ''),
+        supabase.from('clients').delete().neq('id', ''),
+        supabase.from('documents').delete().neq('id', ''),
+        supabase.from('projects').delete().neq('id', ''),
+        supabase.from('day_details').delete().neq('id', ''),
+      ])
+    }
     setStatus('reset')
     setTimeout(() => window.location.reload(), 400)
   }
