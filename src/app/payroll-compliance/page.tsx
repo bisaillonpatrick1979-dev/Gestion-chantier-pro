@@ -18,7 +18,7 @@ import {
 
 const RULE_VERSION = '2026.01'
 const EFFECTIVE_DATE = PAYROLL_LAST_UPDATED
-const NEXT_REVIEW = '2026-01-02'
+const NEXT_REVIEW = '2026-07-01'
 
 type VerifyStatus = 'ok' | 'warning' | 'error'
 type VerifyItem = { labelFr: string; labelEn: string; status: VerifyStatus; actual: string; expected: string }
@@ -35,12 +35,13 @@ function runRulesVerification(): VerifyReport {
   const badRegionData = Object.values(CANADA_PROVINCES).filter(region => !region.brackets?.length || region.basicPersonalAmount <= 0)
   const today = new Date()
   const nextUpdateDate = new Date(`${PAYROLL_NEXT_UPDATE}T00:00:00`)
+  const expectedNextUpdate = NEXT_REVIEW
 
   const items: VerifyItem[] = [
     makeItem('Année des règles installées', 'Installed rules year', PAYROLL_YEAR === 2026, PAYROLL_YEAR, 2026),
     makeItem('Version du paquet local', 'Local package version', RULE_VERSION === '2026.01', RULE_VERSION, '2026.01'),
     makeItem('Date de mise à jour locale', 'Local update date', PAYROLL_LAST_UPDATED === '2026-01-01', PAYROLL_LAST_UPDATED, '2026-01-01'),
-    makeItem('Prochaine mise à jour locale', 'Local next update', PAYROLL_NEXT_UPDATE === '2027-01-01', PAYROLL_NEXT_UPDATE, '2027-01-01'),
+    makeItem('Prochaine mise à jour locale', 'Local next update', String(PAYROLL_NEXT_UPDATE) === expectedNextUpdate, PAYROLL_NEXT_UPDATE, expectedNextUpdate),
     makeItem('Calendrier non expiré', 'Calendar not expired', today < nextUpdateDate, today.toISOString().slice(0, 10), PAYROLL_NEXT_UPDATE, true),
     makeItem('RPC/CPP employé', 'CPP employee rate', near(CANADA_FEDERAL.cpp.employeeRate, 0.0595), CANADA_FEDERAL.cpp.employeeRate, 0.0595),
     makeItem('RPC/CPP employeur', 'CPP employer rate', near(CANADA_FEDERAL.cpp.employerRate, 0.0595), CANADA_FEDERAL.cpp.employerRate, 0.0595),
@@ -150,7 +151,7 @@ export default function PayrollCompliancePage() {
 
         <section className="rounded-3xl p-5 bg-white/5 border border-white/10 text-white space-y-3">
           <h2 className="text-lg font-black">🔄 {t('Vérification réelle des règles', 'Real rules verification')}</h2>
-          <p className="text-white/65 text-sm leading-relaxed">{t('Ce bouton compare maintenant les règles installées dans l’application avec le manifeste de conformité local 2026.01. Il ne fait plus seulement enregistrer une date.', 'This button now compares the rules installed in the app against the local 2026.01 compliance manifest. It no longer only records a date.')}</p>
+          <p className="text-white/65 text-sm leading-relaxed">{t('Ce bouton compare maintenant les règles installées dans l’application avec le manifeste de conformité local 2026.01.', 'This button now compares the rules installed in the app against the local 2026.01 compliance manifest.')}</p>
           <button onClick={verifyRules} className="w-full rounded-2xl p-4 bg-cyan-500/20 border border-cyan-300/40 text-cyan-100 font-black">{t('Lancer la vérification complète', 'Run full verification')}</button>
           {verification && (
             <div className="rounded-2xl p-4 bg-black/20 border border-white/10 space-y-2">
