@@ -77,7 +77,7 @@ export const useClientStore = create<ClientStore>()(
         set({ isSyncing: true })
         try {
           const remote = await fetchClientsFromSupabase()
-          if (remote && remote.length > 0) {
+          if (remote !== null) {
             set({ clients: remote })
           }
           set({ lastSync: new Date().toISOString() })
