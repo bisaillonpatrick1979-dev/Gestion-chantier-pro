@@ -163,6 +163,8 @@ export const useDocumentStore = create<DocumentStore>()(
         set({ isSyncing: true })
         try {
           const remote = await fetchDocumentsFromSupabase()
+          // Important: an empty Supabase table must clear stale local demo/dev data.
+          // null means Supabase is not configured or the fetch failed, so we keep local data.
           if (remote !== null) {
             set({ documents: remote })
           }
