@@ -9,8 +9,10 @@ export default function OnboardingGuard() {
   const pathname      = usePathname()
 
   useEffect(() => {
-    // Redirige vers l'onboarding si pas complété et pas déjà sur la page
-    if (!completed && pathname !== '/onboarding') {
+    const publicPaths = ['/onboarding', '/recovery']
+
+    // Redirige vers l'onboarding si pas complété, sauf pour la récupération d'accès.
+    if (!completed && !publicPaths.includes(pathname)) {
       router.replace('/onboarding')
     }
   }, [completed, pathname, router])

@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { useEmployeeStore } from '@/store/useEmployeeStore'
 import { useThemeStore } from '@/store/useThemeStore'
 import { useGoalStore, xpForLevel } from '@/store/useGoalStore'
@@ -19,6 +20,7 @@ import {
   DecoBackground, DecoDiamondRow, DecoFlower, DecoStarRow,
 } from '@/components/DecoElements'
 import { AmbientEmbers, InfernoFlames, InfernoPunchWrapper } from '@/components/ui/InfernoEffects'
+import { RECOVERY_MESSAGE_KEY, restoreAdminAccess } from '@/lib/recovery'
 
 type Screen = 'select' | 'pin' | 'dashboard'
 
@@ -349,6 +351,7 @@ export default function HomePage() {
   const [tempGoal, setTempGoal]           = useState('')
   const [showCelebration, setShowCelebration] = useState(false)
   const [payslipEmployeeId, setPayslipEmployeeId] = useState<string | null>(null)
+  const [recoveryMessage, setRecoveryMessage] = useState('')
 
   const prevRevenueRef = useRef(0)
 
@@ -361,6 +364,15 @@ export default function HomePage() {
   const goal             = currentEmployeeId ? getGoal(currentEmployeeId) : null
   const goalPct          = goal ? Math.min(100, (goal.currentAmount / goal.targetAmount) * 100) : 0
   const xpToNext         = goal ? xpForLevel(goal.level + 1) - goal.xpPoints : 0
+
+  useEffect(() => {
+    const message = localStorage.getItem(RECOVERY_MESSAGE_KEY)
+    if (!message) return
+    setRecoveryMessage(message)
+    localStorage.removeItem(RECOVERY_MESSAGE_KEY)
+    const timer = setTimeout(() => setRecoveryMessage(''), 7000)
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     if (!goal || !currentEmployeeId) return
@@ -381,6 +393,11 @@ export default function HomePage() {
   }
 
   const handleSelectEmployee = (id: string) => { setSelectedId(id); setPin(''); setPinError(false); setScreen('pin') }
+  const handleContinueAdminLocal = () => {
+    restoreAdminAccess()
+    setScreen('dashboard')
+    setRecoveryMessage(t('Accès restauré. Configurez un nouveau PIN dans Réglages.', 'Access restored. Configure a new PIN in Settings.'))
+  }
   const handlePinDigit = (digit: string) => {
     if (pin.length >= 4) return
     const newPin = pin + digit; setPin(newPin)
@@ -463,6 +480,7 @@ export default function HomePage() {
           <><DecoOrnament opacity={0.12}/><div style={{ textAlign: 'center' }}><h1 className="metal-text" style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '4px' }}>HAILITE XTERIORS</h1><DecoDiamondRow count={5} opacity={0.3}/></div></>
         )}
         <DecoSeparator opacity={isXP ? 0.1 : 0.25}/>
+        {recoveryMessage && <div style={{ border: '1px solid rgba(34,197,94,.35)', background: 'rgba(34,197,94,.12)', color: '#22c55e', borderRadius: '12px', padding: '12px', fontSize: '13px', fontWeight: 800, textAlign: 'center' }}>{recoveryMessage}</div>}
         <div style={{ display: 'grid', gridTemplateColumns: employees.filter(e => e.active).length > 3 ? '1fr 1fr' : '1fr', gap: '10px' }}>
           {employees.filter(e => e.active).map((emp, idx) => {
             const empGoal = getGoal(emp.id)
@@ -495,6 +513,17 @@ export default function HomePage() {
             )
           })}
         </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+          <button onClick={handleContinueAdminLocal} style={{ border: '1px solid rgba(245,158,11,.45)', background: 'rgba(245,158,11,.12)', color: '#f59e0b', borderRadius: '12px', padding: '12px', fontSize: '13px', fontWeight: 900 }}>
+            {t('Continuer en admin local', 'Continue as local admin')}
+          </button>
+          <Link href="/recovery" style={{ border: '1px solid rgba(96,165,250,.35)', background: 'rgba(96,165,250,.10)', color: '#93c5fd', borderRadius: '12px', padding: '12px', fontSize: '13px', fontWeight: 900, textAlign: 'center', textDecoration: 'none' }}>
+            {t('Mode récupération admin', 'Admin recovery mode')}
+          </Link>
+          <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+            {t('QR code à venir / non activé pour la connexion. Biométrie à venir via Passkey / Face ID / verrouillage appareil.', 'QR code coming soon / not enabled for login. Biometrics coming via Passkey / Face ID / device lock.')}
+          </p>
+        </div>
         {isXP ? (
           <p style={{ textAlign: 'center', fontSize: '10px', letterSpacing: '2px', color: '#4c1d95', fontWeight: 700 }}>🎮 CHOISISSEZ VOTRE PERSONNAGE</p>
         ) : (
@@ -515,6 +544,11 @@ export default function HomePage() {
           {[0,1,2,3].map(i => (<div key={i} style={{ width: '20px', height: '20px', borderRadius: isXP ? '5px' : '50%', background: pin.length > i ? pinError ? '#ef4444' : (isXP ? '#a855f7' : 'var(--primary)') : (isXP ? 'rgba(168,85,247,0.12)' : 'var(--surface)'), border: `2px solid ${pinError ? '#ef4444' : isXP ? 'rgba(168,85,247,0.4)' : 'var(--border)'}`, transition: 'all 0.2s', boxShadow: pin.length > i ? isXP ? '0 0 14px rgba(168,85,247,0.8)' : '0 0 12px var(--primary)' : 'none' }}/>))}
         </div>
         {pinError && <p style={{ color: '#ef4444', fontSize: '13px' }}>{t('PIN incorrect', 'Incorrect PIN')}</p>}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', width: '100%', maxWidth: '280px' }}>
+          <button onClick={() => setPin('')} style={{ border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', borderRadius: '12px', padding: '10px', fontSize: '13px', fontWeight: 800 }}>{t('Utiliser PIN', 'Use PIN')}</button>
+          <button onClick={handleContinueAdminLocal} style={{ border: '1px solid rgba(245,158,11,.45)', background: 'rgba(245,158,11,.12)', color: '#f59e0b', borderRadius: '12px', padding: '10px', fontSize: '13px', fontWeight: 900 }}>{t('Continuer en admin local', 'Continue as local admin')}</button>
+          <Link href="/recovery" style={{ border: '1px solid rgba(96,165,250,.35)', background: 'rgba(96,165,250,.10)', color: '#93c5fd', borderRadius: '12px', padding: '10px', fontSize: '13px', fontWeight: 900, textAlign: 'center', textDecoration: 'none' }}>{t('Mode récupération', 'Recovery mode')}</Link>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', width: '100%', maxWidth: '280px' }}>
           {['1','2','3','4','5','6','7','8','9'].map((d) => (
             <button key={d} onClick={() => handlePinDigit(d)} style={{ height: '66px', borderRadius: isXP ? '12px' : '10px', cursor: 'pointer', border: isXP ? '1px solid rgba(168,85,247,0.2)' : '1px solid var(--border)', background: isXP ? 'rgba(17,7,40,0.9)' : 'var(--card)', color: isXP ? '#e9d5ff' : 'var(--text)', fontSize: '24px', fontWeight: 700, boxShadow: isXP ? '0 0 8px rgba(168,85,247,0.12)' : 'none' }}>{d}</button>
