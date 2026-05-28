@@ -1,4 +1,5 @@
 export const BACKUP_VERSION = '1.0'
+export const BACKUP_SCHEMA_VERSION = '2026.supabase.beta.1'
 
 const STORAGE_KEYS = [
   'employee-store-v1',
@@ -28,6 +29,9 @@ export function buildBackupPayload() {
   return {
     app: 'Gestion Chantier Pro',
     version: BACKUP_VERSION,
+    schemaVersion: BACKUP_SCHEMA_VERSION,
+    company_id: typeof window !== 'undefined' ? window.localStorage.getItem('gcp-active-company-id') : null,
+    installation_id: typeof window !== 'undefined' ? window.localStorage.getItem('gcp-installation-id') : null,
     exportedAt: new Date().toISOString(),
     storage: data,
   }

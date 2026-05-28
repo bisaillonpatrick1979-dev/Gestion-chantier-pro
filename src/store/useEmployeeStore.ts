@@ -7,8 +7,8 @@ import {
   fetchEmployeesFromSupabase,
   syncDayDetailToSupabase,
   fetchDayDetailsFromSupabase,
+  deleteEmployeeFromSupabase,
 } from '@/lib/sync'
-import { supabase } from '@/lib/supabase'
 
 interface EmployeeStore {
   employees: Employee[]
@@ -84,11 +84,7 @@ export const useEmployeeStore = create<EmployeeStore>()(
         if (id === 'admin') return
         const newEmployees = get().employees.filter(e => e.id !== id)
         set({ employees: newEmployees })
-        try {
-          await supabase.from('employees').delete().eq('id', id)
-        } catch (e) {
-          console.error('deleteEmployee supabase delete error:', e)
-        }
+        await deleteEmployeeFromSupabase(id)
         await syncEmployeesToSupabase(cloudEmployees(newEmployees))
       },
 
