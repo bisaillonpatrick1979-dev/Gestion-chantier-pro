@@ -30,7 +30,15 @@ const CATEGORIES = [
 type CategoryKey = typeof CATEGORIES[number]['key']
 type Selection = Record<CategoryKey, boolean>
 
+const DEVTOOLS_ENABLED =
+  process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_ENABLE_DEVTOOLS === 'true'
+
 export default function DevTools() {
+  if (!DEVTOOLS_ENABLED) return null
+  return <DevToolsPanel />
+}
+
+function DevToolsPanel() {
   const { currentEmployeeId, employees } = useEmployeeStore()
   const [open, setOpen]     = useState(false)
   const [status, setStatus] = useState<'idle' | 'loading' | 'loaded' | 'reset'>('idle')
