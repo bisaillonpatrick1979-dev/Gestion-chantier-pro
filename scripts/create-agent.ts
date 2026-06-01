@@ -3,7 +3,7 @@
  *   npm run create-agent
  *
  * Crée l'environnement et l'agent Managed Agents pour Gestion Chantier Pro.
- * Après l'exécution, copiez AGENT_ID et ENVIRONMENT_ID dans votre .env.local
+ * Après l'exécution, copiez ANTHROPIC_AGENT_ID et ANTHROPIC_ENVIRONMENT_ID dans votre .env.local
  */
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -68,8 +68,8 @@ async function main() {
   console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("📋 Ajoutez ces variables dans votre .env.local :");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
-  console.log(`AGENT_ID=${agent.id}`);
-  console.log(`ENVIRONMENT_ID=${environment.id}`);
+  console.log(`ANTHROPIC_AGENT_ID=${agent.id}`);
+  console.log(`ANTHROPIC_ENVIRONMENT_ID=${environment.id}`);
   console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("⚠️  VAULT_ID est optionnel — requis seulement si vous utilisez");
   console.log("   l'authentification OAuth pour GitHub/Supabase/Vercel MCP.");
