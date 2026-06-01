@@ -1,8 +1,14 @@
 import type { NextRequest } from 'next/server'
 
-type ConversationMessage = {
-  role: 'user' | 'assistant'
-  content: string
+const ANTHROPIC_API = 'https://api.anthropic.com'
+
+function headers(apiKey: string, json = true) {
+  return {
+    ...(json ? { 'Content-Type': 'application/json' } : {}),
+    'x-api-key': apiKey,
+    'anthropic-version': '2023-06-01',
+    'anthropic-beta': 'managed-agents-2026-04-01',
+  }
 }
 
 type UserContext = {
@@ -11,87 +17,83 @@ type UserContext = {
   page?: string
 }
 
-const SYSTEM_PROMPT = `Tu es l'agent IA de Gestion Chantier Pro, l'application de gestion de chantier pour Hailite Xteriors.
-
-Tu aides les employés terrain et les administrateurs avec :
-- Punch in/out : suivi du temps, chronomètre, modes de travail (à l'heure, au pied carré, à la job)
-- Paie et salaires : calcul des heures, des revenus, des retenues, employés salariés vs sous-contractants
-- Chantiers et projets : planification, suivi de l'avancement, problèmes techniques sur le terrain
-- Matériaux : listes détaillées, prix estimés, quantités nécessaires, fournisseurs, options alternatives
-- Ingénierie de construction : solutions techniques, codes du bâtiment, résolution de problèmes de chantier
-- Facturation et comptabilité : invoices, gestion clients, suivi des paiements
-- Catalogue : produits et services de la compagnie
-- Motivation d'équipe : objectifs, challenges, récompenses
-
-Réponds toujours en français, de façon claire et pratique.
-Si un employé terrain pose une question, adapte ta réponse pour quelqu'un sur le chantier — court, direct, actionnable.
-Si c'est un administrateur, donne des réponses plus détaillées côté gestion et comptabilité.
-Pour les questions de matériaux ou d'ingénierie, donne des listes précises avec des chiffres concrets.`
+async function createSession(apiKey: string, agentId: string, environmentId?: string, vaultId?: string) {
+  const res = await fetch(`${ANTHROPIC_API}/v1/sessions`, {
+    method: 'POST',
+    headers: headers(apiKey),
+    body: JSON.stringify({
+      environment_id: environmentId,
+      agent: { type: 'agent', id: agentId },
+      vault_ids: vaultId ? [vaultId] : [],
+    }),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  const data = await res.json()
+  return data.id as string
+}
 
 export async function POST(request: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY
+  const agentId = process.env.ANTHROPIC_AGENT_ID
+  const environmentId = process.env.ANTHROPIC_ENVIRONMENT_ID
+  const vaultId = process.env.ANTHROPIC_VAULT_ID
 
-  if (!apiKey) {
+  if (!apiKey || !agentId) {
     return Response.json(
-      { error: 'ANTHROPIC_API_KEY non configurée. Ajoutez-la dans Vercel → Settings → Environment Variables.' },
+      { error: 'ANTHROPIC_API_KEY et ANTHROPIC_AGENT_ID requis dans Vercel → Environment Variables.' },
       { status: 500 }
     )
   }
 
-  let body: { message: string; history?: ConversationMessage[]; userContext?: UserContext }
+  let body: { message: string; sessionId?: string; userContext?: UserContext }
   try {
     body = await request.json()
   } catch {
     return Response.json({ error: 'Corps de requête invalide' }, { status: 400 })
   }
 
-  const { message, history = [], userContext } = body
-
-  if (!message?.trim()) {
-    return Response.json({ error: 'Message vide' }, { status: 400 })
-  }
-
-  // Append user context to system prompt
-  let system = SYSTEM_PROMPT
-  if (userContext) {
-    const label = userContext.role === 'admin' ? 'Administrateur' : 'Employé terrain'
-    system += `\n\nUtilisateur actuel : ${label}${userContext.name ? ` — ${userContext.name}` : ''}${userContext.page ? ` (page: ${userContext.page})` : ''}.`
-  }
-
-  // Build messages: keep last 20 turns to avoid token limits
-  const messages: ConversationMessage[] = [
-    ...history.slice(-20),
-    { role: 'user', content: message.trim() },
-  ]
+  const { message, sessionId, userContext } = body
+  if (!message?.trim()) return Response.json({ error: 'Message vide' }, { status: 400 })
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2048,
-        stream: true,
-        system,
-        messages,
-      }),
-    })
-
-    if (!res.ok || !res.body) {
-      const err = await res.text().catch(() => 'Erreur Anthropic')
-      return Response.json({ error: err }, { status: res.status || 500 })
+    // Crée une session si on n'en a pas
+    let sid = sessionId
+    if (!sid) {
+      sid = await createSession(apiKey, agentId, environmentId, vaultId)
     }
 
-    return new Response(res.body, {
+    // Préfixe de contexte utilisateur
+    const ctx = userContext
+      ? `[${userContext.role === 'admin' ? 'Admin' : 'Employé'}${userContext.name ? ` — ${userContext.name}` : ''}${userContext.page ? ` — ${userContext.page}` : ''}]\n`
+      : ''
+
+    // Envoie le message à l'agent
+    const evtRes = await fetch(`${ANTHROPIC_API}/v1/sessions/${sid}/events`, {
+      method: 'POST',
+      headers: headers(apiKey),
+      body: JSON.stringify({ events: [{ type: 'user', text: ctx + message.trim() }] }),
+    })
+    if (!evtRes.ok) {
+      const err = await evtRes.text()
+      return Response.json({ error: `Envoi: ${err}` }, { status: evtRes.status })
+    }
+
+    // Ouvre le flux SSE et le proxie au client
+    const stream = await fetch(`${ANTHROPIC_API}/v1/sessions/${sid}/events/stream`, {
+      headers: { ...headers(apiKey, false), Accept: 'text/event-stream' },
+    })
+    if (!stream.ok || !stream.body) {
+      const err = await stream.text().catch(() => 'stream indisponible')
+      return Response.json({ error: err, sessionId: sid }, { status: stream.status || 500 })
+    }
+
+    return new Response(stream.body, {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
         'X-Accel-Buffering': 'no',
+        'X-Session-Id': sid,
       },
     })
   } catch (err) {

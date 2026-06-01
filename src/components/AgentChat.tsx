@@ -11,14 +11,9 @@ type Message = {
   content: string
 }
 
-type ApiMessage = {
-  role: 'user' | 'assistant'
-  content: string
-}
-
 const WELCOME = 'Bonjour ! 👷 Je suis l\'agent IA de Chantier Pro.\n\nPose-moi n\'importe quelle question : paie, matériaux, chantier, prix, punch, facturation...'
 
-// Parse the standard Anthropic streaming SSE format (content_block_delta events)
+// Parse Anthropic Managed Agents SSE events
 function parseSSEChunk(chunk: string): string {
   let result = ''
   const lines = chunk.split('\n')
@@ -28,14 +23,19 @@ function parseSSEChunk(chunk: string): string {
     if (!data || data === '[DONE]') continue
     try {
       const event = JSON.parse(data) as Record<string, unknown>
-      if (event.type === 'content_block_delta') {
+      const type = event.type as string | undefined
+      // Managed Agents format
+      if (type === 'assistant' || type === 'text') {
+        result += (event.text ?? event.content ?? '') as string
+      } else if (type === 'content_block_delta') {
         const delta = event.delta as Record<string, unknown> | undefined
-        if (delta?.type === 'text_delta') {
-          result += (delta.text ?? '') as string
-        }
+        if (delta?.type === 'text_delta') result += (delta.text ?? '') as string
+        else result += (delta?.text ?? '') as string
+      } else if (typeof event.text === 'string') {
+        result += event.text
       }
     } catch {
-      // skip non-JSON lines (event: lines, pings, etc.)
+      // skip non-JSON lines
     }
   }
   return result
@@ -48,6 +48,7 @@ export default function AgentChat() {
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -65,16 +66,6 @@ export default function AgentChat() {
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 100)
   }, [open])
-
-  // Build API history from displayed messages (excluding welcome, converting roles)
-  function buildHistory(): ApiMessage[] {
-    return messages
-      .filter((m) => m.id !== 'welcome' && m.content.trim())
-      .map((m) => ({
-        role: m.role === 'user' ? 'user' : 'assistant',
-        content: m.content,
-      }))
-  }
 
   async function sendMessage() {
     const text = input.trim()
@@ -97,7 +88,7 @@ export default function AgentChat() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
-          history: buildHistory(),
+          sessionId,
           userContext: {
             role: currentEmployee ? 'employee' : 'admin',
             name: (currentEmployee as { name?: string } | undefined)?.name ?? 'Administrateur',
@@ -105,6 +96,9 @@ export default function AgentChat() {
           },
         }),
       })
+
+      const newSid = res.headers.get('X-Session-Id')
+      if (newSid) setSessionId(newSid)
 
       if (!res.ok || !res.body) {
         const err = await res.text().catch(() => 'Erreur inconnue')
