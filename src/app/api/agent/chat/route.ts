@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: baseHeaders(apiKey),
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-4-6',
         max_tokens: 2048,
         stream: true,
         system: systemPrompt,
