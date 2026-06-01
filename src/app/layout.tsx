@@ -11,6 +11,7 @@ import PWARegister from '@/components/PWARegister'
 import ThemeInjector from '@/components/ThemeInjector'
 import DevTools from '@/components/DevTools'
 import SyncManager from '@/components/SyncManager'
+import AgentChat from '@/components/AgentChat'
 
 export const metadata: Metadata = {
   title: 'Gestion Chantier Pro',
@@ -61,6 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PayrollManifestWatcher />
         <PayrollComplianceFloatingLink />
         <BottomNav />
+        <AgentChat />
         <DevTools />
       </body>
     </html>
